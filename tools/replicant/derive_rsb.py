@@ -101,6 +101,11 @@ def _tidy(e):
 
 def _reduce(F, frozen):
     n, rules, conds = F.n, [], []
+    for func, _ in D.RS_RULES:           # an additively registered formal term (derive_margin)
+        if sp.sympify(F.energy).has(func):
+            raise Refusal(f"not-implemented:1rsb:{func.__name__}",
+                          f"the 1RSB reduction has no rule for {func.__name__} (the margin-law "
+                          "perceptron is derived at RS only)")
     lv0 = {F.q: Q0, **({F.qhat: QH0} if F.conjugate else {})}
     lv1 = {F.q: sp.S(1) if frozen else Q1,
            **({F.qhat: sp.S(0) if frozen else QH1} if F.conjugate else {})}

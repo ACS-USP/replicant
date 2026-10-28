@@ -45,6 +45,7 @@ m_a of a Reduction) still needs the Functional and the RS step to grow.
 """
 import inspect
 import itertools
+import types
 from dataclasses import dataclass
 from typing import Callable
 
@@ -67,6 +68,11 @@ H_FIELD = sp.Symbol("h", real=True)
 # lambda ~ N(0, C) with C_aa = 1, C_ab = c.  Both stay formal until rs_ansatz.
 LogDet = sp.Function("LogDet")
 LnGaussProd = sp.Function("LnGaussProd")
+# Extension points of an additively registered formal term (derive_margin.py): a list of
+# (formal function, handler); rs_ansatz calls handler(term, ctx) with ctx.rs, ctx.free_of_indices,
+# ctx.rules, derive_replicon calls handler(term, Functional) -> (GaussReplicon | None, why).
+RS_RULES = []
+REPLICON_RULES = []
 # RS order parameters (q in [0, 1]; qhat >= 0 is the Hubbard-Stratonovich condition)
 Q_RS = sp.Symbol("q", positive=True)
 QHAT_RS = sp.Symbol("qhat", positive=True)
@@ -578,6 +584,9 @@ def _rs_reduce(F):
                   lambda x: site(x.args[0]))
     e = e.replace(lambda x: x.func == LogDet, logdet)
     e = e.replace(lambda x: x.func == LnGaussProd, gprod)
+    ctx = types.SimpleNamespace(rs=rs, free_of_indices=free_of_indices, rules=rules)
+    for func, handler in RS_RULES:
+        e = e.replace(lambda x, f=func: x.func == f, lambda x, h=handler: h(x, ctx))
     e = e.replace(lambda x: isinstance(x, sp.Sum), rsum)
     if e.atoms(sp.Indexed) or e.has(Tr):
         raise Refusal("precondition:rs-reducible", f"left over after RS: {e}")

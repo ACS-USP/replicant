@@ -15,7 +15,7 @@ them with mpmath, so 0.1 is not rounded through a binary float); true/false -> b
 comma list (a trailing comma makes a 1-list: ys=0.3,) -> tuple of those; anything else
 stays a string (e.g. learning=bayes).  spec.json: {"family", "variables",
 "disorder", "constraint", "prior", "params"}; a param given as null is left symbolic
-(beta, h, alpha, kappa: the derivation's own symbols); numbers are run parameters.
+(beta, h, alpha, kappa, kappa_s: the derivation's own symbols); numbers are run parameters.
 --param ansatz=... is an entry parameter for catalog entries (v1: sk replica `ansatz=1rsb`
 runs the family 1RSB pipeline, viana_bray cavity the 1RSB population); for a spec that is not
 a catalog entry `ansatz=1rsb` selects the level-(a) 1RSB route (compose.compose(...,
@@ -44,10 +44,12 @@ from .catalog import catalog
 from .compose import compose
 from .core import Refusal
 from .derive_families import ALPHA, KAPPA
+from .derive_margin import KAPPA_S
 from .latex import OverfullDisplay, write_latex
 from .spec import ModelSpec
 
-_SYMBOLS = {"beta": D.BETA, "h": D.H_FIELD, "alpha": ALPHA, "kappa": KAPPA}
+_SYMBOLS = {"beta": D.BETA, "h": D.H_FIELD, "alpha": ALPHA, "kappa": KAPPA,
+            "kappa_s": KAPPA_S}
 
 
 def _number(text):

@@ -40,5 +40,11 @@
     "tol": "5e-4",
     "cite": "Opper & Haussler, Phys. Rev. Lett. 66, 2677 (1991) (original not fetched); read from Buhot, Torres Moreno & Gordon, arXiv:cond-mat/9703183, Sec. I: 'the bayesian generalization error vanishes like eps_g ~ 0.442/alpha, in the limit of large alpha'; their Eq. (15a) is the Gibbs equation with R_Gibbs = R_Bayes^2 (citing Opper & Haussler). tol = 3-digit rounding",
     "independent_route": "replicant: R_Bayes = sqrt(R_Gibbs) on our own Gibbs saddle, alpha * arccos(sqrt(R))/pi at alpha = 100, 1000 approaches the closed form 1/I (0.441700...)"
+  },
+  "margin_law_collapse": {
+    "value": "0",
+    "tol": "1e-13",
+    "cite": "INTERNAL IDENTITY, not a literature number.  Gaussian margin offset kappa_l = mu + s g (g ~ N(0,1) quenched): at q -> 1 alpha_c(law) = 1/E_g D(mu + s g) = alpha_c^catalog(kappa~)/(1 + s^2), kappa~ = mu/sqrt(1 + s^2), D(k) = (1 + k^2) H(-k) + k phi(k). In the (a, h) form of constraints a g_l + b y_l <= h, a^2 + b^2 = 1: alpha_eff = alpha/(1 - a^2), kappa~ = -h. Derived in tools/replicant/families/margin_law.py (module docstring) and stated, with the same collapse, in the manuscript limit-fig2-paper main.tex, Appendix 'Replica theory for random documents', paragraph 'Reduction to a perceptron' (Eq. gardner and the sentence 'Since a g - b z is itself a standard Gaussian...'; read, local manuscript, not published). The banked number is the residual |alpha_c(law)(1 + s^2) - alpha_c^catalog(kappa~)| at mu = -0.5, s = 0.75 (kappa~ = -0.4, alpha_c ~ 2.54). tol 1e-13 covers float rounding at the default 15 digits (the test battery checks 1e-15 at 20 digits for eight (a, h) pairs)",
+    "independent_route": "law_capacity integrates E_kappa D(kappa) over the Gaussian law by tanh-sinh quadrature in g and never uses the collapse; gardner_capacity('spherical', kappa~) is the closed form 1/D(kappa~); a third route, the unmerged two-dimensional (t, g) Gauss-Hermite alpha(q) of families/margin_law.alpha_unmerged, and a fourth, finite-N least-norm sampling (numerics/margin_perceptron.py), are in tests/test_margin_law.py"
   }
 }

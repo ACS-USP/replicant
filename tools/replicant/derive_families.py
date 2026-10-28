@@ -30,6 +30,10 @@ J.xi^mu/sqrt(N) >= kappa (families/perceptron.py conventions).  spec.variables:
     exactly, for Gaussian xi at fixed J; P = alpha N independent patterns give
     (1/N) ln E V^n = site + alpha ln E_lambda prod_a g(lambda_a)
     (the formal LnGaussProd(g, q_ab, n)).
+  constraint "margin kappa law" (derive_margin.py): the margin kappa_l is drawn per pattern from a law
+    (kappa_law, kappa, kappa_s | kappa_weights, kappa_values); the pattern term is then
+    alpha LnGaussProdLaw(g, q_ab, n, law), g(lambda, kappa) = Theta(lambda - kappa), the kappa average outside the
+    replica product; its RS rule and its replicon rule are registered in derive.RS_RULES / REPLICON_RULES.
 Hopfield (Amit-Gutfreund-Sompolinsky 1987), spec.params alpha, beta; +-1 patterns:
   H = -(1/2N) sum_mu (sum_i xi_i^mu s_i)^2 (i = j terms kept: a constant -p/2).
   hand-supplied: the condensed pattern, gauged to xi^1 = +1 (exact for +-1) and
@@ -47,6 +51,7 @@ from dataclasses import dataclass
 import sympy as sp
 
 from . import derive as D
+from . import derive_margin as M
 from .core import Refusal
 from .spec import ModelSpec
 
@@ -65,6 +70,7 @@ class PatternAverage:
     weight: sp.Lambda
     note: str
     dropped: sp.Expr = sp.S(0)
+    law: object = None          # formal margin law (derive_margin) or None: a constant kappa
 
 
 def _symbolic_n(zn):
@@ -84,6 +90,8 @@ def _no_annealed(spec, N):
 def _perceptron_formal(n, beta, spec=None):
     """Display only: the formal V^n stored as the trace's Zn."""
     kappa = spec.params.get("kappa", KAPPA) if spec else KAPPA
+    if spec is not None and spec.constraint == M.CONSTRAINT:
+        kappa = sp.IndexedBase("kappa")[_mu]              # one margin per pattern
     J, xi = sp.IndexedBase("J"), sp.IndexedBase("xi")
     field = sp.Sum(J[_i, D._a] * xi[_mu, _i], (_i, 1, D.N_SYM)) / sp.sqrt(D.N_SYM)
     return sp.Function("Tr_J")(sp.Product(sp.Heaviside(field - kappa),
@@ -94,6 +102,14 @@ def _perceptron_average(zn) -> PatternAverage:
     _symbolic_n(zn)
     p = zn.spec.params
     kappa, alpha = p.get("kappa", KAPPA), p.get("alpha", ALPHA)
+    if zn.spec.constraint == M.CONSTRAINT:
+        law, g = M.spec_law(zn.spec), M.weight()          # hand-supplied constraint and law
+        note = ("Gaussian patterns (hook asserts, not mechanised): lambda_a = J^a.xi/sqrt(N) "
+                "jointly Gaussian, covariance Q_ab = J^a.J^b/N (exact at fixed J); P = alpha N iid "
+                "patterns, each with its own margin kappa_l iid from the law (hand-supplied), "
+                f"law = {law} -> alpha ln E_kappa E_lambda prod_a g(lambda_a, kappa), g = "
+                f"{g.expr} (hand-supplied); the kappa average sits outside the replica product")
+        return PatternAverage(zn.spec, zn.n, alpha, g, note, law=law)
     g = sp.Lambda(_LAM, sp.Heaviside(_LAM - kappa))       # hand-supplied constraint
     note = ("Gaussian patterns (hook asserts, not mechanised): lambda_a = J^a.xi/sqrt(N) "
             "jointly Gaussian, covariance Q_ab = J^a.J^b/N (exact at fixed J); "
@@ -104,7 +120,9 @@ def _perceptron_average(zn) -> PatternAverage:
 
 def _gauss_prod_reduction(avg, n, extra_energy=0, field=0, extra=None, missing=None):
     q, _, _ = D._overlap_symbols(n)
-    energy = extra_energy + avg.alpha * D.LnGaussProd(avg.weight, q[D._a, D._b], n)
+    term = (D.LnGaussProd(avg.weight, q[D._a, D._b], n) if avg.law is None
+            else M.LnGaussProdLaw(avg.weight, q[D._a, D._b], n, avg.law))
+    energy = extra_energy + avg.alpha * term
     return D.Reduction(energy, sp.S(0), missing, field=field, extra=extra)
 
 
@@ -152,7 +170,7 @@ def _hopfield_order_parameters(avg, n, sum_pairs):
 D.FAMILIES["perceptron"] = D.Family(
     _perceptron_formal, _no_annealed, lambda d: d == "gaussian",
     _perceptron_average, _perceptron_order_parameters, variables=("spherical", "ising"),
-    constraints=("margin kappa",))
+    constraints=("margin kappa", M.CONSTRAINT))
 D.FAMILIES["hopfield"] = D.Family(
     _hopfield_formal, _no_annealed, lambda d: d == "pm_one",
     _hopfield_average, _hopfield_order_parameters, variables=("ising",))
