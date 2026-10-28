@@ -142,6 +142,24 @@ All notable changes to BootLoops are recorded here. The format follows
   family diagnostics, the finite-R bias and its corrections), all route `sample`, statistical, unequilibrated runs
   labelled `undetermined`; a shared statistics module (tau_int, binning, jackknife, Student-t bands, equilibration
   diagnostic, chi^2). Default tier +0.5 s (ruling: <= 1 s).
+- `replicant` (margin law): the `perceptron` margin kappa can be a LAW, kappa_l drawn iid per pattern and averaged
+  inside the replica integrals (`kappa_law` = constant | gaussian (`kappa`, `kappa_s`) | mixture (`kappa_weights`,
+  `kappa_values`); other laws and stray parameters are refused `precondition:supported-margin-law`). Level (b)
+  (`families/margin_law.py`, spherical): RS saddle, entropy, replicon and the q -> 1 capacity alpha_c = 1/E_kappa D(kappa)
+  with the merged Gaussian x = (m - sqrt(q + s^2) u)/sqrt(1-q), and the unmerged 2-D audit; the catalog `perceptron`
+  entry takes the parameters. Level (a) (`derive_margin.py`, spherical and Ising, RS): constraint `"margin kappa law"`,
+  the formal `LnGaussProdLaw`, derived equations, solve and replicon through the generic steps (additive registries
+  `derive.RS_RULES`, `derive.REPLICON_RULES`); the 1RSB routes refuse it (`not-implemented:1rsb:LnGaussProdLaw`).
+  Banked internal check `reference/perceptron.json` `margin_law_collapse`: the Gaussian offset (constraints a g_l + b y_l
+  <= h, a^2 + b^2 = 1) has alpha_c(law)/(1 - a^2) = the catalog capacity at kappa~ = -h, to 1e-15 for eight (a, h)
+  pairs (an identity at q -> 1; the entropy and replicon below capacity do not collapse). Independent evidence: degenerate
+  laws equal the catalog (capacity 1e-15, replicon 1e-8, observed 1e-17); level (a) equals level (b) (1e-22; the
+  stationarity equations proved equal symbolically); finite-N least-norm sampling (`numerics/margin_perceptron.py`,
+  Lawson-Hanson least-distance programming, the package's finite-size band) brackets the RS capacity; planted controls
+  (wrong merged variance, kappa replaced by its mean, kappa averaged per replica) are each caught. Honest limits in the
+  GUIDE (section MARGIN LAW): spherical only at level (b), physics-level RS, non-convex laws carry the catalog's kappa < 0
+  caveat and the sampling there is the ball threshold. Default tier 685 tests (23 new, about 21 s CPU measured on a
+  loaded machine, not re-measured quiet); full tier 896.
 ### Changed
 - `replicant` (documentation and cleanup, O7): GUIDE (catalog, refusal table, routes, finality notes, hazards,
   every worked example re-run literally on a clean export), README, REFERENCES (every source of the four plans
@@ -161,6 +179,10 @@ All notable changes to BootLoops are recorded here. The format follows
   `heldout_common.py`); no assertion changed. Default battery `python3 tools/replicant/selftest.py`
   425 tests, about 22 s (measured 21.4 s); `--full` 557 tests, about 18 minutes (measured 18 min 11 s). GUIDE, README, REFERENCES and the extension spec's
   as-built notes updated.
+- `replicant` (margin law): `_derived_num.safe` now undoes sympy's own rewrite erfc(-y) -> 2 - erfc(y) where it has
+  already happened (numeric mixture atoms <= 0 make the argument a numeric multiple of the integration variable); exact,
+  no existing result changes. `tests/test_compose.py::test_reference_checks_available_through_result` expects the
+  new banked key `margin_law_collapse` beside `spherical_capacity_kappa0`. `cli._SYMBOLS` gains `kappa_s`.
 
 ### Fixed
 - `replicant` (CLI regression from E2): `--param ansatz` was taken by the level-(a) 1RSB composer for

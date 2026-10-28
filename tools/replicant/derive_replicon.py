@@ -100,6 +100,15 @@ def _energy(F):
     for term in sp.Add.make_args(sp.expand(F.energy)):
         if not term.has(F.q):
             continue
+        rule = next((h for f, h in D.REPLICON_RULES if term.has(f)), None)
+        if rule is not None:                 # a registered formal term (derive_margin.py)
+            r, why = rule(term, F)
+            if r is None:
+                return None, why, (), ""
+            e2, parts = e2 + r.e2, parts + r.parts
+            notes.append(r.note)
+            route.add("gauss-covariance")
+            continue
         if term.has(D.LnGaussProd):
             cg, why = _gauss_term(term, F)
             if cg is None:

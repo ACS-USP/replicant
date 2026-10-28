@@ -28,6 +28,8 @@ from .cavity.dense_hopfield import energy as hopfield_cavity_energy
 from .core import Refusal, Step
 from .families.common import CAVEAT, CAVITY_CAVEAT
 from .families.hopfield import hopfield_alpha_c, hopfield_rs, hopfield_t0
+from .families.margin_law import (collapse, collapse_residual, law_capacity, law_entropy_point,
+                                  parse_margin_law)
 from .families.perceptron import gardner_capacity, gardner_entropy_point
 from .families.rem import rem_1rsb, rem_critical_beta, rem_free_energy
 from .families.parisi import PARISI_CITE, krsb_ground_energy, parisi_ground_energy
@@ -203,8 +205,23 @@ def sk():
 
 
 # ---- spherical perceptron ----------------------------------------------------------------
+def _law_cap(law):
+    """alpha_c of a margin law (families/margin_law.py); a Gaussian offset also reports the
+    collapse to the catalog perceptron (its internal check, reference/perceptron.json)."""
+    c = law_capacity(law)
+    out = {"alpha_c": c.alpha_c, "capacity_replicon": c.replicon, "capacity_stable": c.stable}
+    if law.kind == "gaussian":
+        factor, kt = collapse(law)
+        out.update(collapse_kappa=kt, collapse_alpha_factor=factor,
+                   collapse_residual=collapse_residual(law))
+    return Out(out, c.note)
+
+
 def _gardner_cap(fn):
     def go(p):
+        law = parse_margin_law(p)          # the cavity route does not list kappa_law: None there
+        if law is not None:
+            return _law_cap(law)
         c = fn("spherical", p.get("kappa", 0))
         return Out({"alpha_c": c.alpha_c, "capacity_replicon": c.replicon,
                     "capacity_stable": c.stable}, c.note)
@@ -212,7 +229,9 @@ def _gardner_cap(fn):
 
 
 def _gardner_s(p):
-    S, pt = gardner_entropy_point(p["alpha"], "spherical", p.get("kappa", 0))
+    law = parse_margin_law(p)
+    S, pt = (gardner_entropy_point(p["alpha"], "spherical", p.get("kappa", 0)) if law is None
+             else law_entropy_point(p["alpha"], law))
     if pt is None:              # alpha >= alpha_c: S = -inf, no saddle to test
         return Out(_saddle("rs", None, S=S), "alpha >= alpha_c: empty version space, "
                    "S = -inf; no RS saddle, so no replicon")
@@ -231,7 +250,9 @@ def perceptron():
                stability=s.stability), MEZARD_CITE))
     refs = [RefCheck("perceptron", "spherical_capacity_kappa0", lambda v: v["alpha_c"]),
             RefCheck("perceptron", "spherical_capacity_kappa0", lambda v: v["alpha_c"],
-                     route="cavity")]
+                     route="cavity"),
+            RefCheck("perceptron", "margin_law_collapse", lambda v: v["collapse_residual"],
+                     params={"kappa_law": "gaussian", "kappa": "-0.5", "kappa_s": "0.75"})]
     return entry("perceptron", default_spec("perceptron"), GARDNER_CITE,
                  {"replica": steps, "cavity": cav}, refs,
                  {"replica": CAVEAT, "cavity": CAVITY_CAVEAT},
@@ -245,8 +266,10 @@ def perceptron():
                                if "replicon" in v else ""),
                            "replicon": saddle(GARDNER_CITE.split(";")[0]),
                            "q": saddle(MEZARD_CITE)},
-                 meta=("capacity_replicon", "capacity_stable", "stability"),
-                 parameters={"replica": ("alpha", "kappa"),
+                 meta=("capacity_replicon", "capacity_stable", "stability", "collapse_kappa",
+                       "collapse_alpha_factor", "collapse_residual"),
+                 parameters={"replica": ("alpha", "kappa", "kappa_law", "kappa_s",
+                                         "kappa_weights", "kappa_values"),
                              "cavity": ("alpha", "kappa", "variables")})
 
 

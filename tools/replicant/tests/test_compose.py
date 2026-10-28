@@ -259,7 +259,8 @@ def test_reference_checks_available_through_result():
     res = compose(catalog()["perceptron"].spec).run()
     checks = res.reference_checks()
     assert checks and all(c.ok for c in checks), checks
-    assert {c.key for c in checks} == {"spherical_capacity_kappa0"}
+    # the capacity at kappa = 0, and the internal Gaussian-offset collapse (margin_law_collapse)
+    assert {c.key for c in checks} == {"spherical_capacity_kappa0", "margin_law_collapse"}
 
 
 # ---- run parameters of catalog entries (final review, Important 1) ----------------------

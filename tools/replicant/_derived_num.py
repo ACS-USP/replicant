@@ -20,7 +20,8 @@
                    no-convergence:quadrature (a value is never returned unchecked)
   safe(expr)       erfc kept as written (Erfc): sympy rewrites erfc(-x) as
                    2 - erfc(x) (e.g. once kappa = 0 is substituted), which loses
-                   every digit where erfc(x) -> 0 and divides by 0 in phi/H.
+                   every digit where erfc(x) -> 0 and divides by 0 in phi/H.  A rewrite
+                   that has already happened (numeric mixture atoms) is undone, _unflip.
 
 Each expectation is lambdified once (cse).  Linear combinations of
 expectations are merged into one expectation first (gauss._merge_linear), which
@@ -49,8 +50,22 @@ class Erfc(sp.Function):
         return -2 * sp.exp(-u**2) / sp.sqrt(sp.pi)
 
 
+def _unflip(add):
+    """num + c erfc(y) + rest with num = -2c  ->  -c Erfc(-y) + rest: sympy's own rewrite of
+    erfc(-y) as 2 - erfc(y) (it fires at construction whenever the argument is a numeric
+    multiple of the integration variable, e.g. a mixture atom kappa = 0) undone, exactly
+    (erfc(-y) = 2 - erfc(y)); the direct form has no cancellation where erfc(y) -> 2."""
+    num, rest = add.as_coeff_Add()
+    for t in sp.Add.make_args(rest):
+        c, f = t.as_coeff_Mul()
+        if isinstance(f, sp.erfc) and c == -num / 2:
+            return rest - t - c * Erfc(-f.args[0])
+    return add
+
+
 def safe(expr):
-    return sp.sympify(expr).replace(lambda e: isinstance(e, sp.erfc), lambda e: Erfc(e.args[0]))
+    expr = sp.sympify(expr).replace(lambda e: e.is_Add and e.has(sp.erfc), _unflip)
+    return expr.replace(lambda e: isinstance(e, sp.erfc), lambda e: Erfc(e.args[0]))
 
 
 _MP = [{"Erfc": mp.erfc}, "mpmath"]

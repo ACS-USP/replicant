@@ -52,7 +52,8 @@ sample`), and `--pdf` (with `--latex`) to compile the derivation.
   solver for the derived equations, and the 1RSB functional (`derive_rsb*.py`, `gauss_rsb.py`,
   `solve_derived_rsb.py`, `_rsb_num.py`; composer route `compose_rsb.py`, `--param ansatz=1rsb`).
 - `families/`: level (b), the published pipelines (SK, REM, spherical and Ising p-spin,
-  perceptron, teacher-student, Hopfield, Parisi full RSB); `families/gardner.py`: the 1RSB replicon
+  perceptron (and `margin_law.py`: the same with a margin law kappa_l per pattern, `derive_margin.py` its level-(a)
+  derivation, `numerics/margin_perceptron.py` its finite-N least-norm check), teacher-student, Hopfield, Parisi full RSB); `families/gardner.py`: the 1RSB replicon
   (stability toward further RSB, the Gardner transition) for the two p-spin entries.
 - `cavity/`: dense cavity, sparse BP / population dynamics, sparse 1RSB.
 - `amp/`: AMP, state evolution and the TAP free energy for SK, GAMP and its state evolution for the
@@ -166,14 +167,15 @@ sample`), and `--pdf` (with `--latex`) to compile the derivation.
 
 ## Test tiers
 
-- Default: `python3 tools/replicant/selftest.py` (662 tests, about 30 s; measured 30.2 s cold on a clean
-  export after the final fix wave). Also `python3 run_selftests.py replicant` from the repository root, with the venv activated (it runs
+- Default: `python3 tools/replicant/selftest.py` (685 tests; the 662 before the margin law took about 30 s, measured
+  30.2 s cold on a clean export after the final fix wave, and `tests/test_margin_law.py` adds 23 tests, about 21 s CPU
+  measured at a machine load average of about 200, not re-measured on a quiet machine). Also `python3 run_selftests.py replicant` from the repository root, with the venv activated (it runs
   the `python3` on PATH; without python-flint the certified lattice, bounds and percolation tests and the Monte
   Carlo exact targets fail, by design).
-- Full: `python3 tools/replicant/selftest.py --full` adds the 206 `@slow` tests (full RSB,
+- Full: `python3 tools/replicant/selftest.py --full` adds the 211 `@slow` tests (full RSB,
   population dynamics at reference sizes, the K-SAT and LDPC crossings, Monte Carlo and enumeration
   held-out routes, solver-based checks, the online simulations at N = 1000, the lattice, percolation and
-  Monte Carlo checks at reference sizes); about 35 minutes on a laptop (measured 34 min 39 s with 859 tests before the final fix wave, now 868 tests).
+  Monte Carlo checks at reference sizes); about 35 minutes on a laptop (measured 34 min 39 s with 859 tests before the final fix wave, now 896 tests; the 5 new slow tests add about 30 s CPU).
 - The held-out tests are `tests/test_heldout*.py` (helpers `tests/heldout_common.py`, `tests/heldout_mc.py`).
 - `@slow` is a plain function attribute honoured by `selftest.py` only. pytest ignores the
   marker and would run every test, slow ones included.

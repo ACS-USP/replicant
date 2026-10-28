@@ -307,11 +307,11 @@ CLI (from `tools/`):
 - Composing from a spec: `python3 -m replicant run spec.json --param beta=1.5 --param h=0`. spec.json:
   `{"family": "sk", "variables": "ising", "disorder": "pm_one", "constraint": null, "prior": null,
   "params": {"beta": null, "h": null}}`. Required keys: `family`, `variables`, `disorder`; optional:
-  `constraint` (perceptron: `"margin kappa"`), `prior` (`"teacher"` for teacher-student), `params`. A
-  param given as `null` is left SYMBOLIC (only `beta`, `h`, `alpha`, `kappa`: the derivation's own
+  `constraint` (perceptron: `"margin kappa"`, or `"margin kappa law"` with `kappa_law` params), `prior` (`"teacher"` for teacher-student), `params`. A
+  param given as `null` is left SYMBOLIC (only `beta`, `h`, `alpha`, `kappa`, `kappa_s`: the derivation's own
   symbols); a number is a fixed run parameter. Known values: `variables` in {`ising`, `spherical`},
   `disorder` in {`gaussian`, `pm_one`, `none`}; the level-(a) hooks cover `sk` (gaussian, pm_one),
-  `perceptron` (gaussian; `margin kappa`) and `hopfield` (pm_one patterns). A spec whose structural key
+  `perceptron` (gaussian; `margin kappa`, `margin kappa law`) and `hopfield` (pm_one patterns). A spec whose structural key
   (family, variables, disorder, constraint, prior) equals a catalog entry IS that entry (its pipeline is
   reused whole); any other spec is assembled from the seven level-(a) steps and the report lists, per
   step, what was REUSED and what was ADAPTED relative to the nearest entry, e.g.
@@ -338,6 +338,17 @@ CLI (from `tools/`):
   --param kappa=0` with spec.json `{"family": "perceptron", "variables": "ising", "disorder":
   "gaussian", "constraint": "margin kappa", "params": {"alpha": null}}` -> `alpha` 0.83307859974
   (about 1 s). Every 1RSB value is `not-computed` (the 1RSB replicon is not computed): never final.
+- Worked example, margin law (`perceptron`, replica route; kappa_l drawn iid PER PATTERN, averaged inside the
+  replica integrals; under 2 s each, measured): `python3 -m replicant run perceptron --param kappa_law=gaussian
+  --param kappa=0.5 --param kappa_s=0.8` -> `alpha_c` 0.6808382719558681 (kappa_l = 0.5 + 0.8 g; the catalog's
+  constant kappa = 0.5 gives 0.9612), `capacity_replicon` 0.556167 (stable); with `--param alpha=0.5` also the RS
+  entropy `S` and its `replicon`; for a Gaussian offset the run also reports the collapse to the catalog
+  (`collapse_kappa`, `collapse_alpha_factor`, `collapse_residual`, below). `--param kappa_law=mixture --param
+  kappa_weights=0.5,0.5 --param kappa_values=0,1.5` -> `alpha_c` 0.5366026. The same laws at level (a): spec.json
+  `{"family": "perceptron", "variables": "spherical", "disorder": "gaussian", "constraint": "margin kappa law",
+  "params": {"kappa_law": "gaussian", "kappa": null, "kappa_s": null, "alpha": null}}` then `python3 -m replicant run
+  spec.json --param alpha=0.4 --param kappa=0.5 --param kappa_s=0.8` -> derived `q` 0.6413150252190197 (equal to the
+  family's to 1e-22), `replicon` 0.786574 (stable). Section MARGIN LAW below; refusals `precondition:supported-margin-law`.
 Python API (put `tools/` on `sys.path`):
 `from replicant.catalog import catalog` (dict of `CatalogEntry`);
 `from replicant.compose import compose, nearest_entry`; `compose(spec, route).run(require_final=False,
@@ -350,6 +361,13 @@ solved, every audited root in `roots`, `stable` always None; `derive_rsb.derived
 is the functional itself);
 `from replicant.derive_replicon import derived_replicon` (`derived_replicon(spec, solution_or_mapping)`:
 the level-(a) replicon at an RS solution, a mapping first checked to be a root of the derived equations);
+`from replicant.families import margin_law as ml` (the margin law, spherical): `ml.constant(k)`, `ml.gaussian(mu, s)`,
+`ml.mixture(weights, values)`, `ml.parse_margin_law(params)`, `ml.offset_law(a, h)` (the (a, h) constraints as a law),
+`ml.law_capacity(law) -> Capacity`, `ml.law_rs_point(q, law)`, `ml.law_entropy_point(alpha, law) -> (S, RSPoint)`,
+`ml.collapse(law)`, `ml.collapse_residual(law)`, `ml.alpha_unmerged(law, q)` (the 2-D audit),
+`ml.rs_equations_symbolic()`; `from replicant.numerics.margin_perceptron import capacity_finite_size` (the finite-N
+storage threshold with the package's band); level (a): `ModelSpec("perceptron", variables, "gaussian", "margin kappa
+law", None, {"kappa_law": ...})` through `solve_derived_rs` / `derived_replicon` / `compose` as for any spec;
 `from replicant.families import gardner` (E4, the 1RSB replicon toward further RSB):
 `gardner.onersb_replicon(family, p=3, beta=..., m=None) -> mpf` (`family` `pspin` | `ising_pspin`;
 `m` only for `ising_pspin`, default the static m), `gardner.onersb_stability(...)` (with the point and
@@ -1051,7 +1069,7 @@ level-(a) 1RSB solver), `fullrsb` (flag, slow tier); `sk` cavity: `beta`, `h`, `
 `sk` amp: `beta`, `h`, and for finite-N AMP `N`, `seeds` (default 0-5; a non-empty list of
 non-negative integers, else `precondition:named-seeds`, e.g. `--param seeds=1`), `iters` (default 100), `law`
 (`gaussian`|`pm_one`; with `pm_one` every SE value is `not-computed`: SE is proved for Gaussian J only);
-a finite-N parameter without `N` is refused `precondition:known-parameter` ("need N"); `pspin` and `ising_pspin`: `p` (default 3), `beta`; `perceptron` replica: `alpha`, `kappa` (default 0); `perceptron`
+a finite-N parameter without `N` is refused `precondition:known-parameter` ("need N"); `pspin` and `ising_pspin`: `p` (default 3), `beta`; `perceptron` replica: `alpha`, `kappa` (default 0), and the margin-law parameters `kappa_law` (`constant` | `gaussian` | `mixture`; absent = the catalog's constant kappa), `kappa_s` (gaussian: the scale s >= 0 of kappa_l = kappa + s g; required), `kappa_weights` and `kappa_values` (mixture: comma lists `0.5,0.5`, weights >= 0 summing to 1 to 1e-12; `kappa` is then not read and is refused); a parameter the chosen law does not read, or a law parameter without `kappa_law`, is refused `precondition:supported-margin-law`; `perceptron`
 cavity: `alpha`, `kappa`, `variables` (`spherical`; `ising` is refused `not-implemented:cavity-ising`);
 `teacher_student`: `alpha`, `learning` (`gibbs`|`bayes`); `teacher_student` amp: `alpha`, `learning`
 (default `bayes`), and for finite-N GAMP `N`, `seeds` (default 0-5; malformed seeds refused
@@ -1174,6 +1192,7 @@ re-runs the entry's banked comparisons) and its JSON (`target`, `spec`, `route`,
 | `precondition:named-seeds` | amp route of `sk` and `teacher_student` (finite N): `seeds` not a non-empty list of non-negative integers (`--param seeds=1`, an empty list, a negative or non-integer seed) |
 | `precondition:counting-measure-for-frozen`, `:discrete-variables-for-frozen` | frozen 1RSB asked for an energy that is not an indicator pattern average, or continuous variables |
 | `precondition:polynomial-energy-for-t0` | T = 0 1RSB asked for a Gaussian-integral energy (Hopfield, perceptron: needs q1 = 1 - C/beta, not implemented) |
+| `precondition:supported-margin-law`, `:margin-shift-form`, `not-implemented:1rsb:LnGaussProdLaw`, `precondition:enough-patterns` | margin law (`families/margin_law.py`, `derive_margin.py`, `numerics/margin_perceptron.py`): `kappa_law` not constant / gaussian / mixture, missing (level (a): `constraint` "margin kappa law" without it) or given without the law's parameters; `kappa_s` < 0, absent for gaussian or not finite; mixture weights < 0, not summing to 1 (1e-12), of a different length than the values, empty, non-finite or more than 64 atoms; a parameter the law does not read (`kappa_s` with constant, `kappa` with mixture, `kappa_values` with gaussian, any law parameter without `kappa_law`); the Gaussian collapse asked of a non-Gaussian law; `offset_law(a, h)` with \|a\| >= 1 or h not finite. `:margin-shift-form`: a hand-supplied weight g(lambda, kappa) that is not a function of lambda - kappa (the merge of the Gaussians is valid for such weights only). The 1RSB routes (`ansatz=1rsb`, `level_a_ansatz=1rsb`) do not handle the law (RS only). `:enough-patterns`: the finite-N sampler drew patterns that were all storable (raise `load`) |
 | `no-solution:not-a-local-maximum` | `branch="max-f"`: the largest-f 1RSB root is not a local maximum of f (Schur complement over the conjugates) |
 | `missing-step:derivation:<name>` | a requested document needs a derivation the entry does not provide |
 | `precondition:<name>` | an input or state precondition fails (state point incomplete: `state-point`; out-of-range or non-numeric input; `known-parameter`, `rs-reducible`, `rs-site-trace-form`, `supported-disorder-law`, `nonnegative-alpha`, `finite-kappa`, `known-ansatz`, `known-graph`, `tex-engine`, `latex-path`, `known-target`, `complete-spec`, `known-variables`, `m-range`, `alpha-range`, `replicon-block`, `p-at-least-3`, ... and the step preconditions of the derivation). A malformed numeric run parameter of the entries added since E11 is refused `precondition:<its name>` (e.g. `precondition:R0`, `:Q0`, `:D`, `:noise_estimate`, `:B`, `:X`, `:Nx`, `:init_seed`, `:Q11` (online), `:Ly`, `:N` (lattice), `:K1`, `:a`, `:b` (lattice internals), `:mean-degree`, `:occupation`, `:core-order` (percolation), `:sweeps`, `:burn-in`, `:walkers`, `:t-max`, `:muca-sweeps`, `:population`, `:temperatures` (Monte Carlo)) |
@@ -1260,6 +1279,69 @@ values at the default / banked state points):
 | `online_tcm` online learning in the tree committee machine (K odd non-overlapping branches, majority vote; CC95's nonlocal optimal rule, the local optimal rule, Hebb) | online | `eps_constant` (optimal rules: the rate limit; Hebb: closed form), `eps_exponent` (local rules, alpha = 1e4), local `eps_constant_perceptron`; local rules: `noise_equivalent`, `time_factor`, at `alpha` `rho_perceptron_mapped`, `equivalence_gap`; at `alpha`: `eps`, `eps_branch`, `R`, `Q`, `rho`; with `N`: `eps_sim` | CC95 (preprint IFUSP/P-1126 read): kappa 0.88 (Eq. (32)) and its printed integral, pseudo-Hebb rho(alpha) (Eq. (30)) at alpha = 1, 5, 20 and sqrt(3/2pi); Fig. 1 read off at four alpha (tol 0.003; UNCLAIMED, slow test); CKC96 (abstract only): exponents 1 (local learning) and 1/2 (Hebb) at finite K | all not-computed (physics-level ODE limit); `eps_sim` statistical |
 | `online_scm` online gradient descent in the soft committee machine (K student, M teacher erf units; Saad-Solla ODEs) | online | K >= 2: `eps_sym_identical`, `eps_sym_permutation` (R, Q, C, `tau_esc`), `plateau_shift_per_100x`, `eps_small_eta`, `tau_small_eta`; K = M: `lambda1`, `lambda2`, `asymptotic_rate`; with `critical`: `eta_max`, `eta_crossing`, `eta_fastest` (K = M) or `eta_c_specialised`, `eta_s_symmetric` (K = 2, M = 1); at `alpha`: `eps`, `plateau_status`, `plateau_height`, `plateau_entry`, `plateau_exit`, `plateau_length`, `plateau_rtol_spread`; with `N`: `eps_sim` | SS (NIPS 1996 / MANNA 1997 read; PRL, PRE not fetched): the small-eta plateau 0.0203 and Eq. (7), tau at K = 2, 3, Fig. 1d heights (read off, tol 0.001), Fig. 2 eigenvalues and eta_max (read off), Eq. (9)'s coefficient (UNCLAIMED, slow), the 1/eta trapping law (UNCLAIMED, slow); BS (preprint read): eta_c = pi sqrt(5/3), eta_opt = 2 eta_c/3, the two-unit eta_c 1.89, eta_s 2.17; BRW (preprint read): Eqs. (20)-(21), Fig. 1 and Fig. 2 read off, Eq. (17)'s half-log slope (UNCLAIMED, slow) ; with `rule=optimal` (VC97, O6): `eps_plateau_opt`, `hess_lo_plateau`, `hess_hi_plateau` (K = M = 2), `eps_plateau_gd`, `hess_lo0`, `Q11_init`; at `alpha`: `eps`, `eps_gd`, `hess_lo`, `hess_hi`, `hess_hi_dip` (M = 1), `curve_status`; VC97 (arXiv TeX and figures read): Figs. 1-3 read from the PostScript vector data, the Fig. 1 curve points UNCLAIMED (one ODE run checks them, default tier) | all not-computed (physics-level ODE limit); `eps_sim` statistical |
 | `viana_bray` sparse +-J | cavity | `beta_c` (3-regular) 0.881374; T = 0 RS `p0` 1/3, `e0` -23/18; factorized 1RSB -1.27231, mu* 0.4174 | those, plus slow/statistical population-dynamics RS and 1RSB at k = 5, T = 0.8 | `beta_c` stable; the rest not-computed |
+
+MARGIN LAW (`perceptron`: the margin kappa_l drawn iid per pattern; `families/margin_law.py`, `derive_margin.py`,
+`numerics/margin_perceptron.py`, `tests/test_margin_law.py`). P = alpha N Gaussian patterns, J.J = N, pattern l stored
+if J.xi^l/sqrt N >= kappa_l, with the kappa_l quenched, iid, independent of the patterns, drawn from a stated law:
+`constant` (the catalog), `gaussian` (kappa_l = kappa + kappa_s g, g ~ N(0, 1)) or `mixture` (kappa_values[i] with
+probability kappa_weights[i]); any other law is refused `precondition:supported-margin-law`.
+- The average goes INSIDE: one kappa per pattern, shared by the n replicas, so the replicated weight is
+  E_kappa E_xi prod_a Theta(lambda_a - kappa) (kappa outside the product over replicas, inside the logarithm of
+  (1/N) ln E V^n). At RS and n -> 0: S(q) = 1/2 ln(1-q) + q/(2(1-q)) + alpha E_kappa E_t ln H(x), stationarity
+  q/(1-q) = alpha E_kappa E_t E(x)^2 (E = phi/H), replicon 1 - alpha E_kappa E_t [(ln H)''(x)]^2, capacity (q -> 1)
+  alpha_c = 1/E_kappa D(kappa), D(kappa) = (1 + kappa^2) H(-kappa) + kappa phi(kappa), and the replicon at capacity
+  1 - alpha_c E_kappa H(-kappa). The merged Gaussian: for kappa = m + s w, sqrt(q) t - s w ~ N(0, q + s^2), so x =
+  (m - sqrt(q + s^2) u)/sqrt(1-q) with one u ~ N(0, 1), exact at every q (the unmerged two-dimensional (t, g) route
+  `margin_law.alpha_unmerged` is the audit). Level (a): constraint `"margin kappa law"` with `kappa_law`, `kappa`,
+  `kappa_s` (null = symbolic) or `kappa_weights`, `kappa_values` (numbers) in `params`; the hand-supplied pieces are
+  g(lambda, kappa) = Theta(lambda - kappa) and the law, the Gaussian-pattern statement is asserted by the hook as for
+  the catalog, the merge, the `E_z`, the replica product, n -> 0, stationarity and the replicon are the generic steps
+  (`derive.RS_RULES` / `REPLICON_RULES` are the additive registries it uses). It takes `variables` spherical or ising
+  and RS only (the 1RSB routes refuse it, `not-implemented:1rsb:LnGaussProdLaw`). A constant law (or kappa_s = 0)
+  derives the catalog's equations exactly. Mixture atoms are numbers, where sympy rewrites erfc(-y) as 2 - erfc(y)
+  at construction (every atom <= 0): `_derived_num.safe` undoes it, else the float search loses every digit.
+- The identity of the Gaussian offset, a BANKED INTERNAL CHECK (`reference/perceptron.json` `margin_law_collapse`,
+  `RefCheck` in the `perceptron` entry; an identity, not a literature number, its cite says so): at q -> 1
+  `alpha_c(gaussian mu, s) = alpha_c^catalog(kappa~) / (1 + s^2)`, kappa~ = mu/sqrt(1 + s^2). In the (a, h) form of
+  constraints a g_l + b y_l <= h (g_l ~ N(0, 1) quenched, y_l the Gaussian patterns, a^2 + b^2 = 1; the manuscript
+  limit-fig2-paper, Appendix "Replica theory for random documents"): kappa_l = (a g_l - h)/b, mu = -h/b, s = a/b,
+  kappa~ = -h, alpha_eff = alpha/(1 - a^2) = alpha (1 + s^2) (`margin_law.offset_law(a, h)`, `collapse(law)`). The
+  law's capacity is integrated over the law (quadrature in g), never through the collapse; the catalog is the closed
+  form. `collapse_residual` = |alpha_c(law)(1 + s^2) - alpha_c^catalog(kappa~)| is 0 to 1e-15 at 20 digits for eight
+  (a, h) pairs with kappa~ from -2 to 2 (the bank holds 1e-13: 15 digits). It holds at q -> 1 only: the entropy and
+  the replicon below capacity do NOT collapse, nor does the replicon at capacity (1 - alpha_c H(-kappa~) with the
+  law's alpha_c = (1 - a^2) alpha_c^catalog, so 1 - b^2 > 0 at kappa~ = 0 where the catalog is marginal).
+- Independent evidence. (a) the degenerate laws reproduce the catalog (capacity to 1e-15, replicon to 1e-8, observed
+  1e-17, the derived equations symbolically, the derived solve); (b) the collapse above; level (a) against level (b)
+  (q, entropy, replicon of the Gaussian and mixture laws agree to 1e-22 at 20 digits; the derived and family
+  stationarity equations are proved equal by `agree.compare_equations`, route symbolic+stein); (c) FINITE-N SAMPLING,
+  sharing no code with the replica formulas (`numerics/margin_perceptron.py`): patterns and margins drawn at N = 60 ...
+  400, the least-norm point of {J: xi J/sqrt N >= kappa} by Lawson-Hanson's least-distance programming (NNLS), the
+  storage threshold P*/N found by bisection on nested prefixes (feasibility is monotone in P), extrapolated in
+  N^(-2/3) with the package's band (`numerics/finite_size`: 99% t-band plus the largest shift over variant exponents).
+  "Stored" is feasibility in the BALL |J|^2 <= N, which is the sphere's whenever the polyhedron has an unbounded
+  direction (a.s. for P < 2N, i.e. alpha_c < 2, every kappa~ >= 0), whatever the signs of the kappa_l; for alpha_c >= 2
+  (kappa~ < 0) the ball threshold is an upper bound of the sphere's (deciding the sphere needs a non-convex
+  maximum-norm search, not implemented). Measured (RS capacity against the extrapolated threshold and its band; the mean-margin capacity of the planted
+  control): mixture {0, 1.5} 0.5366 against 0.4996 +- 0.066 (N = 60, 120, 240; planted 0.697, excluded); Gaussian
+  0.5 + 0.8 g 0.6808 against 0.6311 +- 0.098 (same sizes; planted 0.9612, excluded) and 0.6984 +- 0.048 (N = 80, 160,
+  320, slow; planted excluded); the non-convex Gaussian offset (a, h) = (0.6, 0.4), kappa~ = -0.4, alpha_c = 2.5356,
+  RS replicon 0.126 > 0, against the ball threshold 2.453 +- 0.215 (N = 60, 120, 200, slow; planted 4.77, excluded).
+  The bands are wide (7-15%): the check brackets RS, it does not measure it to a few digits; (d) PLANTED CONTROLS, each caught: a wrong variance of the merged Gaussian (sqrt(q) + s, sqrt(q + s),
+  sqrt(q)) by the unmerged 2-D integral, by alpha(q -> 1) against the capacity, by the level-(a)/(b) agreement and by
+  the derived solve; kappa_l replaced by its mean (collapse residual > 0.1, derived solve off the family, the sampler
+  excludes the mean-margin capacity); kappa averaged per
+  replica (inside the replica product, a different n -> 0 limit: the logarithm of the mean instead of the mean of the
+  logarithm), caught at level (a).
+- Honest limits. Spherical couplings only at level (b); the Ising law is derived at level (a) (checked against a hand
+  formula and the catalog Ising perceptron at kappa_s = 0, a slow test). RS only, physics-level: for margins of both
+  signs, or kappa~ < 0, the version space is not convex and the RS capacity carries the catalog's kappa < 0 caveat
+  (Franz & Parisi, arXiv:1501.03397): `stable` is the sign of the computed replicon (the finite-N check is a
+  consistency test of RS there, not a proof). The derived solver shares the catalog's limit near q -> 1 (no root
+  found for the Gaussian 0.5 + 0.8 g at alpha = 0.5, 0.73 alpha_c, nor for the catalog's kappa = 0.5 at alpha = 0.8, 0.83
+  alpha_c: use the family `law_entropy_point` there). Costs (CPU seconds, measured while the machine was at load average about 200, so upper
+  bounds): `law_capacity` ms, `law_entropy_point` 0.15 s, a derived Gaussian-law solve 1-2 s, the default-tier
+  sampling check 2.5 s, the slow one (N up to 320) about 19 s.
 
 HELD-OUT EVIDENCE (the test of REUSE; `tests/test_heldout_sk.py`, `tests/test_heldout_perceptron.py`,
 `tests/test_heldout_mc.py` (E11), the positive controls, catalog guards and documents in
