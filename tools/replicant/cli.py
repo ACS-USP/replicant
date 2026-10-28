@@ -47,7 +47,8 @@ from .derive_families import ALPHA, KAPPA
 from .latex import OverfullDisplay, write_latex
 from .spec import ModelSpec
 
-_SYMBOLS = {"beta": D.BETA, "h": D.H_FIELD, "alpha": ALPHA, "kappa": KAPPA}
+_SYMBOLS = {"beta": D.BETA, "h": D.H_FIELD, "alpha": ALPHA, "kappa": KAPPA,
+            "d": sp.Symbol("d", positive=True), "c": sp.Symbol("c", real=True)}
 
 
 def _number(text):

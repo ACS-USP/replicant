@@ -157,6 +157,13 @@ sample`), and `--pdf` (with `--latex`) to compile the derivation.
   (`wang_landau.py`), multicanonical reweighting (`multicanonical.py`), Ferrenberg-Swendsen (`reweight.py`);
   population annealing (`population.py`) with an SK Metropolis sweep (`sk_metropolis.py`); entries `cluster_mc`,
   `wang_landau_mc`, `histogram_reweighting_mc`, `population_annealing_mc` (`catalog_mc*.py`, `latex_mc*.py`).
+- pinned directions (the joint pair problem of random documents): `derive_pinned.py` (the level-(a) hook:
+  `margin kappa pinned directions` for the spherical perceptron, two fixed unit vectors of overlap c; the entropic
+  term with the pinned components fixed), `pinned.py` (the capacity boundary as the q -> 1 limit of the derived
+  functional, RS state points audited against the derived equations, the untied refusal, the composer run path),
+  `pinned_modes.py` (the stability sectors: the replicon, which cannot mix with the pinned overlap, the standard
+  block that does, the longitudinal mode), `pinned_check.py` (integer-n Hessian, an independent check),
+  `pinned_report.py` (the table of `docs/replicant/pinned_joint_replicon.md`).
 - `catalog*.py`, `compose.py` (+ `compose_result.py`: `Result` and the finality rule), `cli.py`,
   `__main__.py`: the 36-entry catalog (`catalog_ts.py` holds the teacher-student entry,
   `catalog_pspin.py` the two p-spin entries; LaTeX in `latex_pspin.py`), the composer,
@@ -166,14 +173,14 @@ sample`), and `--pdf` (with `--latex`) to compile the derivation.
 
 ## Test tiers
 
-- Default: `python3 tools/replicant/selftest.py` (662 tests, about 30 s; measured 30.2 s cold on a clean
-  export after the final fix wave). Also `python3 run_selftests.py replicant` from the repository root, with the venv activated (it runs
+- Default: `python3 tools/replicant/selftest.py` (677 tests, about 37 s: 30.2 s cold on a clean
+  export for the 662 before the pinned-direction tests, which add 15 tests and 6.7 s CPU). Also `python3 run_selftests.py replicant` from the repository root, with the venv activated (it runs
   the `python3` on PATH; without python-flint the certified lattice, bounds and percolation tests and the Monte
   Carlo exact targets fail, by design).
-- Full: `python3 tools/replicant/selftest.py --full` adds the 206 `@slow` tests (full RSB,
+- Full: `python3 tools/replicant/selftest.py --full` adds the 208 `@slow` tests (full RSB,
   population dynamics at reference sizes, the K-SAT and LDPC crossings, Monte Carlo and enumeration
   held-out routes, solver-based checks, the online simulations at N = 1000, the lattice, percolation and
-  Monte Carlo checks at reference sizes); about 35 minutes on a laptop (measured 34 min 39 s with 859 tests before the final fix wave, now 868 tests).
+  Monte Carlo checks at reference sizes); about 35 minutes on a laptop (measured 34 min 39 s with 859 tests before the final fix wave; 868 after it, 885 with the pinned-direction tests).
 - The held-out tests are `tests/test_heldout*.py` (helpers `tests/heldout_common.py`, `tests/heldout_mc.py`).
 - `@slow` is a plain function attribute honoured by `selftest.py` only. pytest ignores the
   marker and would run every test, slow ones included.

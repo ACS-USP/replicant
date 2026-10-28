@@ -91,6 +91,9 @@ def _perceptron_formal(n, beta, spec=None):
 
 
 def _perceptron_average(zn) -> PatternAverage:
+    from .derive_pinned import is_pinned, pinned_average
+    if is_pinned(zn.spec):
+        return pinned_average(zn)
     _symbolic_n(zn)
     p = zn.spec.params
     kappa, alpha = p.get("kappa", KAPPA), p.get("alpha", ALPHA)
@@ -109,6 +112,9 @@ def _gauss_prod_reduction(avg, n, extra_energy=0, field=0, extra=None, missing=N
 
 
 def _perceptron_order_parameters(avg, n, sum_pairs):
+    from .derive_pinned import is_pinned, pinned_order_parameters
+    if is_pinned(avg.spec):
+        return pinned_order_parameters(avg, n, sum_pairs)
     return _gauss_prod_reduction(avg, n, missing="O(ln N / N) (saddle-point prefactor)")
 
 
@@ -152,7 +158,8 @@ def _hopfield_order_parameters(avg, n, sum_pairs):
 D.FAMILIES["perceptron"] = D.Family(
     _perceptron_formal, _no_annealed, lambda d: d == "gaussian",
     _perceptron_average, _perceptron_order_parameters, variables=("spherical", "ising"),
-    constraints=("margin kappa",))
+    constraints=("margin kappa", "margin kappa pinned directions",
+                 "margin kappa pinned directions untied"))
 D.FAMILIES["hopfield"] = D.Family(
     _hopfield_formal, _no_annealed, lambda d: d == "pm_one",
     _hopfield_average, _hopfield_order_parameters, variables=("ising",))

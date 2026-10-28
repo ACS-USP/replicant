@@ -391,5 +391,13 @@ def catalog() -> dict:
     return dict(_CATALOG)
 
 
+# pinned directions (derive_pinned.py, pinned.py): a composed spec, not a catalog entry; its banked paper
+# values are reproduced by tests/test_pinned.py through pinned.capacity
+_PINNED = ("values of the paper project's pair-margin theory (m_RS, its optimiser a*, h*) and of its exact-margin "
+           "validation table, reproduced by tests/test_pinned.py through pinned.capacity: the composed pinned-"
+           "directions spec has no catalog entry")
+UNCLAIMED.update({("pinned", k): _PINNED for k in load("pinned")})
+
+
 __all__ = ["CatalogEntry", "RefCheck", "RefOutcome", "Stability", "UNCLAIMED", "catalog",
            "check_ref", "from_flag", "saddle"]
