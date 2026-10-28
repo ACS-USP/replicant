@@ -55,6 +55,12 @@ solution only where S_RS = 0: the frozen 1RSB keeps S = S_RS while it is >= 0
 and puts the capacity at the root of the RS entropy (Krauth & Mezard 1989),
 where the RS point must still be AT-stable (checked, refused otherwise).
 
+1RSB (spherical, T = 0 jamming, kappa < 0): perceptron_rsb.py (scaling limit of the 1RSB entropy of
+Franz-Parisi-Sevelev-Urbani-Zamponi, arXiv:1702.06919 Eq. (59)); K-step RSB and the full-RSB limit:
+perceptron_krsb.py.  gardner_capacity("spherical", kappa, "1rsb") returns the 1RSB capacity, labelled
+by its contact-index replicon (unstable for kappa < 0: the RS capacity 1/D is an upper bound, the
+1RSB value lower, the full-RSB lower still).
+
 Honest label: replica n -> 0, RS and the frozen 1RSB are physics-level, not
 proven here (the spherical kappa >= 0 threshold is a theorem, Shcherbina-
 Tirozzi 2003, as quoted by Ding-Sun; not used).  Numerics: roots are
@@ -334,11 +340,17 @@ def gardner_capacity(variables, kappa=0, ansatz="rs") -> Capacity:
             raise Refusal("precondition:known-ansatz", f"ansatz = {ansatz!r}: use 'rs' or '1rsb'")
         D = _den(k)
         if variables == "spherical":
-            if ansatz == "1rsb":
-                raise Refusal("not-implemented:spherical-rsb",
-                              "spherical perceptron: RS is exact for kappa >= 0 (use ansatz='rs'); "
-                              "for kappa < 0 the capacity needs full RSB (Franz-Parisi 2015), not in v1")
             ac = 1 / D
+            if ansatz == "1rsb" and k < 0:
+                from .perceptron_rsb import onersb_jamming      # T = 0 1RSB jamming, perceptron_rsb.py
+                j = onersb_jamming(k)
+                verdict = ("> 1: unstable toward further RSB, the full-RSB capacity is lower "
+                           "(perceptron_krsb.py)" if j.contact_index > 1 else "<= 1")
+                note = (f"kappa < 0: 1RSB jamming point (q0 = {mp.nstr(j.q0, 8)}, mu = m/(1-q1) = "
+                        f"{mp.nstr(j.mu, 8)}), below the RS value {mp.nstr(ac, 8)}; contact index "
+                        f"c = {mp.nstr(j.contact_index, 6)} {verdict}")
+                return Capacity(j.alpha_c, bool(j.replicon >= 0), "1rsb", variables, k,
+                                j.replicon, note, j)
             lam = k * (k * _H(-k) + _phi(k)) * ac        # = 1 - alpha_c H(-kappa), sign = sign(kappa)
             if k > 0:
                 note = "kappa > 0: replicon > 0 at capacity, convex version space, RS exact"
@@ -347,7 +359,10 @@ def gardner_capacity(variables, kappa=0, ansatz="rs") -> Capacity:
             else:
                 note = ("kappa < 0: replicon < 0 at capacity; RS alpha_c is not the capacity "
                         "(non-convex, RSB needed; Franz & Parisi, arXiv:1501.03397)")
-            return Capacity(ac, bool(lam >= 0), "rs", variables, k, lam, note)
+            if ansatz == "1rsb":                         # kappa >= 0: the 1RSB jamming functional
+                note += ("; ansatz 1rsb reduces to RS here (the T = 0 1RSB functional has no "
+                         "stationary point below 1/D: perceptron_rsb.py)")
+            return Capacity(ac, bool(lam >= 0), ansatz, variables, k, lam, note)
         if ansatz == "rs":
             note = ("RS q -> 1 endpoint (Gardner-Derrida), not the capacity: RS entropy is negative "
                     "beyond the frozen-1RSB root, the replicon -> -inf as q -> 1, and alpha_c > 1 "

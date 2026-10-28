@@ -29,7 +29,8 @@ python3 -m replicant run perceptron --param alpha=1.5 --out /tmp/result.json --l
 
 `run` also takes a spec file for a model near a catalogued one
 (`python3 -m replicant run spec.json --param beta=1.5 --param h=0`; schema in the GUIDE),
-`--route amp` for `sk`, `teacher_student` and `spiked_wigner` (state evolution, and finite-N AMP / GAMP with
+`--route rsb` for `perceptron` at T = 0 with kappa < 0 (1RSB, K-step RSB, full-RSB estimate: `python3 -m replicant run
+perceptron --route rsb --param kappa=-1`; results in [RESULTS_negative_perceptron_rsb.md](RESULTS_negative_perceptron_rsb.md)), `--route amp` for `sk`, `teacher_student` and `spiked_wigner` (state evolution, and finite-N AMP / GAMP with
 `--param N=...`), `--route cavity` for the entries that have a cavity route (required for `viana_bray`, `xorsat`,
 `ksat`, `ldpc_bec`, `sbm` and `bethe_ising`, which are cavity-only: `python3 -m replicant run viana_bray --route
 cavity`, `python3 -m replicant run xorsat --route cavity`; the percolation entries `percolation_bethe`,
@@ -54,6 +55,10 @@ sample`), and `--pdf` (with `--latex`) to compile the derivation.
 - `families/`: level (b), the published pipelines (SK, REM, spherical and Ising p-spin,
   perceptron, teacher-student, Hopfield, Parisi full RSB); `families/gardner.py`: the 1RSB replicon
   (stability toward further RSB, the Gardner transition) for the two p-spin entries.
+  `families/perceptron_rsb.py`, `perceptron_krsb.py`: the negative-margin spherical perceptron at T = 0, where RS is only an
+  upper bound: the 1RSB jamming (SAT-UNSAT) capacity from the zero-temperature scaling of the 1RSB entropy (audited
+  mpmath roots, contact-index replicon), K-step RSB and the full-RSB staircase estimate (float64 grids, slow tier);
+  catalog route `rsb` of `perceptron` (`catalog_perceptron_rsb.py`, `latex_perceptron_rsb.py`).
 - `cavity/`: dense cavity, sparse BP / population dynamics, sparse 1RSB.
 - `amp/`: AMP, state evolution and the TAP free energy for SK, GAMP and its state evolution for the
   teacher-student perceptron (finite N, statistical; independent of the replica and cavity code);
@@ -166,14 +171,16 @@ sample`), and `--pdf` (with `--latex`) to compile the derivation.
 
 ## Test tiers
 
-- Default: `python3 tools/replicant/selftest.py` (662 tests, about 30 s; measured 30.2 s cold on a clean
-  export after the final fix wave). Also `python3 run_selftests.py replicant` from the repository root, with the venv activated (it runs
+- Default: `python3 tools/replicant/selftest.py` (676 tests, about 30 s; measured 30.2 s cold on a clean
+  export at 662 tests, before the negative-margin perceptron's 14 default tests, which cost about 1.8 s by their own
+  timing; the whole tier was not re-timed cold since). Also `python3 run_selftests.py replicant` from the repository root, with the venv activated (it runs
   the `python3` on PATH; without python-flint the certified lattice, bounds and percolation tests and the Monte
   Carlo exact targets fail, by design).
-- Full: `python3 tools/replicant/selftest.py --full` adds the 206 `@slow` tests (full RSB,
+- Full: `python3 tools/replicant/selftest.py --full` adds the 222 `@slow` tests (full RSB,
   population dynamics at reference sizes, the K-SAT and LDPC crossings, Monte Carlo and enumeration
   held-out routes, solver-based checks, the online simulations at N = 1000, the lattice, percolation and
-  Monte Carlo checks at reference sizes); about 35 minutes on a laptop (measured 34 min 39 s with 859 tests before the final fix wave, now 868 tests).
+  Monte Carlo checks at reference sizes); about 35 minutes on a laptop (measured 34 min 39 s with 859 tests before the final fix wave; now 898 tests, the 16 added slow tests of the negative-margin
+  perceptron took about 11 minutes under a heavily loaded machine: the K = 3 RSB test alone is 7 minutes).
 - The held-out tests are `tests/test_heldout*.py` (helpers `tests/heldout_common.py`, `tests/heldout_mc.py`).
 - `@slow` is a plain function attribute honoured by `selftest.py` only. pytest ignores the
   marker and would run every test, slow ones included.

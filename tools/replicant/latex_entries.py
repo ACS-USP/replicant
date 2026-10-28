@@ -223,6 +223,9 @@ def rem(route):
 
 # ---- perceptron (Gardner) --------------------------------------------------------------
 def perceptron(route):
+    if route == "rsb":
+        from .latex_perceptron_rsb import blocks
+        return blocks()
     if route == "cavity":
         from .latex_cavity import perceptron_cavity
         return perceptron_cavity()

@@ -21,6 +21,7 @@ import mpmath as mp
 from .agree import default_spec
 from .catalog import Out, RefCheck, Stability, entry, fstep, from_flag, has, lacks, saddle
 from .catalog_amp import sk_amp_route
+from .catalog_perceptron_rsb import capacity_finality as _rsb_capacity_finality, perceptron_rsb_route
 from .catalog_pspin import ising_pspin, pspin
 from .catalog_ts import _saddle, teacher_student
 from .cavity import dense
@@ -232,22 +233,25 @@ def perceptron():
     refs = [RefCheck("perceptron", "spherical_capacity_kappa0", lambda v: v["alpha_c"]),
             RefCheck("perceptron", "spherical_capacity_kappa0", lambda v: v["alpha_c"],
                      route="cavity")]
+    rsb = perceptron_rsb_route()
+    rs_alpha = lambda v: from_flag(v["capacity_stable"], "rs", GARDNER_CITE.split(";")[0],
+                                   f"computed replicon at capacity {v['capacity_replicon']}")
     return entry("perceptron", default_spec("perceptron"), GARDNER_CITE,
-                 {"replica": steps, "cavity": cav}, refs,
-                 {"replica": CAVEAT, "cavity": CAVITY_CAVEAT},
-                 "spherical perceptron (Gardner volume): capacity alpha_c(kappa), entropy",
-                 finality={"alpha_c": lambda v: from_flag(
-                               v["capacity_stable"], "rs", GARDNER_CITE.split(";")[0],
-                               f"computed replicon at capacity {v['capacity_replicon']}"),
+                 {"replica": steps, "cavity": cav, "rsb": rsb.steps}, refs + rsb.refs,
+                 {"replica": CAVEAT, "cavity": CAVITY_CAVEAT, "rsb": rsb.caveat},
+                 "spherical perceptron (Gardner volume): capacity alpha_c(kappa), entropy; route rsb: "
+                 "T = 0 1RSB / K-step / full-RSB capacity for kappa < 0",
+                 finality={"alpha_c": lambda v: _rsb_capacity_finality(v) if "capacity_ansatz" in v
+                           else rs_alpha(v),
                            "S": lambda v: from_flag(
                                v.get("stable"), "rs", GARDNER_CITE.split(";")[0],
                                f"computed RS replicon {mp.nstr(v['replicon'], 6)}"
                                if "replicon" in v else ""),
                            "replicon": saddle(GARDNER_CITE.split(";")[0]),
-                           "q": saddle(MEZARD_CITE)},
-                 meta=("capacity_replicon", "capacity_stable", "stability"),
-                 parameters={"replica": ("alpha", "kappa"),
-                             "cavity": ("alpha", "kappa", "variables")})
+                           "q": saddle(MEZARD_CITE), **rsb.finality},
+                 meta=("capacity_replicon", "capacity_stable", "stability", *rsb.meta),
+                 parameters={"replica": ("alpha", "kappa"), "cavity": ("alpha", "kappa", "variables"),
+                             "rsb": rsb.params})
 
 
 # ---- Hopfield -----------------------------------------------------------------------------

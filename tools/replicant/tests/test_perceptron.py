@@ -101,8 +101,8 @@ def test_spherical_rs_replicon_sign_follows_kappa():
     assert c.replicon < 0 and not c.stable and "kappa < 0" in c.note
     near = gardner_rs_point("spherical", 1 - mp.mpf("1e-6"), kappa=k)
     assert abs(near.replicon - c.replicon) < 1e-2, (near.replicon, c.replicon)
-    _refuses(lambda: gardner_capacity("spherical", 0, ansatz="1rsb"),
-             "not-implemented:spherical-rsb")
+    # kappa >= 0: the T = 0 1RSB functional reduces to RS; kappa < 0 is perceptron_rsb.py (tests/test_perceptron_rsb.py)
+    assert gardner_capacity("spherical", 0, ansatz="1rsb").alpha_c == 2
 
 
 def test_capacity_is_where_entropy_vanishes():

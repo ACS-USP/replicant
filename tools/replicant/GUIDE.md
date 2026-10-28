@@ -1042,6 +1042,89 @@ truncation estimate, the closure error is not bounded), `pm_one_gap_limit(beta)`
 `from replicant.latex import render_latex, write_latex` (`write_latex(result, path, pdf=False)`; a
 `Refusal` is also accepted and writes its partial derivation).
 
+NEGATIVE-MARGIN SPHERICAL PERCEPTRON AT T = 0 (route `rsb` of `perceptron`; `families/perceptron_rsb.py`,
+`families/perceptron_krsb.py`, `catalog_perceptron_rsb.py`, `latex_perceptron_rsb.py`; results note
+`RESULTS_negative_perceptron_rsb.md`). For kappa < 0 the version space is non-convex and the RS capacity
+1/D(kappa) is only an upper bound (Franz & Parisi, J. Phys. A 49, 145001 (2016), arXiv:1501.03397, Fig. 1 caption;
+Stojnic, arXiv:1306.3980). Verified references: FP16 is arXiv:1501.03397 and the SciPost paper is Franz, Parisi,
+Sevelev, Urbani & Zamponi (FPSUZ), SciPost Phys. 2, 019 (2017), arXiv:1702.06919 (arXiv:1606.04380, sometimes quoted, is
+an unrelated mathematics paper). Both PDFs were downloaded and read; neither prints a table of alpha_c(kappa < 0) for
+an RSB level (FPSUZ Fig. 3 is a plot, and their SAT-phase 1RSB entropy is Eq. (59)), so the banked numbers are
+Stojnic's (arXiv:2312.16531, Tables 2, 3, 5, 6; arXiv:1306.3980 Table 2) plus FP16's off-equilibrium kappa* ~ -0.431.
+THEORY: write the 1RSB entropy of FPSUZ Eq. (59) at 1 - q1 = delta -> 0, m = mu delta (mu = m/(1-q1) finite: the
+zero-temperature scaling of the cluster, H^m -> exp(-mu g_+^2/2) for the gap violation g_+): s = (1/2)(1 + c) ln delta +
+Phi(mu, q0; alpha)/delta + O(1) (c = the contact index below; the log is the -ln x tail of ln H on the violated side,
+the same mechanism as the RS law S ~ (1 + alpha_c H(-kappa))/2 ln(1 - alpha/alpha_c) of `perceptron.py`). Phi =
+ln(1 + mu(1-q0))/(2mu) + q0/(2(1 + mu(1-q0))) + (alpha/mu) E_t ln Y, Y = E_u exp(-mu g_+^2/2) = H(a/b) + exp(-mu a^2/(2
+s^2))/s * H(-a/(b s)) (a = kappa - sqrt(q0) t, b^2 = 1 - q0, s^2 = 1 + mu b^2). Stationarity in q1, m, q0 gives Phi =
+dPhi/dmu = dPhi/dq0 = 0. Phi = ent + alpha en is linear in alpha, so alpha_c is the stationary value of A(mu, q0) =
+-ent/en, a LOCAL MINIMUM at every kappa < 0 checked (audited Hessian), with mu -> 0 the RS value 1/D: A is the same
+variational form as Stojnic's lifted-RDT upper bounds (verified numerically at 14 points, not proved), and
+alpha_c^{RS} >= alpha_c^{1RSB} >= alpha_c^{2RSB} >= ... (the K-RSB families are nested). The nontrivial minimum is
+the only interior local minimum of A on a 60 x 60 grid in (ln mu, ln(1 - q0)) at kappa = -0.5, -1, -1.5, and the global
+one in the family (slow test; saddles and maxima of A are not excluded). As kappa -> 0^- it has mu ~ 1.5/kappa^2,
+1 - q0 ~ kappa^2, alpha_RS - alpha_1RSB ~ 0.50 |kappa|^3 as kappa -> 0^- (so it joins the exact RS value at 0); for kappa >= 0 there is no
+stationary point below 1/D (checked at kappa = 0, 0.5) and the version space is convex: `gardner_capacity("spherical",
+kappa, ansatz="1rsb")` returns the RS value labelled `1rsb`, alpha_c(0) = 2. REPLICON: FPSUZ Eqs. (62)-(63) at jamming
+reduce to the contact index c = alpha Prob(g > 0 | cluster) = alpha E_t[contact part of Y / Y] (leading order in
+delta; the correction is O(sqrt(delta)), checked against `unscaled_replicon`, the formula at finite delta), and the
+replicon is Lambda = 1 - c: the 1RSB point is stable toward further RSB iff c <= 1. At kappa = -1, c = 1.267; the five
+paper kappa give 1.152 ... 1.383: ALWAYS > 1, so the 1RSB capacity is labelled `unstable` (FPSUZ: the jamming line for
+sigma < 0 lies in the full-RSB phase, isostatic, c = 1). K-STEP RSB: q0 < ... < q_{K-1} < q_K = 1, mu_0 < ... <
+mu_{K-1}, nested F_K = -g_+^2/2, F_i = (1/mu_i) ln E_u exp(mu_i F_{i+1}(a - sqrt(q_{i+1} - q_i) u)) (FPSUZ App. B Eq.
+(B2) in the scaling), Phi_K = q0/(2 Lam_0) + (1/2) sum ln(Lam_i/Lam_{i+1})/mu_i + alpha E_t F_0, Lam_K = 1, Lam_i =
+Lam_{i+1} + mu_i (q_{i+1} - q_i); alpha_c^K = min A_K by BFGS from splits of the (K-1) point (coarse grid, then fine; the
+numerical error is the change under a refined grid, `grid_error`); c_K by the backward derivative recursion (the
+response of E_t F_0 to a step -eps theta(g) in the last energy). FULL RSB is the K -> infinity limit: the staircase
+K = 1, 2, 3 is extrapolated geometrically (`aitken_tail`; the quoted scale is the last difference); the continuum Parisi
+PDE of FPSUZ Eqs. (27)-(29) and the kappa = 1.41574 scaling solution of their Sec. V are NOT solved.
+COMMANDS: `python3 -m replicant run perceptron --route rsb --param kappa=-1` -> `alpha_c` 12.3196343465869
+(`rsb_q0` 0.66492449, `rsb_mu` 12.395316, `rsb_contact_index` 1.267219, `capacity_replicon` -0.267219, label
+`unstable`, 2.5 s, measured); `--param ansatz=krsb --param levels=2` -> 12.287222 (c = 1.131, about 20-40 s);
+`--param ansatz=frsb --param levels=3` -> the staircase K = 1..3 and the geometric estimate (4-8 minutes; `not-computed`);
+`python3 -m replicant.families.perceptron_krsb -0.55 -0.85` prints the ladder rows. Python: `gardner_capacity("spherical",
+-1, ansatz="1rsb")` (a `Capacity` with `.point`, an `RSBJamming`), `perceptron_rsb.onersb_jamming(kappa)` (kappa in
+[-3, -0.02]), `.rs_capacity`, `.jamming_alpha(mu, q0, kappa)`, `.jamming_phi`, `.contact_index`,
+`.unscaled_entropy` / `.unscaled_replicon` (FPSUZ Eqs. (59), (62)-(63) as written, float64), `perceptron_krsb.krsb_jamming(
+kappa, K)` (K <= 5), `.frsb_estimate(kappa, K)`, `.aitken_tail`. Measured (this package, kappa = -0.55 / -0.85 / -1.12 /
+-1.36 / -1.66, the h* effective margins of the paper project): RS 5.2461 / 9.5982 / 17.393 / 30.781 / 66.611; 1RSB 5.14939 /
+9.11490 / 15.8037 / 26.5989 / 53.3424; 2RSB 5.14543 / 9.09719 / 15.7534 / 26.4880 / 53.0808; 3RSB 5.14483 / 9.09458 /
+15.7463 / 26.4731 / 53.0493; full-RSB estimate 5.1447 / 9.0941 / 15.745 / 26.471 / 53.045; ratio full RSB / RS 0.9807 /
+0.9475 / 0.9052 / 0.8600 / 0.7963 (table and discussion in the results note). EVIDENCE: the 1RSB capacity at all ten kappa
+of Stojnic's Table 2 (-2.7 ... -0.3) agrees with his second full level of lifting (2-sfl RDT) to 6.2e-4 relative, his
+numbers lying at or above ours as a numerically optimised upper bound does (942.944 vs 942.9 at -2.7 is within his
+four digits); his 3-sfl (Tables 5, 6: 124.8, 36.40, 12.29, 4.698 at kappa = -2, -1.5, -1, -0.5) is our 2RSB, and his p2-hat
+column (0.4747 at -1.5, 0.6649 at -1) is our q0 (the identification is ours, not stated in his paper; checked at the ten kappa when found, banked and tested at two). The
+1RSB value lies below his 2013 partially lifted upper bound (12.784 at kappa = -1; 8.5631 at -0.8) and below the RS
+value, and its capacity at FP16's algorithmic jamming margin -0.431 exceeds 3. Independent routes: (i) the scaling
+limit: FPSUZ Eq. (59) as written (float64 nested Gauss-Legendre, no closed form) minus (1 + c) ln(delta)/2 times
+delta tends to Phi linearly in delta at both signs of Phi (relative error 3.6e-4 at delta = 1e-6); (ii) the integer-n
+replica functional: E_t (E_u H^m)^(n/m) equals the Gaussian orthant probability of the 1RSB overlap matrix (scipy's
+Genz integrator) to 3e-8 for (n, m) = (4, 2), (6, 3); (iii) two quadratures of the root (float64 and mpmath tanh-sinh,
+20 digits; the residuals dPhi/dmu, dPhi/dq0 <= 1e-13, Phi = 0 holding by construction). PLANTED CONTROLS (each leaves the banked number): the wrong block
+structure (u-variance q0 in place of 1 - q0, and the two layers' variances exchanged in the integer-n check), the dropped
+m (no 1/mu in front of the average, and the n/m power dropped), the wrong scaling (the log-determinant term without its
+1/2), and the bank-level swaps (RS 13.27, the 2013 bound 12.784, the 2RSB 12.287 each fail the 1RSB number 12.32).
+LABELS: `alpha_c` of the route is `unstable` with ansatz `1rsb` / `krsb` (a COMPUTED replicon 1 - c < 0), `stable`
+only if a computed replicon is non-negative (kappa >= 0: the RS replicon), and the full-RSB estimate is
+`not-computed`; no value of this route is `stable` for kappa < 0 as computed (every contact index is > 1), and nothing is final;
+`stable` would require a computed replicon sector value c <= 1. REFUSALS: `precondition:
+kappa-range` (kappa >= 0 for `onersb_jamming`, -0.02 < kappa < 0 where mu ~ 1/kappa^2 leaves the float64 stage, and
+kappa < -3), `precondition:levels`, `precondition:known-ansatz`, `no-solution:rsb-branch` (no nontrivial minimum,
+or not a minimum), `no-solution:rsb-polish` (the quasi-Newton polish did not converge), `no-solution:rsb-audit`
+(float and mpmath roots disagree, or a stationarity residual is above 1e-10), `no-solution:krsb-degenerate` (a K >= 2
+search merged two levels back into the (K-1), `undetermined:frsb-extrapolation` (the `frsb` staircase is not geometrically decreasing: the K-step values stand, no limit) point). HONEST LIMITS: physics-level (replica n -> 0, the RSB hierarchy;
+Stojnic's lifted bounds are rigorous for their own functional, whose identity with the RSB one is verified numerically
+here, not proved); the 1RSB capacity is NOT the capacity (c > 1); the K-step staircase to K = 3 (a K = 4 run at kappa = -0.85
+was started and abandoned unfinished after 28 minutes) gives geometric convergence with ratio 0.12-0.15 of consecutive differences, but the ratio rests on
+one pair of differences per kappa, and the contact index falls (1.29 -> 1.14 -> 1.09 at kappa = -1.12) more slowly than
+alpha, so the full-RSB estimate is an extrapolation whose true error can exceed the stated scale if the decay turns
+power-law; the continuum FRSB solution is not computed; `precondition:polynomial-energy-for-t0` (below) still refuses
+the COMPOSED level-(a) T = 0 1RSB route: this one is a family function plus catalog route, not a composer step; the
+dAT line (RS replicon zero) is computed from `perceptron.py` (alpha_AT/alpha_RS = 0.804 / 0.659 / 0.545 / 0.465 / 0.395
+at the five kappa), not re-derived. FP16's kappa_1RSB ~ -2.05 (below which the dAT instability is discontinuous) is
+not reproduced. COST: 1RSB 2-4 s; 2RSB 20-45 s (loaded CPU); 3RSB 4-8 min per kappa.
+
 INPUTS: a catalog entry name or a spec.json (above); run parameters by entry (exactly the names each
 route reads, `CatalogEntry.parameters[route]`; any other name, e.g. a typo `kapa`, is refused
 `precondition:known-parameter` with the accepted names, never ignored):
@@ -1051,7 +1134,8 @@ level-(a) 1RSB solver), `fullrsb` (flag, slow tier); `sk` cavity: `beta`, `h`, `
 `sk` amp: `beta`, `h`, and for finite-N AMP `N`, `seeds` (default 0-5; a non-empty list of
 non-negative integers, else `precondition:named-seeds`, e.g. `--param seeds=1`), `iters` (default 100), `law`
 (`gaussian`|`pm_one`; with `pm_one` every SE value is `not-computed`: SE is proved for Gaussian J only);
-a finite-N parameter without `N` is refused `precondition:known-parameter` ("need N"); `pspin` and `ising_pspin`: `p` (default 3), `beta`; `perceptron` replica: `alpha`, `kappa` (default 0); `perceptron`
+a finite-N parameter without `N` is refused `precondition:known-parameter` ("need N"); `pspin` and `ising_pspin`: `p` (default 3), `beta`; `perceptron` replica: `alpha`, `kappa` (default 0); `perceptron` rsb: `kappa`, `ansatz` (`1rsb` default |
+`krsb` | `frsb`), `levels` (`krsb` 2..5, default 2; `frsb` 3..5, default 3; `1rsb` has one); `perceptron`
 cavity: `alpha`, `kappa`, `variables` (`spherical`; `ising` is refused `not-implemented:cavity-ising`);
 `teacher_student`: `alpha`, `learning` (`gibbs`|`bayes`); `teacher_student` amp: `alpha`, `learning`
 (default `bayes`), and for finite-N GAMP `N`, `seeds` (default 0-5; malformed seeds refused
@@ -1174,6 +1258,7 @@ re-runs the entry's banked comparisons) and its JSON (`target`, `spec`, `route`,
 | `precondition:named-seeds` | amp route of `sk` and `teacher_student` (finite N): `seeds` not a non-empty list of non-negative integers (`--param seeds=1`, an empty list, a negative or non-integer seed) |
 | `precondition:counting-measure-for-frozen`, `:discrete-variables-for-frozen` | frozen 1RSB asked for an energy that is not an indicator pattern average, or continuous variables |
 | `precondition:polynomial-energy-for-t0` | T = 0 1RSB asked for a Gaussian-integral energy (Hopfield, perceptron: needs q1 = 1 - C/beta, not implemented) |
+| `precondition:kappa-range`, `:levels`, `precondition:known-ansatz` (rsb route), `no-solution:rsb-branch`, `:rsb-polish`, `:rsb-audit`, `:krsb-degenerate`, `undetermined:frsb-extrapolation` | `perceptron` route `rsb` (`perceptron_rsb.py`, `perceptron_krsb.py`): kappa outside [-3, -0.02] for the 1RSB search (kappa >= 0 is the RS value), a bad `levels` / `ansatz`, no nontrivial minimum of A(mu, q0), the quasi-Newton polish or the float / mpmath audit failed, a K >= 2 search collapsed to the K-1 point (also on the `frsb` ladder), the `frsb` staircase is not geometrically decreasing so no limit is extrapolated. The composed T = 0 1RSB of the line above stays refused: the perceptron's T = 0 1RSB is this family route, not a composer step |
 | `no-solution:not-a-local-maximum` | `branch="max-f"`: the largest-f 1RSB root is not a local maximum of f (Schur complement over the conjugates) |
 | `missing-step:derivation:<name>` | a requested document needs a derivation the entry does not provide |
 | `precondition:<name>` | an input or state precondition fails (state point incomplete: `state-point`; out-of-range or non-numeric input; `known-parameter`, `rs-reducible`, `rs-site-trace-form`, `supported-disorder-law`, `nonnegative-alpha`, `finite-kappa`, `known-ansatz`, `known-graph`, `tex-engine`, `latex-path`, `known-target`, `complete-spec`, `known-variables`, `m-range`, `alpha-range`, `replicon-block`, `p-at-least-3`, ... and the step preconditions of the derivation). A malformed numeric run parameter of the entries added since E11 is refused `precondition:<its name>` (e.g. `precondition:R0`, `:Q0`, `:D`, `:noise_estimate`, `:B`, `:X`, `:Nx`, `:init_seed`, `:Q11` (online), `:Ly`, `:N` (lattice), `:K1`, `:a`, `:b` (lattice internals), `:mean-degree`, `:occupation`, `:core-order` (percolation), `:sweeps`, `:burn-in`, `:walkers`, `:t-max`, `:muca-sweeps`, `:population`, `:temperatures` (Monte Carlo)) |
@@ -1202,7 +1287,7 @@ re-runs the entry's banked comparisons) and its JSON (`target`, `spec`, `route`,
 | `no-transition` | the branching number rules out a spin-glass transition |
 | `no-transition:gardner` | `pspin_gardner_temperature`: the pure spherical p-spin (no Gardner transition; the detail carries the computed replicon scan), or no sign change of the Ising static-line replicon on the scan |
 | `unsupported:degree-law`, `unsupported:J-law` | a graph/coupling law the sparse code does not implement; for XORSAT a name not in `csp/xorsat.DEGREE_LAWS` |
-| `not-implemented:annealed`, `:cavity-ising`, `:spherical-rsb`, `:mismatched-teacher-student`, `:frozen-1rsb-replicon` | the named case is outside v1 (`:mismatched-teacher-student`: GAMP state evolution off the Nishimori line; `:frozen-1rsb-replicon`: `ising_perceptron_1rsb_replicon`, the stability of the frozen Ising-perceptron 1RSB is not computed) |
+| `not-implemented:annealed`, `:cavity-ising`, `:mismatched-teacher-student`, `:frozen-1rsb-replicon` | the named case is outside v1 (`:spherical-rsb` no longer raised: the spherical 1RSB is `perceptron_rsb.py`; `:mismatched-teacher-student`: GAMP state evolution off the Nishimori line; `:frozen-1rsb-replicon`: `ising_perceptron_1rsb_replicon`, the stability of the frozen Ising-perceptron 1RSB is not computed) |
 | `ambiguous:critical-point`, `undetermined:near-critical` | percolation (`cavity`): t G1'(1) = 1 exactly (a marginal double root u = 1; with a linear G1, all degrees 2, every u is a fixed point); a root u* < 1 not separable from 1 at 4096 bits |
 | `no-solution:dropped-root`, `:generating-function-audit`, `:audit`, `:route-disagreement`, `:sum-rule` | percolation (`cavity`): u = 1 missing or the smallest listed root unstable; G1 differs from G0'/G0'(1); <s> differs from its fixed-point form; the monotone bracket, a closed form or the second cluster-size algorithm disagrees; a partial sum of P_s exceeds 1 - S |
 | `precondition:coordination`, `:degree-law`, `:mean-degree`, `:tau`, `:dilution`, `:occupation`, `:s-max`, `:below-threshold`, `:union-find-element`, `:n`, `:named-seeds`, `unsupported:degree-law`, `unsupported:infinite-second-moment` | percolation: Bethe k not an int in 2 .. 1000; a finite law not "k:p,k:p" with int 0 <= k <= 1000, rational p_k >= 0 summing exactly to 1, mean > 0; c not a rational > 0; tau not a number; dilution not bond / site; t outside [0, 1]; s_max outside 1 .. 60; MS (3.20) asked above p_c; a union-find element out of range; N outside 50 .. 2e6 (odd stub count, window sizes <= 1000); seeds not >= 2 distinct ints >= 0; an unknown law; a power law with tau <= 3 (<k^2> = oo; tau > 3 is `unsupported:degree-law`) |
@@ -1228,7 +1313,7 @@ values at the default / banked state points):
 | `sk` Sherrington-Kirkpatrick | replica, cavity, amp | `tc` 1; RS `-sqrt(2/pi)` = -0.797885; 1RSB -0.765259; at `beta`: RS `q, f, e, replicon`; amp: SE `q_se`, with `N` finite-N `q_amp` | `tc`, RS, 1RSB; slow tier: 2RSB -0.76361, 3RSB -0.76331, full-RSB -0.763166 | `tc` stable; RS ground energy unstable; 1RSB not-computed; full RSB exact-by-literature (slow); amp `q_se` exact-by-literature (AMP limit, BM11 Thm 4), `q_amp` not-computed (statistical) |
 | `pspin` spherical p-spin | replica | p = 3: `T_s` 0.586054, `T_d` 0.612372, `q_s` 0.645007; at `beta`: 1RSB `q1, m, f, e, replicon_1rsb` | `T_s`, `T_d`, `q_s`; slow: `e0` -1.172 | 1RSB values `stable` by the COMPUTED 1RSB replicon (= 1 - (p-1) y = 0.290015 at p = 3, the same for every T < T_s: no Gardner transition, `pspin_gardner_temperature(3)` refuses `no-transition:gardner`); `T_d` exact-by-literature (CC05 closed form) |
 | `ising_pspin` Ising p-spin (Gardner 1985) | replica | p = 3: `T_s` 0.651385, `T_d` 0.681598, `T_G` 0.240260, `q_s` 0.813518; at `beta` (T < T_s): 1RSB `q1, m, f, e, replicon_1rsb` | `T_s`, `T_d`, `T_G` (Rizzo 2013), `q_s` and the replicon at `T_s` 0.3305 (Nishimori, PRE 2026) | `T_s`, `q_s`, `T_G` stable (computed replicon); state-point values `stable` for T_G < T < T_s, `unstable` below T_G (e.g. `--param beta=5`); `T_d` not-computed (marginal by construction) |
-| `perceptron` spherical (Gardner) | replica, cavity | `alpha_c(kappa=0)` = 2; entropy `S` and its `replicon` at `alpha` | `alpha_c`, both routes | `alpha_c` stable for kappa >= 0 (RS exact), unstable and not final for kappa < 0; `S` carries its own computed replicon label. The entry is RS only: `--param ansatz=1rsb` is refused `precondition:known-parameter`; in Python `gardner_capacity("spherical", ansatz="1rsb")` is refused `not-implemented:spherical-rsb` |
+| `perceptron` spherical (Gardner) | replica, cavity, rsb | `alpha_c(kappa=0)` = 2; entropy `S` and its `replicon` at `alpha` | `alpha_c`, both routes | `alpha_c` stable for kappa >= 0 (RS exact), unstable and not final for kappa < 0; `S` carries its own computed replicon label. The `replica` and `cavity` routes are RS only (`--param ansatz=1rsb` is refused `precondition:known-parameter`); route `rsb` (T = 0, kappa < 0): `alpha_c` 1RSB / K-step RSB / full-RSB estimate (see NEGATIVE-MARGIN SPHERICAL PERCEPTRON above), banked against Stojnic's Tables 2, 5, 6 (arXiv:2312.16531; slow for all but kappa = -1), labelled `unstable` (computed contact-index replicon > 1) or, for the full-RSB estimate, `not-computed`; in Python `gardner_capacity("spherical", kappa, ansatz="1rsb")` returns the 1RSB capacity |
 | `teacher_student` | replica, amp | Gibbs 0.624658 / Bayes 0.441700 asymptotic constants (`eps ~ c/alpha`); amp: GAMP SE `q_se`, `mse_se`, `eps_se`, with `N` finite-N `q_gamp`, `eps_gamp` | both constants (bank tol is a 3-digit rounding) | exact-by-literature; amp values not-computed (GAMP SE is a claim) |
 | `hopfield` (AGS) | replica, cavity | `alpha_c(T=0)` 0.137906, `m` 0.967417, `E` -0.501445, `alpha_global` 0.051854 | all four (Steffan-Kuehn; AGS 0.051 for the global one) | T = 0 values not-computed; state-point values carry their replicon |
 | `xorsat` random K-XORSAT | cavity | K = 3: `alpha_d` 0.818469, `alpha_s` 0.917935, `lambda_d` 1.256431, `lambda_s` 2.149126; at `alpha`: 2-core `core_variables`, `core_checks`, `complexity`; with `N`: `sat_fraction` (exact GF(2)) and the sampled core | `alpha_d`, `alpha_s`, `lambda_d`, `lambda_s` (K = 3; MRZ 2003), `alpha_d` K = 4, 5, `alpha_s` K = 4, 5, 6 | thresholds and core exact-by-literature (Molloy 2005 core; Dubois-Mandler 2002 for K = 3, Pittel-Sorkin 2016 for K >= 3); `complexity` exact-by-literature below `alpha_s`, not-computed above; finite-N values not-computed (statistical) |
@@ -1325,7 +1410,7 @@ banked in `reference/perceptron.json` as independent targets. Honest limits:
   (default tier): time averages at N = 8 equal the exact spectrum means within 99% bands at four betas,
   and the planted acceptance rule (x0.8) and the reversed exchange sign are detected at every beta.
 
-ACCEPTANCE GATES: `python3 tools/replicant/selftest.py` (default tier: 662 tests, about 30 s on a laptop, measured 30.2 s wall, cold, on a clean export; also `python3
+ACCEPTANCE GATES: `python3 tools/replicant/selftest.py` (default tier: 676 tests, about 30 s on a laptop, measured 30.2 s wall, cold, on a clean export at 662 tests; the 14 added since cost about 1.8 s by their own timing, not re-timed cold; also `python3
 run_selftests.py replicant`, which runs the `python3` on PATH; run both from the activated project venv,
 which has python-flint) covers the core and
 refusal paths, the symbolic derivation against independent expressions, level agreement (a)=(b) for
@@ -1345,7 +1430,7 @@ CC95 Eqs. (5), (21), (24), (30), (32) against the TCM route, CKC96's equivalence
 (and a planted wrong mapping failing), the asymptotic constants against K and a K = 3 simulation band
 (O4), the SCM's erf averages against Gauss-Hermite (with planted normalisation errors), the papers'
 fixed points, eigenvalues and critical rates against the ODE, the plateau report (escaped, undetermined,
-none, the rtol check) and a small simulation band with the eta^2 term planted out (O5), VC97's Eq. (3) and its gradients against O5's erf route, the closed ODE against quadrature of the pointwise modulation, the optimality positive control (perturbed modulations decay slower where H is positive definite, one decays faster at the saddle), Fig. 1 and the K = M = 2 plateau against the bank, gradient descent beaten, and a tiny simulation band with H misnormalised planted (O6), the 1D observables against exact rings and the 2D energy and specific heat against Kaufman-torus derivatives and the E8 series (I1), the correlation length against Onsager's strip spectrum and the direct strip matrix, the nu / eta consistency checks and the critical diagonal correlations (I2), the anisotropic, triangular and honeycomb free energies by two or three routes, the star-triangle and four-sector duality identities on exact tori and the high-temperature torus identity (I3), each with planted errors; the percolation fixed points, closed forms and sampled bands (P1), the 2D thresholds, exponents, Cardy's two routes, the exact crossing polynomials and Newman-Ziff sweeps against enumeration (P2), the k-core and bootstrap fixed points and thresholds against DGM's form, csp/xorsat.py and Balogh-Pittel's closed forms, and exact peeling / spreading (P3), each with planted errors; the cluster samplers' stationarity chi^2 and ergodicity with measured power and planted errors, Kaufman's polynomial and P2's crossing polynomial as exact targets (M1), Wang-Landau against the exact g(E), the multicanonical and Ferrenberg-Swendsen estimates against exact values with planted errors of measured power (M2), and population annealing's free energy against Kaufman and enumeration, its families and labels and the finite-R bias (M3). `--full` adds 206 `@slow` tests (full-RSB Parisi up to K = 9,
+none, the rtol check) and a small simulation band with the eta^2 term planted out (O5), VC97's Eq. (3) and its gradients against O5's erf route, the closed ODE against quadrature of the pointwise modulation, the optimality positive control (perturbed modulations decay slower where H is positive definite, one decays faster at the saddle), Fig. 1 and the K = M = 2 plateau against the bank, gradient descent beaten, and a tiny simulation band with H misnormalised planted (O6), the 1D observables against exact rings and the 2D energy and specific heat against Kaufman-torus derivatives and the E8 series (I1), the correlation length against Onsager's strip spectrum and the direct strip matrix, the nu / eta consistency checks and the critical diagonal correlations (I2), the anisotropic, triangular and honeycomb free energies by two or three routes, the star-triangle and four-sector duality identities on exact tori and the high-temperature torus identity (I3), each with planted errors; the percolation fixed points, closed forms and sampled bands (P1), the 2D thresholds, exponents, Cardy's two routes, the exact crossing polynomials and Newman-Ziff sweeps against enumeration (P2), the k-core and bootstrap fixed points and thresholds against DGM's form, csp/xorsat.py and Balogh-Pittel's closed forms, and exact peeling / spreading (P3), each with planted errors; the cluster samplers' stationarity chi^2 and ergodicity with measured power and planted errors, Kaufman's polynomial and P2's crossing polynomial as exact targets (M1), Wang-Landau against the exact g(E), the multicanonical and Ferrenberg-Swendsen estimates against exact values with planted errors of measured power (M2), and population annealing's free energy against Kaufman and enumeration, its families and labels and the finite-R bias (M3). `--full` adds 222 `@slow` tests (the negative-margin perceptron's RSB ladder: K = 2 about 30 s per kappa, K = 3 about 7 minutes; full-RSB Parisi up to K = 9,
 population dynamics at reference sizes, the XORSAT GF(2) crossing at N = 400-2000 and leaf removal at
 N = 100000, the K-SAT SP-population crossing and BP window, the LDPC crossing at N = 20000, the spiked
 AMP and SBM bands at reference sizes, the ridge 1/n bands at n = 400, 1000, the online ODE-vs-simulation
@@ -1354,7 +1439,7 @@ and the nonlocal asymptote 8 s; SCM through the plateau at N = 1000 13 s, BRW's 
 6 s; VC97's K = M = 2 plateau about 2 min), the I1-I3 lattice checks at larger sizes, the ER critical window and the finite-size-scaling validation on the four solved lattices (P1, P2), the k-core second routes at extreme parameters (P3), the cluster Monte Carlo at L = 8-32 and the z fits, Wang-Landau at L = 4-16, multicanonical and Ferrenberg-Swendsen runs against Kaufman, population annealing at 8 x 8, 16 x 16 and SK N = 18 (M1-M3), the 2RSB certified bound and
 the K = 5 chain, the E11 Monte Carlo / enumeration held-out routes (about 4.6 min), the Hopfield replicon
 scans, the p-spin T -> 0 energy, solver-based composed and LaTeX checks, a PDF compile when a TeX engine
-is present) and takes about 35 minutes on a laptop (measured 34 min 39 s with 859 tests, cold, on a clean export, before the final fix wave added 9 tests: 868 now); run it before merging a change to a family. The `@slow` marker is
+is present) and takes about 35 minutes on a laptop (measured 34 min 39 s with 859 tests, cold, on a clean export, before the final fix wave added 9 tests and the negative-margin perceptron 30: 898 now); run it before merging a change to a family. The `@slow` marker is
 honoured by `selftest.py` only: pytest ignores it and would run everything. Level agreement between the
 derivation and the pipelines is a consistency check, not new evidence for the ansatz; the cavity route reproducing
 the replica RS equations is an independent derivation but NOT independent evidence for the RS ansatz.
@@ -1548,9 +1633,10 @@ KNOWN HAZARDS:
   carries its own computed label: `S` is labelled by the sign of the RS replicon at that `alpha`, and
   `gardner_entropy` refuses `unstable:rs` where it is negative); e.g. `--param alpha=1.5 --param
   kappa=-1` gives `alpha_c` 13.27 with capacity replicon -1.106 (unstable) and `S` with its own
-  replicon. The entry has no `ansatz` parameter: through the CLI or `compose(...).run`, `--param
-  ansatz=1rsb` is refused `precondition:known-parameter`; at the Python level
-  `gardner_capacity("spherical", ansatz="1rsb")` is refused `not-implemented:spherical-rsb`. Hopfield
+  replicon. The `replica` route has no `ansatz` parameter: through the CLI or `compose(...).run`, `--param
+  ansatz=1rsb` is refused `precondition:known-parameter`; the 1RSB / K-step / full-RSB capacity for kappa < 0 is the
+  `rsb` route (`--route rsb`, `gardner_capacity("spherical", kappa, ansatz="1rsb")`), see NEGATIVE-MARGIN SPHERICAL
+  PERCEPTRON AT T = 0. Hopfield
   cavity gives the energy, not `f`.
 - Level (a) hook names differ: the Theta rule refuses as `known-gaussian-integral`, the exp rule as
   `gaussian-integrable`. At K = 8 the top Hessian eigenvalue (about -2.6e-8) is near the finite-difference
