@@ -1,0 +1,73 @@
+% DRAFT replacement text for the appendix "Replica theory for random documents"
+% (limit-fig2-paper/main.tex, \label{app:replica}). The paper project was NOT edited.
+%
+% What this file replaces in main.tex:
+%   (A) the paragraph "Stability and scope" and the table \label{tab:replicon}
+%       (the table body was \input{tables/tab_replicon.tex}; the table below is inline,
+%       its rows generated from docs/replicant/pinned_joint_replicon.json);
+%   (B) the LAST SENTENCE of the paragraph that begins "What the pair margin needs is not the slice
+%       on the sphere but ..." (the rest of that paragraph and Table tab:rsslice are unchanged);
+%   (C) the final paragraph, the one that begins "The composer of the package refuses ...".
+% Two small edits elsewhere:
+%   (D) the first paragraph of the appendix says "(commit 08d02ea)": the hook described here is in
+%       commit bd1dafd of the BootLoops repository, branch claude/jolly-bhaskara-ef4016;
+%   (E) the paragraph "Reduction to a perceptron" needs no change: its capacity statement stays correct.
+% Label bookkeeping: kept \label{tab:replicon}; added \label{eq:phijoint}, \label{eq:replicon};
+% references used: eq:mrs, tab:rep, tab:rsduals, tab:rsval, tab:rsslice (all exist).
+% Notation: Q is the replica overlap (as in "the limit Q -> 1" of the reduction), q = sqrt((1+c)/2)
+% as in the paper, a the weight of the pair direction e, h = sqrt(d)(a q - kappa), alpha = N/d.
+% Needs \usepackage{booktabs}, already loaded by the paper's tables.
+
+% ---------------------------------------------------------------- (A) begin
+\paragraph{Stability and scope.}
+The stability of the replica-symmetric solution has to be assessed on the joint problem of the pair, and not on the fixed-$a$ perceptron of the reduction. The two share the capacity condition $\alpha_{\mathrm{eff}}\Psi(h)=1$, but their functionals differ below capacity, and so do their replicons. The catalog perceptron at $(\alpha_{\mathrm{eff}},\tilde\kappa=-h^*)$ has replicon $1-\alpha_{\mathrm{eff}}\Phi(-h^*)$ at capacity, which is negative at our states (column ``slice'' of Table~\ref{tab:replicon}); it is the replicon of that perceptron, and it does not describe the pair.
+
+We derived the functional of the joint problem with the package, which now accepts pinned unit vectors (the constraint ``margin kappa pinned directions''). Both constraints of a pattern share its field, so only $\min_a\langle u,v_a\rangle$ enters the energy, and the tied solution has $\langle u,v_i\rangle=\langle u,v_j\rangle=aq$. The entropic term is the log-volume of the sphere with the pinned components fixed. It was supplied by hand, from the Gram determinant of the replicas' components orthogonal to the pinned directions, and is not mechanised; every other step is generic. Per replica, at $n\to0$,
+\begin{equation}
+\varphi(Q,a)=\frac12\Big[\ln(1-Q)+\frac{Q-a^2}{1-Q}\Big]+\alpha\,\mathbb{E}_t\ln\Phi\!\Big(\frac{h-\sqrt{Q}\,t}{\sqrt{1-Q}}\Big),\qquad h=\sqrt d\,(aq-\kappa),
+\label{eq:phijoint}
+\end{equation}
+with $t$ a standard Gaussian and $\Phi$ the Gaussian distribution function. As $Q\to1$, $\varphi\simeq[\,1-a^2-\alpha\Psi(h)\,]/[2(1-Q)]$, so the volume vanishes where this bracket and its derivative in $a$ both vanish. That is Eq.~\eqref{eq:mrs}: the package reproduces $m_{\mathrm{RS}}$ to $10^{-13}$ at the five states of Table~\ref{tab:replicon}, and its number of active competitors, $N\,\Phi(-h^*)$, is the $k=(n-2)\Phi(-h^*)$ of the support-vector law.
+
+The replica permutations act on the fluctuations of the overlap matrix and of the overlaps $a^\alpha$ with the pinned direction. The replicon sector occurs once, in the overlap matrix alone, so it cannot mix with the fluctuations of $a^\alpha$ (Schur's lemma). We checked this on the explicit Hessian at integer $n=4$ and $5$: the replicon vector has no component along $a^\alpha$, to $10^{-9}$ in relative terms. Its eigenvalue is therefore that of the overlap block at fixed $a$, evaluated at the saddle of \eqref{eq:phijoint},
+\begin{equation}
+\lambda_R=1-\alpha\,\mathbb{E}_t\Big[\big(G(u)\,[\,G(u)+u\,]\big)^2\Big],\qquad G=\frac{\varphi(u)}{\Phi(u)},\quad u=\frac{h-\sqrt{Q}\,t}{\sqrt{1-Q}},
+\label{eq:replicon}
+\end{equation}
+where $\varphi(u)$ is the Gaussian density. At capacity it tends to $1-\alpha\Phi(-h^*)=1-k/d$, whereas the catalog perceptron gives $1-k/[d(1-a^{*2})]$: it counts the $k$ active constraints against the $d(1-a^{*2})$ dimensions left after the pinned component, and the pair problem counts them against $d$. A positive replicon at capacity thus means that fewer than $d$ constraints are active, which one expects of a minimum-norm point, and the measured numbers of active competitors in Table~\ref{tab:rsduals} (4.1 to 16.6) are all below $d$. The package's derived replicon, computed independently by the symbolic route at a saddle checked against the derived equations, agrees with \eqref{eq:replicon} to $10^{-12}$.
+
+\begin{table}[h]
+\caption{Pair problem at the states visited by the replica solution for the typical pair ($c=0$). $k$ is the number of active competitors, $N\,\Phi(-h^*)$. The joint replicon is $\lambda_R$ of Eq.~\eqref{eq:replicon}, at capacity ($=1-k/d$) and at $\kappa=0.9\,\kappa^*$ with the overlap $Q$ of that saddle; the slice replicon is that of the catalog perceptron at $(\alpha_{\mathrm{eff}},-h^*)$. Positive means replicon-stable.}
+\label{tab:replicon}
+\centering
+\small
+\begin{tabular}{lcccccccc}
+\toprule
+ & & & & & \multicolumn{2}{c}{at capacity} & \multicolumn{2}{c}{at $\kappa=0.9\,\kappa^*$} \\
+\cmidrule(lr){6-7}\cmidrule(lr){8-9}
+$d$ & $n$ & $a^*$ & $h^*$ & $k$ & joint & slice & $Q$ & joint \\
+\midrule
+6 & 16 & 0.743 & 0.546 & 4.09 & $+0.318$ & $-0.523$ & 0.9575 & $+0.475$ \\
+10 & 35 & 0.810 & 0.851 & 6.52 & $+0.348$ & $-0.898$ & 0.9521 & $+0.529$ \\
+14 & 70 & 0.849 & 1.119 & 8.94 & $+0.361$ & $-1.284$ & 0.9496 & $+0.562$ \\
+20 & 140 & 0.880 & 1.357 & 12.07 & $+0.397$ & $-1.669$ & 0.9432 & $+0.613$ \\
+30 & 350 & 0.908 & 1.659 & 16.92 & $+0.436$ & $-2.225$ & 0.9357 & $+0.669$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Below capacity the joint replicon is larger, between $0.33$ and $0.85$ at $\kappa/\kappa^*=0.999$, $0.99$, $0.9$ and $0.5$, and it grows monotonically away from the capacity value; the replicon is also positive for $c=\pm0.5$ at $(d,n)=(10,35)$, where $c=-0.5$ is the closest to marginal ($+0.21$ at capacity). The fluctuations of $a^\alpha$ do mix with the anomalous mode of the overlap matrix, which belongs to the same irreducible sector, in a two-by-two block; we computed it together with the uniform mode of $a$. All of these modes have the stable sign in the 35 states computed (seven pairs of $(d,n,c)$, each at capacity and at four values of $\kappa$ below it). The block has a complex pair at $\kappa/\kappa^*=0.5$ for several states, with a stable real part, and the criterion we apply to this block at $n\to0$ is the continuation of the integer-$n$ one, not a theorem.
+
+These statements concern the local stability of the replica-symmetric saddle at $n\to0$. They indicate no instability toward replica-symmetry breaking at our states, in line with the convexity of the minimum-norm problem, but they do not show that the replica-symmetric value is exact. Three limits apply. The entropy is that of the sphere, not of the ball. The threshold $h=\sqrt d\,(aq-\kappa)$ is read at finite $d$ as in the rest of the appendix. And the replica-symmetric theory has no untied branch: the stationarity of the overlap with the non-binding vector gives $M_2=cM_1<M_1$, which contradicts non-binding, so the pairs whose exact solution is untied (up to 18\%) lie outside it. The sample-to-sample fluctuation of the margin, which a self-averaging calculation does not contain, may still account for the residuals of Tables~\ref{tab:rsval} and~\ref{tab:rsduals}.
+% ---------------------------------------------------------------- (A) end
+
+% ---------------------------------------------------------------- (B) begin
+% Replace the last sentence of the paragraph "What the pair margin needs is not the slice on the
+% sphere ..." ("It does not test the sphere slice, which is the non-convex problem the catalog flags,
+% and the replica stability of the joint problem itself was not computed.") by:
+It does not test the sphere slice at fixed $a$, which is not convex; the replica stability of the joint problem is treated in the paragraph on stability above.
+% ---------------------------------------------------------------- (B) end
+
+% ---------------------------------------------------------------- (C) begin
+The composer of the package now accepts the pair problem, with two pinned unit vectors of overlap $c$, and refuses a dense-memory model as ``\texttt{missing-step:family:dense\_memory}'', because its level-(a) hooks cover only the Sherrington--Kirkpatrick, perceptron and Hopfield families. The generic solver of the package does not find the saddle of the joint functional in practical time, so the saddles were located separately and checked against the derived equations by an independent quadrature. The 1RSB machinery, which is derived by rules for counting measures and for polynomial energies, does not cover the spherical perceptron with negative margin (the catalog refuses it as \texttt{not-implemented:spherical-rsb}), so it cannot quantify an RSB correction. The entropic term of the joint functional is our own step on top of the package, and the optimized-document problem lies outside it.
+% ---------------------------------------------------------------- (C) end
