@@ -172,6 +172,26 @@ All notable changes to BootLoops are recorded here. The format follows
   GUIDE (section MARGIN LAW): spherical only at level (b), physics-level RS, non-convex laws carry the catalog's kappa < 0
   caveat and the sampling there is the ball threshold. Default tier 685 tests (23 new, about 21 s CPU measured on a
   loaded machine, not re-measured quiet); full tier 896.
+- `replicant` (negative-margin perceptron): the capacity of the spherical perceptron with kappa < 0 beyond RS, where the
+  RS value 1/D(kappa) is only an upper bound. `families/perceptron_rsb.py`: the 1RSB jamming (SAT-UNSAT) point from the
+  zero-temperature scaling (1 - q1 = delta -> 0, m = mu delta) of the 1RSB entropy of Franz, Parisi, Sevelev, Urbani &
+  Zamponi (arXiv:1702.06919, Eq. (59)): alpha_c is the minimum of A(mu, q0) = -ent/en, solved with float64 bracketing,
+  an mpmath quasi-Newton polish and an audit (stationarity residuals, Hessian, two quadratures), with a contact-index
+  replicon (FPSUZ Eq. (62) at leading order: 1RSB is unstable for every kappa < 0, labelled `unstable`, never final);
+  `gardner_capacity("spherical", kappa, ansatz="1rsb")` no longer raises `not-implemented:spherical-rsb`
+  (kappa >= 0 returns the RS value, kappa < 0 the 1RSB capacity). `families/perceptron_krsb.py`: K-step RSB (K <= 5, float64
+  grids, slow tier), its contact index and a geometric extrapolation to full RSB (`not-computed`). Catalog route `rsb`
+  of `perceptron` (`catalog_perceptron_rsb.py`, parameters `kappa`, `ansatz` 1rsb|krsb|frsb, `levels`; displayed equations in
+  `latex_perceptron_rsb.py`). Banked from Stojnic (arXiv:2312.16531 Tables 2, 5, 6; arXiv:1306.3980 Table 2) and
+  Franz-Parisi (arXiv:1501.03397): the 1RSB capacity agrees with his second level of lifting at ten margins
+  (kappa = -2.7 ... -0.3) to 6.2e-4 relative and the 2RSB with his third level at four. At the effective margins of the
+  random-documents appendix (kappa = -0.55, -0.85, -1.12, -1.36, -1.66) the full-RSB / RS capacity ratio is 0.981, 0.948,
+  0.905, 0.860, 0.796 (RESULTS_negative_perceptron_rsb.md). Checks: the scaling limit against Eq. (59) evaluated as
+  written, the integer-n replica functional against Gaussian orthant probabilities, planted controls (wrong block
+  structure, dropped m, wrong scaling). The arXiv number 1606.04380 sometimes quoted for FPSUZ is a mathematics paper:
+  the paper is arXiv:1702.06919. Default tier 676 tests (+14, about 1.8 s by their own timing, over the 1 s ruling: the audited mpmath roots and the scaling-limit
+  and replicon checks are slow-tier), full tier 898 tests (+16 slow: K = 2 about 30 s per kappa, K = 3 about 7 minutes).
+
 ### Changed
 - `replicant` (documentation and cleanup, O7): GUIDE (catalog, refusal table, routes, finality notes, hazards,
   every worked example re-run literally on a clean export), README, REFERENCES (every source of the four plans

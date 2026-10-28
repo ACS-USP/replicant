@@ -268,6 +268,7 @@ def test_reference_checks_available_through_result():
 _DOCUMENTED = {
     ("rem", "replica"): {"beta", "N_scale"},
     ("sk", "replica"): {"beta", "h", "fullrsb", "ansatz"},
+    ("perceptron", "rsb"): {"kappa", "ansatz", "levels"},
     ("sk", "cavity"): {"beta", "h"},
     ("pspin", "replica"): {"p", "beta"},
     ("ising_pspin", "replica"): {"p", "beta"},

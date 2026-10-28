@@ -287,6 +287,13 @@ UNCLAIMED[("ksat", "alpha_sp_onset_k3")] = (
 UNCLAIMED[("sbm", "inverse_eps_c_q4_c16")] = (
     "DKMZ's q = 4, c = 16 ratio: inference/sbm.py implements q = 2 only (q = 4 is refused "
     "unsupported:q), so no pipeline outputs it")
+UNCLAIMED.update({("perceptron", k): (
+    "a rigorous UPPER BOUND on the negative-margin capacity (Stojnic 2013, Table 2, partially lifted): an inequality, "
+    "not a value any pipeline output equals; checked as 1RSB / 2RSB <= bound < RS in tests/test_perceptron_rsb.py")
+    for k in ("stojnic13_upper_bound_kappa_m1", "stojnic13_upper_bound_kappa_m0p8")})
+UNCLAIMED[("perceptron", "fp16_algorithmic_jamming_kappa_alpha3")] = (
+    "Franz-Parisi's off-equilibrium jammed margin at alpha = 3 (local minimisation from a random start), a one-sided "
+    "check (the capacity at that margin must exceed 3), done in tests/test_perceptron_rsb.py: not a pipeline output")
 UNCLAIMED[("ksat", "alpha_1rsb_stability_k3")] = (
     "MMZ's 1RSB stability window edge, cited in the finality note of alpha_s_sp; replicant "
     "computes no SP stability")

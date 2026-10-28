@@ -29,7 +29,8 @@ python3 -m replicant run perceptron --param alpha=1.5 --out /tmp/result.json --l
 
 `run` also takes a spec file for a model near a catalogued one
 (`python3 -m replicant run spec.json --param beta=1.5 --param h=0`; schema in the GUIDE),
-`--route amp` for `sk`, `teacher_student` and `spiked_wigner` (state evolution, and finite-N AMP / GAMP with
+`--route rsb` for `perceptron` at T = 0 with kappa < 0 (1RSB, K-step RSB, full-RSB estimate: `python3 -m replicant run
+perceptron --route rsb --param kappa=-1`; results in [RESULTS_negative_perceptron_rsb.md](RESULTS_negative_perceptron_rsb.md)), `--route amp` for `sk`, `teacher_student` and `spiked_wigner` (state evolution, and finite-N AMP / GAMP with
 `--param N=...`), `--route cavity` for the entries that have a cavity route (required for `viana_bray`, `xorsat`,
 `ksat`, `ldpc_bec`, `sbm` and `bethe_ising`, which are cavity-only: `python3 -m replicant run viana_bray --route
 cavity`, `python3 -m replicant run xorsat --route cavity`; the percolation entries `percolation_bethe`,
@@ -55,6 +56,10 @@ sample`), and `--pdf` (with `--latex`) to compile the derivation.
   perceptron (and `margin_law.py`: the same with a margin law kappa_l per pattern, `derive_margin.py` its level-(a)
   derivation, `numerics/margin_perceptron.py` its finite-N least-norm check), teacher-student, Hopfield, Parisi full RSB); `families/gardner.py`: the 1RSB replicon
   (stability toward further RSB, the Gardner transition) for the two p-spin entries.
+  `families/perceptron_rsb.py`, `perceptron_krsb.py`: the negative-margin spherical perceptron at T = 0, where RS is only an
+  upper bound: the 1RSB jamming (SAT-UNSAT) capacity from the zero-temperature scaling of the 1RSB entropy (audited
+  mpmath roots, contact-index replicon), K-step RSB and the full-RSB staircase estimate (float64 grids, slow tier);
+  catalog route `rsb` of `perceptron` (`catalog_perceptron_rsb.py`, `latex_perceptron_rsb.py`).
 - `cavity/`: dense cavity, sparse BP / population dynamics, sparse 1RSB.
 - `amp/`: AMP, state evolution and the TAP free energy for SK, GAMP and its state evolution for the
   teacher-student perceptron (finite N, statistical; independent of the replica and cavity code);
@@ -181,7 +186,7 @@ sample`), and `--pdf` (with `--latex`) to compile the derivation.
 - Full: `python3 tools/replicant/selftest.py --full` adds the COUNT_SLOW `@slow` tests (full RSB,
   population dynamics at reference sizes, the K-SAT and LDPC crossings, Monte Carlo and enumeration
   held-out routes, solver-based checks, the online simulations at N = 1000, the lattice, percolation and
-  Monte Carlo checks at reference sizes); about 35 minutes on a laptop (measured 34 min 39 s with 859 tests before the final fix wave; not re-measured after the margin-law, pinned-direction, negative-margin RSB and dense-memory additions).
+  Monte Carlo checks at reference sizes); about 35 minutes on a laptop (measured 34 min 39 s with 859 tests before the final fix wave; the K = 3 RSB test alone is about 7 minutes; not re-measured after the margin-law, pinned-direction, negative-margin RSB and dense-memory additions).
 - The held-out tests are `tests/test_heldout*.py` (helpers `tests/heldout_common.py`, `tests/heldout_mc.py`).
 - `@slow` is a plain function attribute honoured by `selftest.py` only. pytest ignores the
   marker and would run every test, slow ones included.
