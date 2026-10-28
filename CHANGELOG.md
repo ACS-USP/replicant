@@ -191,6 +191,19 @@ All notable changes to BootLoops are recorded here. The format follows
   structure, dropped m, wrong scaling). The arXiv number 1606.04380 sometimes quoted for FPSUZ is a mathematics paper:
   the paper is arXiv:1702.06919. Default tier 676 tests (+14, about 1.8 s by their own timing, over the 1 s ruling: the audited mpmath roots and the scaling-limit
   and replicon checks are slow-tier), full tier 898 tests (+16 slow: K = 2 about 30 s per kappa, K = 3 about 7 minutes).
+- `replicant` (D1): dense associative memories with exponentially many patterns (`dense_memory/`, entries `dense_memory` and
+  `dense_memory_ising`, route replica, 38 entries in all). `dense_memory` reproduces Lucibello & Mezard (PRL 132, 077301, arXiv:2304.14964)
+  for Gaussian and spherical patterns: the Random Energy Model noise of the softmax denominator by a seven-step label-replica
+  derivation (`derive_dense_memory.py`, reusing `families/rem.py`) and by three further routes agreeing to 1e-30, the REM freezing line
+  and Parisi parameter, the single-pattern threshold alpha_1(lam) and its inverse lambda_1(alpha), the all-patterns bound (Gaussian
+  log(2)/4 for lam >= 0.70091, spherical alpha_c = alpha_1), one-step basins, the small-load and scaled-dot-product regimes and the
+  Ramsauer bound as restated there; 17 banked values from the printed formulas and numbers. `dense_memory_ising` takes Demircigil et
+  al.'s rigorous fixed-point exponent I(1 - 2 rho)/2 (log(2)/2, lam = 1) and derives the binary REM noise and the single-flip
+  thresholds (labelled not-computed). Independent checks: the exact finite-N overlap law (agreeing with `rem_quenched_finite_n` at
+  alpha = log 2), the paper's gradient descent, the single-flip dynamics, Gray-code enumeration; planted controls fail. Polynomial
+  interactions are refused `unsupported:interaction`; a finite-temperature free energy of the memory is not in the paper and is not
+  claimed. `dense_memory/MAPPING_INFONCE.md` maps the model to InfoNCE (lam = 1/(tau d)) and states what it does not say about the
+  critical n(d, tau) and the per-query threshold c(d) tau.
 
 ### Changed
 - `replicant` (documentation and cleanup, O7): GUIDE (catalog, refusal table, routes, finality notes, hazards,

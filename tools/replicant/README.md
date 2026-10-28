@@ -23,7 +23,7 @@ From the repository root:
 
 ```
 python3 tools/replicant/selftest.py                        # default battery, about 30 s
-cd tools && python3 -m replicant list                      # the 36 catalog entries
+cd tools && python3 -m replicant list                      # the 38 catalog entries
 python3 -m replicant run perceptron --param alpha=1.5 --out /tmp/result.json --latex /tmp/p.tex
 ```
 
@@ -83,6 +83,14 @@ sample`), and `--pdf` (with `--latex`) to compile the derivation.
   `ridge_rs.py`: the RS saddle point of the linear student, a cited closed form solved here;
   `ridge_sim.py`: SVD fits over named seeds, extrapolated in 1/n); catalog entry `ridge` (replica)
   (`catalog_learning.py`, `latex_learning.py`).
+- `dense_memory/` (D1): dense associative memories with P = e^(alpha N) patterns and exponential interaction (Lucibello &
+  Mezard 2024; Demircigil et al. 2017), at zero temperature: the pattern ensembles' zeta and rate function (`ensembles.py`:
+  Gaussian, spherical, and binary derived here), the REM noise by four routes (`rem_noise.py`), the retrieval thresholds, basins,
+  all-patterns bound and Ramsauer bound (`thresholds.py`), the Ising entry's fixed-point exponent and single-flip thresholds
+  (`ising.py`), independent finite-N checks (`sim.py`: exact-law sampler, the paper's gradient descent, single-flip dynamics,
+  Gray-code enumeration) and the InfoNCE dictionary (`infonce.py`, `MAPPING_INFONCE.md`); `derive_dense_memory.py` (the
+  label-replica derivation, reusing `families/rem.py`); catalog entries `dense_memory` and `dense_memory_ising`
+  (`catalog_dense_memory.py`, `latex_dense_memory.py`).
 - `series/` (E8): the exact high-temperature series of the 2D Ising free energy from the Onsager
   integral (`ising2d.py`, with the independent L x L torus route), holonomic recognition through
   `tools/annihilator` (`recognize.py`), exact local exponents (`local.py`), the elliptic operator
@@ -171,7 +179,7 @@ sample`), and `--pdf` (with `--latex`) to compile the derivation.
   block that does, the longitudinal mode), `pinned_check.py` (integer-n Hessian, an independent check),
   `pinned_report.py` (the table of `docs/replicant/pinned_joint_replicon.md`).
 - `catalog*.py`, `compose.py` (+ `compose_result.py`: `Result` and the finality rule), `cli.py`,
-  `__main__.py`: the 36-entry catalog (`catalog_ts.py` holds the teacher-student entry,
+  `__main__.py`: the 38-entry catalog (`catalog_ts.py` holds the teacher-student entry,
   `catalog_pspin.py` the two p-spin entries; LaTeX in `latex_pspin.py`), the composer,
   the command line.
 - `latex*.py`, `tex*.py`, `derive_tex.py`: the LaTeX derivation writer.
