@@ -1,0 +1,164 @@
+{
+ "m_rs_d6_n16_c0": {
+  "value": "0.3023608206457259",
+  "tol": "1e-8",
+  "cite": "V. limit-fig2-paper (unpublished manuscript, Replica theory for random documents, Eq. (mrs)): m_RS(c; n, d) = max_a [a q - h_a/sqrt(d)], alpha_eff(a) Psi(h_a) = 1, q = sqrt((1+c)/2), values computed by that project's code/rs_pair.py (m_rs_full, scipy brentq / minimize_scalar xatol 1e-9) at c = 0, N = n - 2, alpha = N/d",
+  "independent_route": "this package: pinned.capacity, the q -> 1 limit C(M) = C'(M) = 0 of the functional derived by the package's own level-(a) steps (derive_pinned), solved in mpmath"
+ },
+ "a_star_d6_n16_c0": {
+  "value": "0.7430603761966713",
+  "tol": "1e-6",
+  "cite": "V. limit-fig2-paper (unpublished manuscript, Replica theory for random documents, Eq. (mrs)): m_RS(c; n, d) = max_a [a q - h_a/sqrt(d)], alpha_eff(a) Psi(h_a) = 1, q = sqrt((1+c)/2), values computed by that project's code/rs_pair.py (m_rs_full, scipy brentq / minimize_scalar xatol 1e-9) at c = 0, N = n - 2, alpha = N/d (a* is the optimiser's argmax, xatol 1e-9, so about 5e-8 accurate)",
+  "independent_route": "this package: pinned.capacity, the q -> 1 limit C(M) = C'(M) = 0 of the functional derived by the package's own level-(a) steps (derive_pinned), solved in mpmath"
+ },
+ "h_star_d6_n16_c0": {
+  "value": "0.5463885958726687",
+  "tol": "1e-6",
+  "cite": "V. limit-fig2-paper (unpublished manuscript, Replica theory for random documents, Eq. (mrs)): m_RS(c; n, d) = max_a [a q - h_a/sqrt(d)], alpha_eff(a) Psi(h_a) = 1, q = sqrt((1+c)/2), values computed by that project's code/rs_pair.py (m_rs_full, scipy brentq / minimize_scalar xatol 1e-9) at c = 0, N = n - 2, alpha = N/d (h* from the optimiser's a*)",
+  "independent_route": "this package: pinned.capacity, the q -> 1 limit C(M) = C'(M) = 0 of the functional derived by the package's own level-(a) steps (derive_pinned), solved in mpmath"
+ },
+ "m_rs_d10_n35_c0": {
+  "value": "0.30399989395453314",
+  "tol": "1e-8",
+  "cite": "V. limit-fig2-paper (unpublished manuscript, Replica theory for random documents, Eq. (mrs)): m_RS(c; n, d) = max_a [a q - h_a/sqrt(d)], alpha_eff(a) Psi(h_a) = 1, q = sqrt((1+c)/2), values computed by that project's code/rs_pair.py (m_rs_full, scipy brentq / minimize_scalar xatol 1e-9) at c = 0, N = n - 2, alpha = N/d",
+  "independent_route": "this package: pinned.capacity, the q -> 1 limit C(M) = C'(M) = 0 of the functional derived by the package's own level-(a) steps (derive_pinned), solved in mpmath"
+ },
+ "a_star_d10_n35_c0": {
+  "value": "0.8103884317822518",
+  "tol": "1e-6",
+  "cite": "V. limit-fig2-paper (unpublished manuscript, Replica theory for random documents, Eq. (mrs)): m_RS(c; n, d) = max_a [a q - h_a/sqrt(d)], alpha_eff(a) Psi(h_a) = 1, q = sqrt((1+c)/2), values computed by that project's code/rs_pair.py (m_rs_full, scipy brentq / minimize_scalar xatol 1e-9) at c = 0, N = n - 2, alpha = N/d (a* is the optimiser's argmax, xatol 1e-9, so about 5e-8 accurate)",
+  "independent_route": "this package: pinned.capacity, the q -> 1 limit C(M) = C'(M) = 0 of the functional derived by the package's own level-(a) steps (derive_pinned), solved in mpmath"
+ },
+ "h_star_d10_n35_c0": {
+  "value": "0.8507515482985897",
+  "tol": "1e-6",
+  "cite": "V. limit-fig2-paper (unpublished manuscript, Replica theory for random documents, Eq. (mrs)): m_RS(c; n, d) = max_a [a q - h_a/sqrt(d)], alpha_eff(a) Psi(h_a) = 1, q = sqrt((1+c)/2), values computed by that project's code/rs_pair.py (m_rs_full, scipy brentq / minimize_scalar xatol 1e-9) at c = 0, N = n - 2, alpha = N/d (h* from the optimiser's a*)",
+  "independent_route": "this package: pinned.capacity, the q -> 1 limit C(M) = C'(M) = 0 of the functional derived by the package's own level-(a) steps (derive_pinned), solved in mpmath"
+ },
+ "m_rs_d14_n70_c0": {
+  "value": "0.30097824927711875",
+  "tol": "1e-8",
+  "cite": "V. limit-fig2-paper (unpublished manuscript, Replica theory for random documents, Eq. (mrs)): m_RS(c; n, d) = max_a [a q - h_a/sqrt(d)], alpha_eff(a) Psi(h_a) = 1, q = sqrt((1+c)/2), values computed by that project's code/rs_pair.py (m_rs_full, scipy brentq / minimize_scalar xatol 1e-9) at c = 0, N = n - 2, alpha = N/d",
+  "independent_route": "this package: pinned.capacity, the q -> 1 limit C(M) = C'(M) = 0 of the functional derived by the package's own level-(a) steps (derive_pinned), solved in mpmath"
+ },
+ "a_star_d14_n70_c0": {
+  "value": "0.8486998183737041",
+  "tol": "1e-6",
+  "cite": "V. limit-fig2-paper (unpublished manuscript, Replica theory for random documents, Eq. (mrs)): m_RS(c; n, d) = max_a [a q - h_a/sqrt(d)], alpha_eff(a) Psi(h_a) = 1, q = sqrt((1+c)/2), values computed by that project's code/rs_pair.py (m_rs_full, scipy brentq / minimize_scalar xatol 1e-9) at c = 0, N = n - 2, alpha = N/d (a* is the optimiser's argmax, xatol 1e-9, so about 5e-8 accurate)",
+  "independent_route": "this package: pinned.capacity, the q -> 1 limit C(M) = C'(M) = 0 of the functional derived by the package's own level-(a) steps (derive_pinned), solved in mpmath"
+ },
+ "h_star_d14_n70_c0": {
+  "value": "1.1192911674964876",
+  "tol": "1e-6",
+  "cite": "V. limit-fig2-paper (unpublished manuscript, Replica theory for random documents, Eq. (mrs)): m_RS(c; n, d) = max_a [a q - h_a/sqrt(d)], alpha_eff(a) Psi(h_a) = 1, q = sqrt((1+c)/2), values computed by that project's code/rs_pair.py (m_rs_full, scipy brentq / minimize_scalar xatol 1e-9) at c = 0, N = n - 2, alpha = N/d (h* from the optimiser's a*)",
+  "independent_route": "this package: pinned.capacity, the q -> 1 limit C(M) = C'(M) = 0 of the functional derived by the package's own level-(a) steps (derive_pinned), solved in mpmath"
+ },
+ "m_rs_d20_n140_c0": {
+  "value": "0.31872972653360504",
+  "tol": "1e-8",
+  "cite": "V. limit-fig2-paper (unpublished manuscript, Replica theory for random documents, Eq. (mrs)): m_RS(c; n, d) = max_a [a q - h_a/sqrt(d)], alpha_eff(a) Psi(h_a) = 1, q = sqrt((1+c)/2), values computed by that project's code/rs_pair.py (m_rs_full, scipy brentq / minimize_scalar xatol 1e-9) at c = 0, N = n - 2, alpha = N/d",
+  "independent_route": "this package: pinned.capacity, the q -> 1 limit C(M) = C'(M) = 0 of the functional derived by the package's own level-(a) steps (derive_pinned), solved in mpmath"
+ },
+ "a_star_d20_n140_c0": {
+  "value": "0.8797402393347924",
+  "tol": "1e-6",
+  "cite": "V. limit-fig2-paper (unpublished manuscript, Replica theory for random documents, Eq. (mrs)): m_RS(c; n, d) = max_a [a q - h_a/sqrt(d)], alpha_eff(a) Psi(h_a) = 1, q = sqrt((1+c)/2), values computed by that project's code/rs_pair.py (m_rs_full, scipy brentq / minimize_scalar xatol 1e-9) at c = 0, N = n - 2, alpha = N/d (a* is the optimiser's argmax, xatol 1e-9, so about 5e-8 accurate)",
+  "independent_route": "this package: pinned.capacity, the q -> 1 limit C(M) = C'(M) = 0 of the functional derived by the package's own level-(a) steps (derive_pinned), solved in mpmath"
+ },
+ "h_star_d20_n140_c0": {
+  "value": "1.356580235641479",
+  "tol": "1e-6",
+  "cite": "V. limit-fig2-paper (unpublished manuscript, Replica theory for random documents, Eq. (mrs)): m_RS(c; n, d) = max_a [a q - h_a/sqrt(d)], alpha_eff(a) Psi(h_a) = 1, q = sqrt((1+c)/2), values computed by that project's code/rs_pair.py (m_rs_full, scipy brentq / minimize_scalar xatol 1e-9) at c = 0, N = n - 2, alpha = N/d (h* from the optimiser's a*)",
+  "independent_route": "this package: pinned.capacity, the q -> 1 limit C(M) = C'(M) = 0 of the functional derived by the package's own level-(a) steps (derive_pinned), solved in mpmath"
+ },
+ "m_rs_d30_n350_c0": {
+  "value": "0.3395213461281079",
+  "tol": "1e-8",
+  "cite": "V. limit-fig2-paper (unpublished manuscript, Replica theory for random documents, Eq. (mrs)): m_RS(c; n, d) = max_a [a q - h_a/sqrt(d)], alpha_eff(a) Psi(h_a) = 1, q = sqrt((1+c)/2), values computed by that project's code/rs_pair.py (m_rs_full, scipy brentq / minimize_scalar xatol 1e-9) at c = 0, N = n - 2, alpha = N/d",
+  "independent_route": "this package: pinned.capacity, the q -> 1 limit C(M) = C'(M) = 0 of the functional derived by the package's own level-(a) steps (derive_pinned), solved in mpmath"
+ },
+ "a_star_d30_n350_c0": {
+  "value": "0.9083833263738322",
+  "tol": "1e-6",
+  "cite": "V. limit-fig2-paper (unpublished manuscript, Replica theory for random documents, Eq. (mrs)): m_RS(c; n, d) = max_a [a q - h_a/sqrt(d)], alpha_eff(a) Psi(h_a) = 1, q = sqrt((1+c)/2), values computed by that project's code/rs_pair.py (m_rs_full, scipy brentq / minimize_scalar xatol 1e-9) at c = 0, N = n - 2, alpha = N/d (a* is the optimiser's argmax, xatol 1e-9, so about 5e-8 accurate)",
+  "independent_route": "this package: pinned.capacity, the q -> 1 limit C(M) = C'(M) = 0 of the functional derived by the package's own level-(a) steps (derive_pinned), solved in mpmath"
+ },
+ "h_star_d30_n350_c0": {
+  "value": "1.658518494729509",
+  "tol": "1e-6",
+  "cite": "V. limit-fig2-paper (unpublished manuscript, Replica theory for random documents, Eq. (mrs)): m_RS(c; n, d) = max_a [a q - h_a/sqrt(d)], alpha_eff(a) Psi(h_a) = 1, q = sqrt((1+c)/2), values computed by that project's code/rs_pair.py (m_rs_full, scipy brentq / minimize_scalar xatol 1e-9) at c = 0, N = n - 2, alpha = N/d (h* from the optimiser's a*)",
+  "independent_route": "this package: pinned.capacity, the q -> 1 limit C(M) = C'(M) = 0 of the functional derived by the package's own level-(a) steps (derive_pinned), solved in mpmath"
+ },
+ "validation_d8_n30_mean_exact": {
+  "value": "0.24317560117025286",
+  "tol": "0.0266",
+  "cite": "V. limit-fig2-paper (unpublished manuscript), Table rsval, data/rs_validation.json, code/rs_validate.py: exact pair margins (minimum-norm point) of 3 random document sets x 150 random pairs, and the mean of the RS prediction m_RS(c; n, d) over the same pairs; tol = |bias| 0.0074 (the paper's stated error) + 4 sem, sem = 0.0048 (Monte Carlo over the exact law of c: std of m_RS / sqrt(450))",
+  "independent_route": "exact minimum-norm-point margins by NNLS / SLSQP in the paper project (geom.margin); the package value is the replica average over the exact law of c"
+ },
+ "validation_d8_n30_mean_rs": {
+  "value": "0.2505279587630277",
+  "tol": "0.0192",
+  "cite": "V. limit-fig2-paper (unpublished manuscript), Table rsval, data/rs_validation.json, code/rs_validate.py: exact pair margins (minimum-norm point) of 3 random document sets x 150 random pairs, and the mean of the RS prediction m_RS(c; n, d) over the same pairs; tol = 4 sem of the 450-pair sample mean of m_RS (sem 0.0048, Monte Carlo over the law of c; the pairs come from 3 document sets, so the true scatter is larger)",
+  "independent_route": "the paper's rs_pair.m_rs on the sampled pairs; the package value is the exact c-average of the same quantity"
+ },
+ "validation_d10_n40_mean_exact": {
+  "value": "0.26589690555951445",
+  "tol": "0.0207",
+  "cite": "V. limit-fig2-paper (unpublished manuscript), Table rsval, data/rs_validation.json, code/rs_validate.py: exact pair margins (minimum-norm point) of 3 random document sets x 150 random pairs, and the mean of the RS prediction m_RS(c; n, d) over the same pairs; tol = |bias| 0.0031 (the paper's stated error) + 4 sem, sem = 0.0044 (Monte Carlo over the exact law of c: std of m_RS / sqrt(450))",
+  "independent_route": "exact minimum-norm-point margins by NNLS / SLSQP in the paper project (geom.margin); the package value is the replica average over the exact law of c"
+ },
+ "validation_d10_n40_mean_rs": {
+  "value": "0.2689518008766135",
+  "tol": "0.0176",
+  "cite": "V. limit-fig2-paper (unpublished manuscript), Table rsval, data/rs_validation.json, code/rs_validate.py: exact pair margins (minimum-norm point) of 3 random document sets x 150 random pairs, and the mean of the RS prediction m_RS(c; n, d) over the same pairs; tol = 4 sem of the 450-pair sample mean of m_RS (sem 0.0044, Monte Carlo over the law of c; the pairs come from 3 document sets, so the true scatter is larger)",
+  "independent_route": "the paper's rs_pair.m_rs on the sampled pairs; the package value is the exact c-average of the same quantity"
+ },
+ "validation_d14_n80_mean_exact": {
+  "value": "0.2740880468106071",
+  "tol": "0.0211",
+  "cite": "V. limit-fig2-paper (unpublished manuscript), Table rsval, data/rs_validation.json, code/rs_validate.py: exact pair margins (minimum-norm point) of 3 random document sets x 150 random pairs, and the mean of the RS prediction m_RS(c; n, d) over the same pairs; tol = |bias| 0.0059 (the paper's stated error) + 4 sem, sem = 0.0038 (Monte Carlo over the exact law of c: std of m_RS / sqrt(450))",
+  "independent_route": "exact minimum-norm-point margins by NNLS / SLSQP in the paper project (geom.margin); the package value is the replica average over the exact law of c"
+ },
+ "validation_d14_n80_mean_rs": {
+  "value": "0.2799404157357835",
+  "tol": "0.0152",
+  "cite": "V. limit-fig2-paper (unpublished manuscript), Table rsval, data/rs_validation.json, code/rs_validate.py: exact pair margins (minimum-norm point) of 3 random document sets x 150 random pairs, and the mean of the RS prediction m_RS(c; n, d) over the same pairs; tol = 4 sem of the 450-pair sample mean of m_RS (sem 0.0038, Monte Carlo over the law of c; the pairs come from 3 document sets, so the true scatter is larger)",
+  "independent_route": "the paper's rs_pair.m_rs on the sampled pairs; the package value is the exact c-average of the same quantity"
+ },
+ "validation_d20_n140_mean_exact": {
+  "value": "0.31396547098114747",
+  "tol": "0.0157",
+  "cite": "V. limit-fig2-paper (unpublished manuscript), Table rsval, data/rs_validation.json, code/rs_validate.py: exact pair margins (minimum-norm point) of 3 random document sets x 150 random pairs, and the mean of the RS prediction m_RS(c; n, d) over the same pairs; tol = |bias| 0.0025 (the paper's stated error) + 4 sem, sem = 0.0033 (Monte Carlo over the exact law of c: std of m_RS / sqrt(450))",
+  "independent_route": "exact minimum-norm-point margins by NNLS / SLSQP in the paper project (geom.margin); the package value is the replica average over the exact law of c"
+ },
+ "validation_d20_n140_mean_rs": {
+  "value": "0.3114450955562414",
+  "tol": "0.0132",
+  "cite": "V. limit-fig2-paper (unpublished manuscript), Table rsval, data/rs_validation.json, code/rs_validate.py: exact pair margins (minimum-norm point) of 3 random document sets x 150 random pairs, and the mean of the RS prediction m_RS(c; n, d) over the same pairs; tol = 4 sem of the 450-pair sample mean of m_RS (sem 0.0033, Monte Carlo over the law of c; the pairs come from 3 document sets, so the true scatter is larger)",
+  "independent_route": "the paper's rs_pair.m_rs on the sampled pairs; the package value is the exact c-average of the same quantity"
+ },
+ "validation_d8_n30_cavg_paper_code": {
+  "value": "0.256283188591405",
+  "tol": "1e-8",
+  "cite": "V. limit-fig2-paper (unpublished manuscript), code/rs_pair.py m_rs averaged over the exact law of c = <v_i, v_j> (density ~ (1-c^2)^((d-3)/2), 24-node Gauss-Jacobi), computed for this bank; N = n - 2",
+  "independent_route": "this package: pinned.capacity at 10 Gauss-Jacobi nodes of the same law (10 and 24 nodes of the paper code differ by 4e-10)"
+ },
+ "validation_d10_n40_cavg_paper_code": {
+  "value": "0.2772173063701017",
+  "tol": "1e-8",
+  "cite": "V. limit-fig2-paper (unpublished manuscript), code/rs_pair.py m_rs averaged over the exact law of c = <v_i, v_j> (density ~ (1-c^2)^((d-3)/2), 24-node Gauss-Jacobi), computed for this bank; N = n - 2",
+  "independent_route": "this package: pinned.capacity at 10 Gauss-Jacobi nodes of the same law (10 and 24 nodes of the paper code differ by 4e-10)"
+ },
+ "validation_d14_n80_cavg_paper_code": {
+  "value": "0.28051166980978687",
+  "tol": "1e-8",
+  "cite": "V. limit-fig2-paper (unpublished manuscript), code/rs_pair.py m_rs averaged over the exact law of c = <v_i, v_j> (density ~ (1-c^2)^((d-3)/2), 24-node Gauss-Jacobi), computed for this bank; N = n - 2",
+  "independent_route": "this package: pinned.capacity at 10 Gauss-Jacobi nodes of the same law (10 and 24 nodes of the paper code differ by 4e-10)"
+ },
+ "validation_d20_n140_cavg_paper_code": {
+  "value": "0.315266931822078",
+  "tol": "1e-8",
+  "cite": "V. limit-fig2-paper (unpublished manuscript), code/rs_pair.py m_rs averaged over the exact law of c = <v_i, v_j> (density ~ (1-c^2)^((d-3)/2), 24-node Gauss-Jacobi), computed for this bank; N = n - 2",
+  "independent_route": "this package: pinned.capacity at 10 Gauss-Jacobi nodes of the same law (10 and 24 nodes of the paper code differ by 4e-10)"
+ }
+}

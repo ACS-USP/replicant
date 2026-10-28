@@ -349,6 +349,70 @@ CLI (from `tools/`):
   "params": {"kappa_law": "gaussian", "kappa": null, "kappa_s": null, "alpha": null}}` then `python3 -m replicant run
   spec.json --param alpha=0.4 --param kappa=0.5 --param kappa_s=0.8` -> derived `q` 0.6413150252190197 (equal to the
   family's to 1e-22), `replicon` 0.786574 (stable). Section MARGIN LAW below; refusals `precondition:supported-margin-law`.
+- Pinned (external, fixed) directions, the JOINT pair problem (`derive_pinned.py`, `pinned.py`, `pinned_modes.py`;
+  independent integer-n check `pinned_check.py`; table `python3 -m replicant.pinned_report`; write-up
+  `docs/replicant/pinned_joint_replicon.md`). Constraint `margin kappa pinned directions` of the spherical
+  perceptron: u on the sphere of R^d, N = alpha d iid Gaussian patterns, two fixed unit vectors v_1, v_2 with
+  overlap c (Gram G = [[1, c], [c, 1]]), `<u, v_a> - <u, xi_l>/sqrt(d) >= kappa` for a = 1, 2: the maximal margin
+  of a pair of documents against n - 2 random ones, alpha = (n - 2)/d, d read as the dimension at finite d (the
+  O(1) threshold h = sqrt(d)(M - kappa) of the paper). The pattern is shared by the two constraints, so only
+  min_a M_a, M_a = <u, v_a>, enters the energy; the TIED RS saddle has M_1 = M_2 = M, one extra order parameter
+  `M` next to `q`. Spec: `{"family": "perceptron", "variables": "spherical", "disorder": "gaussian",
+  "constraint": "margin kappa pinned directions", "params": {"alpha": null, "kappa": null, "d": null, "c": null}}`
+  (`d` and `c` are new symbolic names; the composer no longer refuses `missing-step:constraint:margin kappa pinned
+  directions`: it reports `constraint` ADAPTED relative to the spherical perceptron). Hand-supplied (not
+  mechanised): the entropic term, the spherical volume with the pinned components fixed, from the Gram determinant
+  of the replicas' parts orthogonal to span(v_a): (1/2) ln det[Q_ab - M^a G^-1 M^b], RS and n -> 0
+  (1/2)[ln(1-q) + (q - m2)/(1-q)], m2 = M^T G^-1 M = 2 M^2/(1+c) (n = 1: the sphere-slice law (1/2) ln(1 - m2); NOT
+  the formula (1/2) ln(1 - Q - M^T G^-1 M) of the task text, which was not used); the energy is written with the
+  replica-independent M (exact at the RS point); everything else is the generic steps (RS, n -> 0,
+  stationarity). `python3 -m replicant run spec.json --param n=16 --param d=6 --param c=0` -> the capacity boundary;
+  with `--param kappa=0.272` also the RS saddle below it, the joint replicon and the sector modes
+  (about 9 s; `n` or `alpha`, `d`, `c` required, `kappa`, `audit` (default true), `dps` optional; anything else
+  `precondition:known-parameter`).
+  Values and results (measured; paper states (d, n, c) = (6, 16, 0), (10, 35, 0), (14, 70, 0), (20, 140, 0),
+  (30, 350, 0)): (1) CAPACITY BOUNDARY, derived: as q -> 1 the functional is C(M)/(2(1-q)), C(M) = 1 - m2(M) -
+  alpha Psi(sqrt(d)(M - kappa)), Psi(h) = E[(t-h)_+^2], and the volume vanishes where C = C' = 0 (`pinned.capacity`:
+  `kappa_star`, `a_star` = M*/q_p, `h_star`, `k_active` = N Phi(-h*)); `kappa_star` equals the paper's
+  m_RS(c; n, d) = max_a [a q - h_a/sqrt(d)], alpha Psi(h_a) = 1 - a^2 (code/rs_pair.py) to 1e-13 (the optimiser of that
+  code is good to 5e-8 in a*), `k_active` is the support-vector law (n-2) Phi(-h*) of code/rs_duals.py, and the
+  d = 6 .. 30 rows of the bank (`reference/pinned.json`, `RefValue`s with their cites) are checked; the c average
+  of `kappa_star` against the exact margins of `data/rs_validation.json` is the slow test. (2) M = 0 (or no pinned
+  direction) is the catalog perceptron: `pinned.alpha_c(kappa, d, c, M=0)` = `gardner_capacity("spherical",
+  kappa=sqrt(d) kappa).alpha_c` to 1e-15, and the derived phi(q, M = 0) equals the catalog's at that margin. (3)
+  STABILITY, three sectors of the replica-permutation group acting on (dQ_ab, dM^a): the REPLICON irrep occurs
+  once and only in the Q sector, so by Schur's lemma it does NOT mix with M (checked on the integer-n Hessian,
+  leak < 1e-9); its eigenvalue is the Q-Q block at the joint saddle, lambda_R = 1 - E''_R chi_R, the same function
+  of (q, H) as the perceptron's, and the package's `derived_replicon` returns it at the audited root
+  (`gauss-covariance+explicit-n-site`; agrees with the class-formula value to 1e-12). At capacity it is
+  1 - alpha Phi(-h*) = 1 - k/d: +0.3177, +0.3484, +0.3612, +0.3965, +0.4362 for the five states (c = 0), positive
+  whenever fewer than d constraints are active; below capacity (kappa/kappa* = 0.999, 0.99, 0.9, 0.5) it is larger
+  (0.33 .. 0.85). The fixed-a "slice replicon" the paper took from the catalog (the perceptron at (alpha_eff, -h*),
+  1 - Phi(-h*)/Psi(h*): -0.52 .. -2.22) is NOT the joint (nor the true fixed-a slice) replicon: the catalog
+  perceptron has the same q -> 1 capacity condition but counts k against d (1 - a^2) instead of d. The STANDARD irrep
+  occurs twice (the anomalous Q mode dQ_ab = e_a + e_b and the antisymmetric dM^a): there the M-Q MIXING lives,
+  a 2 x 2 block T = [[lam2, U - V], [(n-2)(U - V), W - X]] (`pinned_modes.pinned_block`, class formulas verified
+  against the integer-n Hessian to 1e-9); the trivial irrep gives the longitudinal M-mode (`longitudinal_mode`; the
+  generic `solve_derived_stability._mode` divides by an underflowing erfc on this functional). All of them have the
+  stable sign at every state tested (7 states x kappa/kappa* = 0.999, 0.99, 0.9, 0.5); the standard block has a
+  COMPLEX pair at kappa/kappa* = 0.5 for several states (n - 2 < 0 at n -> 0 makes T non-symmetric; real parts
+  stable). FINALITY: a value is `stable` only if the computed joint replicon is positive and the longitudinal mode
+  and the real parts of the standard-block modes have the stable sign; capacity values carry the q -> 1 replicon
+  (the other modes diverge there and are computed below capacity).
+  Honest limits: (a) `solve_derived_rs` does not solve this two-unknown functional in practical time (> 5 min,
+  killed; with a start near the root > 200 s), so a state point is located in float64 (Gauss-Hermite then adaptive
+  quadrature), then checked to be a root of the DERIVED equations by `derived_replicon`'s independent quadrature
+  (`precondition:rs-saddle` otherwise), and `--param audit=false` skips that. (b) The difference mode M_i - M_j is
+  not smooth (the energy depends on min(M_i, M_j): a concave corner, first-order stable) and is not in T. (c) The
+  UNTIED branch (constraint 1 binds, constraint `margin kappa pinned directions untied`): the derived stationarity
+  of the non-binding overlap is entropic alone, M_2 = c M_1 < M_1, contradicting M_2 >= M_1, so the run is refused
+  `no-solution:untied-slack` (derived, `pinned.untied_slack`); only the tied RS branch exists. (d) All of it is
+  local RS stability at n -> 0, physics-level: no statement about RSB away from the RS saddle, the continuation of
+  the standard-sector criterion to n = 0 is the analytic continuation of the integer-n one, not a theorem, and the
+  finite-d reading of the threshold is the paper's. (e) k = 2 tied pinned vectors and spherical variables only
+  (`precondition:pinned-spherical-only`); an Ising or a ball constraint is not implemented. Planted controls
+  (`derive_pinned._PLANT`: `entropy: drop_m`, `gram: identity`; `pinned_modes._PLANT_MODES`: `mixing: drop`): each
+  makes the paper margin, the capacity at c = 0.5 or the integer-n block check fail.
 Python API (put `tools/` on `sys.path`):
 `from replicant.catalog import catalog` (dict of `CatalogEntry`);
 `from replicant.compose import compose, nearest_entry`; `compose(spec, route).run(require_final=False,
@@ -1235,6 +1299,7 @@ re-runs the entry's banked comparisons) and its JSON (`target`, `spec`, `route`,
 | `precondition:reweight-window`, `:histogram-overlap`, `:histogram`, `:histogram-runs`, `:betas`; `no-solution:convergence` | `histogram_reweighting_mc` / `montecarlo/reweight.py`: an explicit target beta outside the overlap window (O < 1/2) of the run(s); explicit multiple-histogram betas whose windows do not chain (implicit defaults are labelled undetermined instead); a one-level histogram; fewer than 2 runs or runs with different seed counts; betas not >= 2 distinct values; the Ferrenberg-Swendsen free energies not converged in 10^5 iterations |
 | `precondition:model`, `:checkerboard`, `:size`, `:disorder`, `:beta`, `:population`, `:temperatures`, `:sweeps`, `:named-seeds`, `:enumeration-size`, `:known-parameter`; `no-solution:sampler-invariant` | `population_annealing_mc` / `montecarlo/population.py`, `sk_metropolis.py`: a model not ising2d / sk_gaussian / sk_pm_one; L given for an SK model, or N / disorder for ising2d (not read by that model); sweeps = 0 (resampling only, no Metropolis move); an odd L or L outside 4 .. 64; N outside 2 .. 64; a disorder seed not an int >= 0; beta not a rational > 0 ('beta_c' only for ising2d); R, temperatures or sweeps out of range; fewer than 2 distinct named seeds; the SK enumeration beyond N = 20; a tracked SK energy that disagrees with the spins, or population blocks that do not add up |
 | `precondition:time-series`, `:ragged-runs`, `:windows`, `:two-samples`, `:chi2-cells`, `:chi2-alpha`, `:fit-sizes` | `montecarlo/stats.py`: a series too short or not finite; equilibration traces not (runs >= 2, T >= 4); a band over one run; runs of different lengths given to equilibration or power_fit; chi^2 cells that do not align or probabilities that do not sum to 1, or fewer than two cells; alpha outside (0, 1); a z fit with fewer than 3 increasing L or 2 runs |
+| `no-solution:capacity`, `:above-capacity`, `:state-point`, `:untied-slack`, `precondition:independent-pinned-directions`, `:dimension`, `:pinned-spherical-only`, `:overlap-range`, `:untied-structure` | pinned directions (`pinned.py`, `derive_pinned.py`, `pinned_modes.py`): kappa(M) has no interior maximum (no stationary point of C(M) at C = 0; the planted blind entropy); kappa >= the capacity kappa* (the volume is empty, no RS saddle with q < 1); no RS root (q, M) from the seeds; the untied branch (derived: M_2 = c M_1 violates M_2 >= M_1); |c| >= 1 (singular Gram matrix); d <= 0 or not finite (alpha: `precondition:alpha-range`); variables other than spherical; q outside (0, 1) in a class value; the untied stationarity of M_2 holds an energy term. Also `precondition:state-point` (d, c or alpha / n missing), `:known-parameter`, `:consistent-parameters` (alpha and n both), `:rs-saddle` (the float root fails the derived-equation audit), `:symbolic-replica-number` (explicit n) |
 | `unbanked:missing-entry`, `:malformed`, `:no-citation`, `:no-independent-route` | a banked reference value is absent or has no citation / no independent route (a value that fed a fit never certifies it) |
 | `tex-engine:failed`, `tex-engine:unavailable` | `--pdf`: the engine ran and failed, or could not reach its offline resources |
 
@@ -1407,7 +1472,7 @@ banked in `reference/perceptron.json` as independent targets. Honest limits:
   (default tier): time averages at N = 8 equal the exact spectrum means within 99% bands at four betas,
   and the planted acceptance rule (x0.8) and the reversed exchange sign are detected at every beta.
 
-ACCEPTANCE GATES: `python3 tools/replicant/selftest.py` (default tier: 662 tests, about 30 s on a laptop, measured 30.2 s wall, cold, on a clean export; also `python3
+ACCEPTANCE GATES: `python3 tools/replicant/selftest.py` (default tier: 677 tests, about 37 s on a laptop: 30.2 s wall, cold, on a clean export for the 662 before the pinned-direction tests, plus 6.7 s CPU for their 15; also `python3
 run_selftests.py replicant`, which runs the `python3` on PATH; run both from the activated project venv,
 which has python-flint) covers the core and
 refusal paths, the symbolic derivation against independent expressions, level agreement (a)=(b) for
@@ -1436,7 +1501,7 @@ and the nonlocal asymptote 8 s; SCM through the plateau at N = 1000 13 s, BRW's 
 6 s; VC97's K = M = 2 plateau about 2 min), the I1-I3 lattice checks at larger sizes, the ER critical window and the finite-size-scaling validation on the four solved lattices (P1, P2), the k-core second routes at extreme parameters (P3), the cluster Monte Carlo at L = 8-32 and the z fits, Wang-Landau at L = 4-16, multicanonical and Ferrenberg-Swendsen runs against Kaufman, population annealing at 8 x 8, 16 x 16 and SK N = 18 (M1-M3), the 2RSB certified bound and
 the K = 5 chain, the E11 Monte Carlo / enumeration held-out routes (about 4.6 min), the Hopfield replicon
 scans, the p-spin T -> 0 energy, solver-based composed and LaTeX checks, a PDF compile when a TeX engine
-is present) and takes about 35 minutes on a laptop (measured 34 min 39 s with 859 tests, cold, on a clean export, before the final fix wave added 9 tests: 868 now); run it before merging a change to a family. The `@slow` marker is
+is present) and takes about 35 minutes on a laptop (measured 34 min 39 s with 859 tests, cold, on a clean export, before the final fix wave added 9 tests: 868; 885 with the pinned-direction tests); run it before merging a change to a family. The `@slow` marker is
 honoured by `selftest.py` only: pytest ignores it and would run everything. Level agreement between the
 derivation and the pipelines is a consistency check, not new evidence for the ansatz; the cavity route reproducing
 the replica RS equations is an independent derivation but NOT independent evidence for the RS ansatz.

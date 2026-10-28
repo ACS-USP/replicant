@@ -49,7 +49,7 @@ from .latex import OverfullDisplay, write_latex
 from .spec import ModelSpec
 
 _SYMBOLS = {"beta": D.BETA, "h": D.H_FIELD, "alpha": ALPHA, "kappa": KAPPA,
-            "kappa_s": KAPPA_S}
+            "kappa_s": KAPPA_S, "d": sp.Symbol("d", positive=True), "c": sp.Symbol("c", real=True)}
 
 
 def _number(text):

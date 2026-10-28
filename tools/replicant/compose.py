@@ -187,6 +187,10 @@ class ComposedCalculation:
         return _finalise(res, self.entry.finality_of(values), require_final)
 
     def _run_composed(self, require_final, params):
+        if self.spec.constraint in ("margin kappa pinned directions",
+                                    "margin kappa pinned directions untied"):
+            from .pinned import run_composed        # pinned directions: pinned.py
+            return run_composed(self, require_final, dict(params))
         # self.steps were built for self.spec; a numeric beta is lifted to the symbol
         # first (so the entropy can be derived), and the same builder makes the steps run
         knobs = {k: params.pop(k) for k in _SOLVER_KNOBS if k in params}

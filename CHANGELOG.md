@@ -7,6 +7,18 @@ All notable changes to BootLoops are recorded here. The format follows
 ## Unreleased
 
 ### Added
+- `replicant` (pinned directions): the perceptron family with fixed external directions at level (a), the joint
+  pair problem of random documents (maximal margin of a pair {i, j} of unit vectors of overlap c against n - 2
+  iid Gaussian documents). Constraint `margin kappa pinned directions` (the composer no longer refuses it) with the
+  extra RS order parameter M (overlap with the pinned vectors), the entropic term (1/2)[ln(1-q) + (q - M^T G^-1 M)/(1-q)]
+  derived from the Gram determinant, and the tied/untied cases (untied refused `no-solution:untied-slack` by
+  derivation). `pinned.capacity` (the q -> 1 limit: reproduces the paper's pair margin m_RS to 1e-12 and the
+  support-vector law k = (n-2) Phi(-h*)), the RS saddle below capacity audited against the derived equations, and the
+  stability sectors: the replicon of the joint problem (it cannot mix with M, by Schur's lemma, checked on the
+  integer-n Hessian) is 1 - k/d at capacity, +0.32 .. +0.44 at the paper's five states, against -0.52 .. -2.22 for the
+  fixed-a slice taken from the catalog perceptron; the standard-irrep block (anomalous Q mode mixed with the
+  antisymmetric M mode) and the longitudinal M-mode also have the stable sign there. Spherical variables, two tied
+  vectors; physics-level. Report: `docs/replicant/pinned_joint_replicon.md`.
 - `replicant`: published replica-method and cavity-method calculations of disordered systems as
   typed, recorded steps (each with its citation and named preconditions; a missing one is a named
   refusal, never a silent fallback), with per-value finality labels (stable, unstable,

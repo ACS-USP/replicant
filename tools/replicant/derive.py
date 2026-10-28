@@ -323,6 +323,9 @@ def _spherical_site(n, q, qh, field=0):
     (1/2) ln det Q + O(ln N / N), the conjugate matrix already eliminated
     (the standard result of Gardner 1988, written from memory of the textbook
     form, not re-derived or checked against the paper here).  HAND-SUPPLIED."""
+    if getattr(field, "func", None) is not None and field.func.__name__ == "Pinned":
+        from .derive_pinned import pinned_site     # pinned directions: derive_pinned.py
+        return pinned_site(n, q, field)
     if field != 0:
         raise Refusal("precondition:no-field-on-spherical", str(field))
     if isinstance(n, int):
