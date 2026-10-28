@@ -187,11 +187,11 @@ sample`), and `--pdf` (with `--latex`) to compile the derivation.
 
 ## Test tiers
 
-- Default: `python3 tools/replicant/selftest.py` (COUNT_DEFAULT tests; the 662 before the margin law and the pinned
+- Default: `python3 tools/replicant/selftest.py` (748 tests; the 662 before the margin law and the pinned
   directions took about 30 s, measured 30.2 s cold on a clean export after the final fix wave). Also `python3 run_selftests.py replicant` from the repository root, with the venv activated (it runs
   the `python3` on PATH; without python-flint the certified lattice, bounds and percolation tests and the Monte
   Carlo exact targets fail, by design).
-- Full: `python3 tools/replicant/selftest.py --full` adds the COUNT_SLOW `@slow` tests (full RSB,
+- Full: `python3 tools/replicant/selftest.py --full` adds the 231 `@slow` tests (full RSB,
   population dynamics at reference sizes, the K-SAT and LDPC crossings, Monte Carlo and enumeration
   held-out routes, solver-based checks, the online simulations at N = 1000, the lattice, percolation and
   Monte Carlo checks at reference sizes); about 35 minutes on a laptop (measured 34 min 39 s with 859 tests before the final fix wave; the K = 3 RSB test alone is about 7 minutes; not re-measured after the margin-law, pinned-direction, negative-margin RSB and dense-memory additions).

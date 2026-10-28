@@ -1604,7 +1604,7 @@ banked in `reference/perceptron.json` as independent targets. Honest limits:
   (default tier): time averages at N = 8 equal the exact spectrum means within 99% bands at four betas,
   and the planted acceptance rule (x0.8) and the reversed exchange sign are detected at every beta.
 
-ACCEPTANCE GATES: `python3 tools/replicant/selftest.py` (default tier: COUNT_DEFAULT tests, about 30 s on a laptop at the 662 of the final fix wave (measured 30.2 s wall, cold, on a clean export); the margin-law, pinned-direction, negative-margin RSB and dense-memory tests added since were not re-timed cold; also `python3
+ACCEPTANCE GATES: `python3 tools/replicant/selftest.py` (default tier: 748 tests, about 30 s on a laptop at the 662 of the final fix wave (measured 30.2 s wall, cold, on a clean export); the margin-law, pinned-direction, negative-margin RSB and dense-memory tests added since were not re-timed cold; also `python3
 run_selftests.py replicant`, which runs the `python3` on PATH; run both from the activated project venv,
 which has python-flint) covers the core and
 refusal paths, the symbolic derivation against independent expressions, level agreement (a)=(b) for
@@ -1633,7 +1633,7 @@ and the nonlocal asymptote 8 s; SCM through the plateau at N = 1000 13 s, BRW's 
 6 s; VC97's K = M = 2 plateau about 2 min), the I1-I3 lattice checks at larger sizes, the ER critical window and the finite-size-scaling validation on the four solved lattices (P1, P2), the k-core second routes at extreme parameters (P3), the cluster Monte Carlo at L = 8-32 and the z fits, Wang-Landau at L = 4-16, multicanonical and Ferrenberg-Swendsen runs against Kaufman, population annealing at 8 x 8, 16 x 16 and SK N = 18 (M1-M3), the 2RSB certified bound and
 the K = 5 chain, the E11 Monte Carlo / enumeration held-out routes (about 4.6 min), the Hopfield replicon
 scans, the p-spin T -> 0 energy, solver-based composed and LaTeX checks, a PDF compile when a TeX engine
-is present) and takes about 35 minutes on a laptop (measured 34 min 39 s with 859 tests, cold, on a clean export, before the final fix wave; COUNT_FULL tests now, not re-timed: the K = 3 RSB test alone is about 7 minutes); run it before merging
+is present) and takes about 35 minutes on a laptop (measured 34 min 39 s with 859 tests, cold, on a clean export, before the final fix wave; 979 tests now, not re-timed: the K = 3 RSB test alone is about 7 minutes); run it before merging
 a change to a family. The `@slow` marker is
 honoured by `selftest.py` only: pytest ignores it and would run everything. Level agreement between the
 derivation and the pipelines is a consistency check, not new evidence for the ansatz; the cavity route reproducing
