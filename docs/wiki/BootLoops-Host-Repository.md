@@ -40,7 +40,6 @@ exit is a FAIL. The default per-attempt timeout is 300 s (`--timeout`).
 | Remote | Repository |
 |---|---|
 | `acs` | `ACS-USP/replicant` (public; this wiki; formerly `bootloops-statmech`) |
-| `statmech` | `renatovicente/bootloops-statmech` (private mirror) |
 | `origin` | `BootLoops-ai/bootloops` (upstream BootLoops, without `replicant`'s statmech history) |
 
 ## Related pages
