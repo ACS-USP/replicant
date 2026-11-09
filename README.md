@@ -240,10 +240,11 @@ itself.
 
 ## Status, provenance and responsible use
 
-The code was written by Claude working under the author's direction: the
-author set every problem, approved every plan, and checked the reported
-results against independent routes; each package ships the acceptance battery
-described in its GUIDE so users can re-verify.
+The BootLoops code was written by Claude working under Matthew D. Schwartz's
+direction, and the `replicant` package by Claude working under Renato Vicente's
+direction. In both cases the author set every problem, approved every plan, and
+checked the reported results against independent routes. Each package ships the
+acceptance battery described in its GUIDE so users can re-verify.
 
 These are research instruments. Validate outputs before relying on them;
 nothing here is intended or fit for clinical, actuarial, payment, regulatory
@@ -263,12 +264,15 @@ Full author lists and references are in [`toolkit/external/TOOLS.md`](toolkit/ex
 
 ## Maintenance, reporting and security
 
-**Maintenance.** This repository is maintained by Matthew D. Schwartz, not by
-Anthropic. It is not an officially supported Anthropic product, and Anthropic
-does not provide support, updates or fixes for it.
+**Maintenance.** Replicant is maintained by Renato Vicente (ACS-USP), not by
+Anthropic. The BootLoops base it is developed from is maintained by Matthew D.
+Schwartz in [BootLoops-ai/bootloops](https://github.com/BootLoops-ai/bootloops).
+Neither is an officially supported Anthropic product, and Anthropic does not
+provide support, updates or fixes for them.
 
-**Reporting issues.** Please report bugs and security problems through this
-repository's GitHub issues.
+**Reporting issues.** Please report bugs and security problems in `replicant`,
+or in anything else in this repository, through this repository's GitHub issues.
+Problems that also affect upstream BootLoops can be reported there as well.
 
 **Security considerations.** Treat input files from others as code. These are
 research tools meant to be run locally on inputs you trust. Many of them
@@ -304,6 +308,17 @@ organization, each under the license of its original authors (Kira GPL-3.0-or-la
 and AMFlow.cpp MIT), and are not part of this repository.
 [THIRD_PARTY.md](THIRD_PARTY.md) has the full list and [NOTICE](NOTICE) the
 attribution.
+
+The `replicant` package and the other Replicant additions are distributed under
+the same terms as the rest of this repository: code under the MIT License, prose
+and figures under CC BY 4.0.
+
+To cite Replicant: R. Vicente, *Replicant: a harness for the statistical mechanics
+of learning, developed from BootLoops 1.0* (2026),
+[github.com/ACS-USP/replicant](https://github.com/ACS-USP/replicant). Please also
+cite BootLoops, and the authors of the calculations Replicant reproduces (the
+CREDIT paragraph of [`tools/replicant/GUIDE.md`](tools/replicant/GUIDE.md) and
+[REFERENCES.md](REFERENCES.md)).
 
 To cite BootLoops: M. D. Schwartz, *BootLoops 1.0* (2026),
 [bootloops.ai](https://www.bootloops.ai).
