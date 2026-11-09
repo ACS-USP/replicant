@@ -1,4 +1,41 @@
-# BootLoops
+# Replicant
+
+Replicant is a harness specialized in the statistical mechanics of learning, developed from
+BootLoops 1.0. It keeps the whole BootLoops toolkit and adds `replicant`
+([`tools/replicant/`](tools/replicant/README.md)), a package that runs published replica-method
+and cavity-method calculations of disordered systems as typed, recorded steps.
+
+The package's catalog has 38 entries. They cover spin glasses, perceptron capacity and
+teacher-student learning, Hopfield and dense associative memories, online learning, random
+constraint satisfaction, inference on sparse graphs, solvable Ising lattices, percolation and
+Monte Carlo. The entries run through eight routes: replica, cavity, AMP, exact, series, bound,
+online and sample.
+
+Every step names its preconditions and its citation, and a missing precondition stops the run
+with a named refusal. Every run returns:
+- a trace a reader can follow back to the paper;
+- a finality label on each value (`stable`, `unstable`, `not-computed` or `exact-by-literature`);
+- a comparison with banked, cited reference values.
+
+Results are labelled with their rigor:
+- `physics-level` for replica, cavity, AMP and series results;
+- `certified` for ball-arithmetic enclosures;
+- `statistical` for sampled values over named seeds.
+
+A symbolic derivation handles models near a catalogued one, and a LaTeX writer turns any run into
+a derivation appendix.
+
+```
+python3 tools/replicant/selftest.py                 # default battery, about 30 s
+cd tools && python3 -m replicant list               # the catalog
+python3 -m replicant run perceptron --param alpha=1.5 --out /tmp/result.json --latex /tmp/p.tex
+```
+
+Full documentation: [`tools/replicant/GUIDE.md`](tools/replicant/GUIDE.md) and the
+[wiki](https://github.com/ACS-USP/replicant/wiki). The rest of this README describes the
+BootLoops base that Replicant is built on.
+
+## Built on BootLoops
 
 BootLoops 1.0 is a harness for large language models doing precision
 quantitative science. At its core it is an extensive scientific software package (written,
@@ -126,9 +163,9 @@ reproduces the solver's reference results in about a minute and a half.
 ## Related repositories
 
 BootLoops is six repositories published side by side at
-[github.com/BootLoops-ai](https://github.com/BootLoops-ai). This
-one, `bootloops`, holds the toolkit and the house engines; the other five
-are listed below. Where the code or the guides assume a location for a sibling
+[github.com/BootLoops-ai](https://github.com/BootLoops-ai). Replicant
+is developed from `bootloops`, the one that holds the toolkit and the house
+engines; the other five are listed below. Where the code or the guides assume a location for a sibling
 repository, it is a checkout beside this one (`../<name>` relative to this
 repository's root).
 
