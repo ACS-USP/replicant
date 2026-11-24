@@ -7,6 +7,14 @@ All notable changes to BootLoops are recorded here. The format follows
 ## Unreleased
 
 ### Fixed
+- `replicant` (parked items of the Krzakala-Zdeborova series): `coloring` ER clustering at q >= 4 is refused in the
+  entry's first step, so a run with `N` no longer pays for K3's BP on graphs before the refusal
+  (`coloring/rsb.refuse_er_first_order`, shared with `cluster_thresholds`); the `rfim` note reads `d =` on a regular
+  graph; the `sbm` q = 2 Kesten-Stigum step is skipped, not run empty, when `q` is given; `transitions_note` lists
+  every seed. Tests: the ER refusal test stubs both engines with a private exception and covers the catalog with
+  `N`; `test_lasso_amp_is_the_lasso_at_small_n` requires all four named seeds to converge. No value changed.
+  Default tier 850 passed (63.7 s); full tier 1120 passed, 0 failed, 48 min 04 s under load (load averages about
+  5 to 6).
 - `replicant` (final-review fix wave of the Krzakala-Zdeborova series K1-K8): `coloring` ER clustering /
   condensation at q >= 4 (first-order, ZK 2007) is refused `unsupported:er-first-order` on the input, before any
   population runs (it used to fire after about 60 s of populations, seed-dependently); at q = 3 a nontrivial probe

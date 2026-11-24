@@ -8,7 +8,7 @@
 | Tier | Command | Size | Time |
 |---|---|---|---|
 | Default | `python3 tools/replicant/selftest.py` | 850 tests | about 63 s (measured 62.92 s in the working tree after the final-review fix wave, load averages 3.4-4.5; K8's 841 tests: 60.57 s / 60.56 s on clean exports, load 3.5-4.3) |
-| Full | `python3 tools/replicant/selftest.py --full` | adds 270 `@slow` tests (1120 in all) | about 48 min (last timed at 1099 tests: 47 min 37 s, cold, clean export, under load: load averages 3.1-8.4; not re-run after the fix wave) |
+| Full | `python3 tools/replicant/selftest.py --full` | adds 270 `@slow` tests (1120 in all) | about 48 min (timed at 1a37a65: 1120 passed, 48 min 04 s, under load: load averages about 5-6) |
 | Repository | `python3 run_selftests.py replicant` | the default tier, through the repo runner | — |
 
 `@slow` (`testing.py`) is a plain function attribute that only `selftest.py` honours. **pytest

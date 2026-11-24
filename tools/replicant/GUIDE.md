@@ -1936,7 +1936,7 @@ validation on the four solved lattices (P1, P2), the k-core second routes at ext
 Monte Carlo at L = 8-32 and the z fits, Wang-Landau at L = 4-16, multicanonical and Ferrenberg-Swendsen runs
 against Kaufman, population annealing at 8 x 8, 16 x 16 and SK N = 18 (M1-M3), the 2RSB certified bound and the K =
 5 chain, the E11 Monte Carlo / enumeration held-out routes (about 4.6 min), the Hopfield replicon scans, the p-spin
-T -> 0 energy, solver-based composed and LaTeX checks, a PDF compile when a TeX engine is present) and takes 1120 tests after the final-review fix wave, about 48 minutes (last timed at 1099 tests: 47 min 37 s wall, cold, on a clean export of bcc55fc, under load: load averages 3.1 to 8.4; not re-run after the fix wave, whose slow-tier change is the per-entry split of the catalog RefChecks, slowest 85 s); the K = 3 RSB test alone is about 7 minutes, the per-entry slow catalog RefChecks at most 85 s each;
+T -> 0 energy, solver-based composed and LaTeX checks, a PDF compile when a TeX engine is present) and takes 1120 tests, about 48 minutes (timed at 1a37a65: 1120 passed, 0 failed, 48 min 04 s wall, under load: load averages about 5.0 at the start and 6.1 at the end); the K = 3 RSB test alone is about 7 minutes, the per-entry slow catalog RefChecks at most 85 s each;
 run it before merging a change to a family. The `@slow` marker is honoured by `selftest.py` only: pytest ignores it
 and would run everything. Level agreement between the derivation and the pipelines is a consistency check, not new
 evidence for the ansatz; the cavity route reproducing the replica RS equations is an independent derivation but NOT
