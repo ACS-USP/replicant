@@ -176,6 +176,12 @@ def test_sparse_denoising_matches_rem():
             assert abs(f - want) < mp.mpf(10)**-25 and abs(fr - want) < mp.mpf(10)**-25, d
             assert SV.sparse_vector_mmse(d) == (0 if mp.mpf(d) < dc else 1), d
         assert abs(SV.sigma_c2(2**20) - 1 / (2 * 20 * mp.log(2))) < mp.mpf(10)**-28
+    # sigma_c^2 against the REM: noise variance Delta/N with d = 2^N, so sigma_c^2 = Delta_c_rem / N, Delta_c_rem =
+    # 2/beta_c^2 from families/rem.py; a planted beta = sqrt(1/Delta) halves Delta_c_rem and fails
+    agree = lambda: all(abs(SV.sigma_c2(2**n) - SV.delta_c_via_rem() / n) < mp.mpf(10)**-25 for n in (4, 10, 20))
+    with mp.workdps(30):
+        assert agree() and abs(SV.delta_c_via_rem() - 2 / REM.rem_critical_beta(N_scale="0.5")**2) < mp.mpf(10)**-28
+        assert not _planted(SV, "beta_factor", 1, agree)
     # plant: the REM map at beta = sqrt(1/Delta) (a dropped factor 2) moves the transition: the REM route fails
     bad = _planted(SV, "beta_factor", 1, lambda: [SV.free_entropy_via_rem(d) for d in ("0.6", "1")])
     assert abs(bad[1]) > 0.05 or abs(bad[0] - (1 / mp.mpf("1.2") - mp.log(2))) > 0.05, bad
@@ -212,6 +218,15 @@ def test_scalar_denoising_entry_values_and_finality():
     st, _ = e.execute(prior="gauss_bernoulli", rho="1/2", Delta="1/2")
     fin = e.finality_of(st["values"])
     assert "mmse" not in st["errors"] and not fin["mmse"].final and "quadrature" in fin["mmse"].note
+    # the Result's rigor follows the prior: certified only when every value is a ball
+    from replicant.catalog_bayes import QUADRATURE_RIGOR
+    from replicant.compose import compose
+    run = lambda **p: compose(e.spec, "exact").run(**p)
+    assert run(prior="rademacher", data="7.6", Delta=1).rigor == "certified"
+    assert run(prior="gaussian", Delta="1/2").rigor == "certified"
+    for p in ({"prior": "gauss_bernoulli", "data": "7.11", "Delta": 1}, {"prior": "sparse", "rho": "1/4", "a": 2}):
+        res = run(**p)
+        assert res.rigor == QUADRATURE_RIGOR and "binary64 quadrature" in res.rigor and res.rigor != "certified", p
 
 
 @slow

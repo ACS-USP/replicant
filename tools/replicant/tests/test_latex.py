@@ -310,6 +310,8 @@ def test_statistical_and_physics_labels_present():
     for name, route in _routes():
         doc = _doc(name, route)
         rigor = catalog()[name].rigor.get(route, "physics-level")      # lattice/: "certified"
+        if callable(rigor):                                             # scalar_denoising: by the run's prior
+            rigor = _result(name, route).rigor
         assert f"Rigor: \\textbf{{{rigor}}}" in doc and f"Route: \\textbf{{{route}}}" in doc, \
             (name, route)
         if rigor == "certified":

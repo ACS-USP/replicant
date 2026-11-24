@@ -175,6 +175,8 @@ class ComposedCalculation:
         state, trace = self.entry.execute(self.route, **p)
         values = state["values"]
         rigor = self.entry.rigor.get(self.route, "physics-level")
+        if callable(rigor):            # a label that depends on the run (scalar_denoising: the prior)
+            rigor = rigor(values)
         if rigor == "certified":
             bare = sorted(k for k in values if k not in self.entry.meta and k not in state["errors"])
             if bare:

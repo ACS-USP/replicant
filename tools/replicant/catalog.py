@@ -138,7 +138,8 @@ class CatalogEntry:
     # refuses any other name: precondition:known-parameter, never silently ignored)
     parameters: dict = field(default_factory=dict)
     # route -> rigor label of its Result ("physics-level" unless declared): "certified" for a
-    # route whose every physical value is a ball enclosure with its radius in errors (lattice/)
+    # route whose every physical value is a ball enclosure with its radius in errors (lattice/);
+    # or a callable(values) -> label, for a route whose rigor depends on the run
     rigor: dict = field(default_factory=dict)
 
     def finality_of(self, values):

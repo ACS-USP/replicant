@@ -6,8 +6,9 @@ notes, version of June 9 2024), "KZ"; Guo, Shamai & Verdu, IEEE Trans. Inf. Theo
 arXiv:cs/0412108 (read), "GSV".  Conventions (bayes/channels.py, bayes/sparse_vector.py): KZ's y_i = x* +
 sqrt(Delta) z_i (Eq. (7.4)) is the channel y = sqrt(snr) x + z at snr = N/Delta (one observation: snr = 1/Delta);
 the sparse vector is y = x* + sqrt(Delta/N) z with x* one of d = 2^N basis vectors (Eq. (7.51)).
-Ball values are reported as their midpoint (40 digits) with an upper bound of |value - x| in `errors`; the route
-declares no rigor because the Gauss-Bernoulli and sparse MMSE / I are binary64 quadrature (labelled so).
+Ball values are reported as their midpoint (40 digits) with an upper bound of |value - x| in `errors`.  The exact
+route's rigor depends on the prior (scalar_rigor): "certified" for gaussian and +-1 (every value a ball); for the
+Gauss-Bernoulli and sparse priors the label names the binary64 quadrature of the MMSE and I.
 Run parameters:
   scalar_denoising (exact)    prior (gaussian (default) | rademacher | gauss_bernoulli | sparse), rho, var, a (the
                               prior's parameters), Delta (noise variance, rational > 0, default 1), data (a KZ data
@@ -115,7 +116,18 @@ def scalar_denoising():
                            "Gauss-Bernoulli and sparse priors"},
                  "Bayes-optimal scalar denoising: posterior, MMSE, mutual information for four priors",
                  default_route="exact", finality=fin, meta=("prior", "prior_params", "Delta", "snr", "N"),
-                 parameters={"exact": ("prior", "rho", "var", "a", "Delta", "data")})
+                 parameters={"exact": ("prior", "rho", "var", "a", "Delta", "data")}, rigor={"exact": scalar_rigor})
+
+
+def scalar_rigor(values):
+    """The Result's rigor: "certified" when every value is an arb enclosure (gaussian, +-1 priors); otherwise the
+    posteriors are certified and the MMSE / I are binary64 quadrature, and the label says so."""
+    if values.get("prior") in ("gaussian", "rademacher"):
+        return "certified"
+    return QUADRATURE_RIGOR
+
+
+QUADRATURE_RIGOR = "certified posteriors; binary64 quadrature (mmse, mutual_information: no closed form)"
 
 
 # ---- sparse_denoising ----------------------------------------------------------------------------------------
@@ -135,9 +147,8 @@ def _theorem(p):
 
 def _rem_route(p):
     beta, s = SV.rem_parameters(p["Delta"])
-    from .families.rem import rem_critical_beta
     return Out({"f_rem": SV.free_entropy_via_rem(p["Delta"]), "beta_rem": beta,
-                "Delta_c_rem": 2 / rem_critical_beta(N_scale=s)},
+                "Delta_c_rem": SV.delta_c_via_rem()},
                f"null terms as a REM at beta = sqrt(2/Delta) = {str(beta)[:12]}, N_scale = 1/2")
 
 

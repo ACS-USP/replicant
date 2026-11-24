@@ -20,7 +20,7 @@ transition beta_c = 2 sqrt(log 2) is Delta_c = 2/beta_c^2.
                                               at that N, by E log Z = int du [exp(-e^u) - E exp(-e^u Z)] with
                                               E exp(-t Z) a product over the independent terms (binary64 trapezoid)
   sparse_vector_mmse(Delta)                   0 below Delta_c, 1 above (I-MMSE on Theorem 15)
-  rem_parameters(Delta), free_entropy_via_rem(Delta)
+  rem_parameters(Delta), free_entropy_via_rem(Delta), delta_c_via_rem()
   sample_log_z(Delta, N, seed)                (1/N) log Z of one sample (tests: named seeds)
 
 _HOOKS (planted errors, tests only): "beta_factor" (2: beta^2 = factor/Delta), "planted_copies" (1: the planted
@@ -80,6 +80,13 @@ def rem_parameters(Delta):
         return mp.sqrt(_HOOKS["beta_factor"] / _delta(Delta)), mp.mpf("0.5")
 
 
+def delta_c_via_rem():
+    """Delta_c from the REM: beta^2 = factor/Delta (factor 2) meets beta_c(N_scale = 1/2) = 2 sqrt(ln 2) at
+    Delta_c = factor / beta_c^2; sigma_c^2 = Delta_c / N for d = 2^N."""
+    with mp.workdps(_DPS):
+        return _HOOKS["beta_factor"] / REM.rem_critical_beta(N_scale="0.5")**2
+
+
 def free_entropy_via_rem(Delta):
     with mp.workdps(_DPS):
         D = _delta(Delta)
@@ -120,5 +127,5 @@ def sample_log_z(Delta, N, seed):
     return float((top + math.log(np.exp(la - top).sum()) - N * math.log(2)) / N)
 
 
-__all__ = ["delta_c", "free_entropy_via_rem", "rem_parameters", "sample_log_z", "sigma_c2", "sparse_vector_free_entropy",
+__all__ = ["delta_c", "delta_c_via_rem", "free_entropy_via_rem", "rem_parameters", "sample_log_z", "sigma_c2", "sparse_vector_free_entropy",
            "sparse_vector_mmse"]
