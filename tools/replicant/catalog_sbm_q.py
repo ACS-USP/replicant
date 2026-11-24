@@ -222,7 +222,12 @@ def refs():
     return [RefCheck("sbm", "inverse_eps_c_q4_c16", lambda v: v["inverse_eps_ks_q"], params={"q": 4, "c": 16},
                      route="cavity"),
             RefCheck("sbm", "c_l_q5_cin0", lambda v: v["c_l"], params=line, route="cavity", slow=True),
-            stat("c_d"), stat("c_c")]
+            stat("c_d"), stat("c_c")] + [
+        # K7: the planted q-coloring is this model at c_in = 0 (KZ Sec. 13.1): ZK's Table II c_d, c_c at q = 5
+        # (factor.json; q = 4 is unclaimed: catalog_coloring.py says why)
+        RefCheck("factor", f"coloring_{key}_q{q}", (lambda k: lambda v: v[k])(key), statistical=True,
+                 params={"q": q, "c_in": 0}, route="cavity", slow=True, error=(lambda k: lambda e: e[k])(key),
+                 runs=len(_SEEDS)) for key in ("c_d", "c_c") for q in (5,)]
 
 
 __all__ = ["META", "Q_PARAMS", "finality", "refs", "steps", "stray_q"]

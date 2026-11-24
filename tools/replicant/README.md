@@ -212,6 +212,10 @@ sample`), and `--pdf` (with `--latex`) to compile the derivation.
   graphs from the planted and a random start), `coloring/first_moment.py` (exact E Z over G(N, M)); catalog entries
   `potts_bethe`, `coloring` (`catalog_factor.py`, `latex_factor.py`) and the `rfim` route `cavity`
   (`catalog_rfim_sparse.py`).
+- `coloring/planted.py`, `rsb.py`, `rsb_pop.py`, `sample.py` (K7, the notes' Ch. 13-14): the planted coloring and its
+  SBM link, the frozen survey propagation (colorability), the 1RSB cavity by population dynamics (clustering,
+  condensation), the rigidity recursion, exhaustive counts and BP on sampled graphs; the `coloring` entry gains
+  `ansatz=1rsb` and `planted=true` (`catalog_coloring.py`).
 - `latex*.py`, `tex*.py`, `derive_tex.py`: the LaTeX derivation writer.
 - `tests/`, `selftest.py`: the battery.
 

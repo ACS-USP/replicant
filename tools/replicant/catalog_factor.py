@@ -20,6 +20,7 @@ import math
 import numpy as np
 
 from .amp._stats import student_band
+from . import catalog_coloring as K7
 from .catalog import Out, RefCheck, Stability, entry, fstep, has
 from .coloring import potts_bp as PB
 from .coloring import potts_graph as PG
@@ -237,10 +238,11 @@ def _col_bp(p):
 def coloring():
     steps = [fstep("coloring-paramagnetic", f"{KZ}, Sec. 6.4", _col_para),
              fstep("coloring-thresholds", f"{KZ}, Sec. 6.6, Eqs. (6.17), (6.24)", _col_thr),
-             fstep("coloring-bp-graphs", f"{KZ}, Sec. 6.6 (BP on large random graphs)", _col_bp, when=has("N"),
-                   skip="no N given")]
+             fstep("coloring-bp-graphs", f"{KZ}, Sec. 6.6 (BP on large random graphs)", _col_bp,
+                   when=lambda p: p.get("N") is not None and p.get("planted", False) is not True,
+                   skip="no N given")] + K7.steps(_mean_degree, KZ)
     refs = [RefCheck("factor", "coloring_c_ks_q3", lambda v: v["c_ks"], params={"q": 3}, route="cavity"),
-            RefCheck("factor", "coloring_c_ann_q3", lambda v: v["c_ann"], params={"q": 3}, route="cavity")]
+            RefCheck("factor", "coloring_c_ann_q3", lambda v: v["c_ann"], params={"q": 3}, route="cavity")] + K7.refs()
     ann = _phys("Sec. 6.6, Eq. (6.17)", "closed form of the exact first moment (an upper bound on the quenched entropy "
                 "by Jensen); equal to the paramagnetic Bethe free entropy")
     fin = {"phi_para": ann, "e_para": ann, "s_para": ann, "c_ann": ann, "c_ann_inf": ann,
@@ -248,14 +250,15 @@ def coloring():
            "e_at_s_max": _phys("Sec. 6.4", "c/(2q): a random coloring violates each edge w.p. 1/q"),
            "c_ks": _phys("Sec. 6.6, Eqs. (6.18)-(6.24)", "linear (variance) stability of chi = 1/q: physics-level"),
            "c_ks_inf": _phys("Eq. (6.24)", "(q - 1)^2 at beta = oo"),
-           "bp_converged_fraction": _stat("bp_status", "Sec. 6.6")}
+           "bp_converged_fraction": _stat("bp_status", "Sec. 6.6"), **K7.finality()}
     return entry("coloring", ModelSpec("coloring", "potts", "none", constraint="antiferromagnetic, ER graph"), KZ,
                  {"cavity": steps}, refs, {"cavity": "paramagnetic BP / annealed closed forms (physics-level); "
                                            "finite-N BP statistical"},
                  "graph q-coloring (the Potts antiferromagnet) on ER graphs: paramagnetic entropy, annealed threshold "
-                 "c_ann, Kesten-Stigum c_KS", default_route="cavity", finality=fin,
-                 meta=("q", "bp_max_deviation", "N", "seeds", "bp_damping", "bp_status", "bp_status_note"),
-                 parameters={"cavity": ("q", "c", "beta", "N", "seeds", "iters", "damping")})
+                 "c_ann, Kesten-Stigum c_KS; with ansatz=1rsb the clusters (frozen SP c_col, 1RSB c_d / c_c, rigidity), "
+                 "with planted=true the planted coloring (SBM link, BP from the planted start, quiet planting)", default_route="cavity", finality=fin,
+                 meta=("q", "bp_max_deviation", "N", "seeds", "bp_damping", "bp_status", "bp_status_note") + K7.META,
+                 parameters={"cavity": ("q", "c", "beta", "N", "seeds", "iters", "damping") + K7.PARAMS})
 
 
 def factor_entries():
