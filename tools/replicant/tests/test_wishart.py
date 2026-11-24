@@ -170,6 +170,30 @@ def test_wishart_se_vs_amp():
     assert _se_vs_amp(2000, range(10), 8, plant=0.0) >= 8
 
 
+def test_wishart_amp_divergence_is_undetermined():
+    """A divergent run is not banded: with the Onsager term planted 1e300 times too large and the (unbounded) Gaussian
+    denoisers the iterates overflow to non-finite values, wishart_amp reports finite False (never a Refusal), and the catalog's m_u_amp,
+    m_v_amp are absent with amp_status undetermined while the SVD band stays.  With Rademacher v the same plant keeps
+    the iterates bounded but oscillating: finite, not converged, amp_status not-converged and the finality says so.
+    The true run at the same point is converged."""
+    from replicant import catalog_wishart as CW
+    Y, u, v = WS.wishart_matrix(200, 0.5, 1.6, "gaussian", "gaussian", 0)
+    r = _planted("onsager_scale", 1e300, lambda: WS.wishart_amp(Y, "gaussian", "gaussian", snr=1.6, iters=20,
+                                                                 v_init=WS.informative_start(v, "gaussian", 0.3, 0)))
+    assert not r.finite and not r.converged, r.increments
+    run = lambda pv: CW._finite({"alpha": "0.5", "snr": "1.6", "prior_v": pv, "N": 200, "seeds": [0, 1]}).values
+    bad = _planted("onsager_scale", 1e300, lambda: run("gaussian"))
+    assert bad["amp_status"] == "undetermined" and "m_u_amp" not in bad, bad
+    assert "sigma_top_svd" in bad and bad["amp_finite_fraction"] == 0
+    osc = _planted("onsager_scale", 1e6, lambda: run("rademacher"))
+    assert osc["amp_status"] == "not-converged" and "NOT converged" in CW._amp_label(osc).note, osc
+    good = run("rademacher")
+    assert good["amp_status"] == "converged" and good["amp_converged_fraction"] == 1, good
+    assert "m_u_amp" in good and "NOT converged" not in CW._amp_label(good).note
+    fin = CW.spiked_wishart().finality["m_u_amp"]
+    assert fin is CW._amp_label
+
+
 def test_wishart_refusals():
     _refuses(lambda: WS.wishart_se(1.5, 0.5, "cauchy", "gaussian"), "precondition:known-prior")
     _refuses(lambda: WS.wishart_se(1.5, 0.5, CH.Prior("sparse"), "gaussian"), "precondition:unit-variance")

@@ -7,7 +7,11 @@ Chosen by prior=diluted_rademacher (inference/spiked_diluted.py states the conve
                  spinodals and the IT threshold: snr_dyn, snr_alg, snr_it and delta_*_over_rho2 = 1 / snr_*^2
   rho, snr       every SE fixed point (se_fixed_points, se_stable), the uninformative and informative starts, the phase
                  (easy | hard | impossible | undetermined) and, unless undetermined, the Bayes gamma_se, q_se,
-                 overlap_se, mmse_se, matrix_mmse_se
+                 overlap_se, mmse_se, matrix_mmse_se.  On this path these keys are the BAYES (posterior-sample) values
+                 at the fixed point of lower RS potential; in the hard phase AMP does not reach them (AMP's limit is
+                 se_uninformative_gamma).  On the gaussian / rademacher path overlap_se and mmse_se are Bayes AMP's
+                 performance (MV Thm 2); here they are the RS fixed point's sqrt(q) and 1 - q, covered by no theorem
+                 fetched here (LM Thm 1 covers q and the matrix MMSE 1 - q^2), so they are not-computed
 Finite-N AMP (N, seeds, iters) is not implemented for this prior and is refused.
 """
 from .catalog import Out, RefCheck, Stability, fstep
@@ -63,7 +67,7 @@ def _thresholds(p):
 
 
 def _se(p):
-    se = SD.diluted_state_evolution(float(p["snr"]), p["rho"])
+    se = SD.diluted_state_evolution(p["snr"], p["rho"])
     vals = {"snr": se.snr, "se_fixed_points": [f.gamma for f in se.fixed_points],
             "se_stable": [f.stable for f in se.fixed_points], "se_phase": se.phase, "se_metastable": se.metastable,
             "se_uninformative_gamma": se.uninformative.gamma, "se_informative_gamma": se.informative.gamma}
@@ -112,7 +116,12 @@ def finality():
             **{f"snr_{k}": sp for k in ("dyn", "alg")}, **{f"delta_{k}_over_rho2": sp for k in ("dyn", "alg")},
             "snr_it": it, "delta_it_over_rho2": it,
             **{k: tri for k in ("rho_tri", "snr_tri", "delta_tri_over_rho2", "delta_tri")},
-            **{k: _bayes for k in ("gamma_se", "q_se", "overlap_se", "mmse_se", "matrix_mmse_se")}}
+            **{k: _bayes for k in ("gamma_se", "q_se", "matrix_mmse_se")},
+            **{k: Stability("not-computed", "rs", f"{LM}; {LKZ}",
+                            "the RS fixed point's vector quantity (sqrt(q), 1 - q) at the Bayes fixed point: LM Thm 1 "
+                            "covers the free entropy and the matrix MMSE, not a cosine or a vector MSE (the posterior "
+                            "mean of a sign-symmetric prior is 0); in the hard phase it is not AMP's performance: NOT "
+                            "final") for k in ("overlap_se", "mmse_se")}}
 
 
 META = ("rho", "first_order", "se_fixed_points", "se_stable", "se_phase", "se_metastable", "se_uninformative_gamma",

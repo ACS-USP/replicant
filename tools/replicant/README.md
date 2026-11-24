@@ -214,7 +214,7 @@ sample`), and `--pdf` (with `--latex`) to compile the derivation.
 
 ## Test tiers
 
-- Default: `python3 tools/replicant/selftest.py` (781 tests after K2, 803 after K4, 819 after K5; the 662 before the margin law and the pinned
+- Default: `python3 tools/replicant/selftest.py` (781 tests after K2, 803 after K4, 821 after K5; the 662 before the margin law and the pinned
   directions took about 30 s, measured 30.2 s cold on a clean export after the final fix wave). Also `python3 run_selftests.py replicant` from the repository root, with the venv activated (it runs
   the `python3` on PATH; without python-flint the certified lattice, bounds and percolation tests and the Monte
   Carlo exact targets fail, by design).

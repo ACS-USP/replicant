@@ -72,14 +72,14 @@
     "independent_route": "inference/spiked_diluted.py diluted_it_threshold: brentq in lambda between the spinodals on the difference of the RS potential (DAM Eq. (9)) of the lowest and highest stable SE fixed points, with I(gamma) from the log-partition formula (not the denoiser)"
   },
   "diluted_rho0p08_delta_alg_over_rho2": {
-    "value": "0.9808",
+    "value": "0.9805",
     "tol": "4e-4",
-    "cite": "read off LKZ Fig. 3 (p. 36, rho = 0.08, vertical dashed lines): the vector figure rasterised at 600 dpi, line centres located by pixel colour, the axis calibrated on the frame (0.97 and 1.05, 1811 px per 0.08); reading error about +-4 px = +-2e-4: the Delta_Alg line at 0.9808. AFUZ p. 5 prints 'Delta = Delta_alg ~ 0.9805 rho^2' (sources_disagree; 3e-4 below the figure, outside one unit in its last digit: AFUZ's '~' is a rougher statement; the figure, the computed spinodal 0.980792 and an independent mpmath quadrature agree). Convention: LKZ Eq. (33) / AFUZ Eq. (2) prior (1 - rho) delta_0 + (rho/2)(delta_1 + delta_-1), Y = x x^T / sqrt(N) + sqrt(Delta) xi; replicant's spiked_wigner with prior=diluted_rademacher uses the unit-variance prior x in {0, +-1/sqrt(rho)} and Y = (lambda/N) x x^T + W, so Delta / rho^2 = 1 / lambda^2 (the value banked here is the dimensionless Delta / rho^2, read as 1/lambda^2). Tolerance 4e-4: the package rule that a key's tol covers the spread of its disagreeing sources (tests/test_refdata.py), |0.9808 - 0.9805| = 3e-4, rounded up to the next unit (the figure's own reading error is 2e-4).",
+    "cite": "Antenucci, Franz, Urbani & Zdeborova, 'Glassy nature of the hard phase in inference problems', PRX 9, 011020 (2019), arXiv:1805.05857v4 (PDF read), p. 5: 'at Delta = Delta_alg ~ 0.9805 rho^2 this metastable minimum disappears with a spinodal transition' (rho = 0.08). sources_disagree: read off LKZ Fig. 3 (p. 36, rho = 0.08, vertical dashed lines): the vector figure rasterised at 600 dpi, line centres located by pixel colour, the axis calibrated on the frame (0.97 and 1.05, 1811 px per 0.08); reading error about +-4 px = +-2e-4: 0.9808, 3e-4 above the print (the computed spinodal 0.980792 and an independent mpmath quadrature agree with the figure). Tolerance 4e-4: the package rule that a key's tol covers the spread of its sources (tests/test_refdata.py), |0.9808 - 0.9805| = 3e-4, rounded up to the next unit. Convention: LKZ Eq. (33) / AFUZ Eq. (2) prior (1 - rho) delta_0 + (rho/2)(delta_1 + delta_-1), Y = x x^T / sqrt(N) + sqrt(Delta) xi; replicant's spiked_wigner with prior=diluted_rademacher uses the unit-variance prior x in {0, +-1/sqrt(rho)} and Y = (lambda/N) x x^T + W, so Delta / rho^2 = 1 / lambda^2 (the value banked here is the dimensionless Delta / rho^2, read as 1/lambda^2).",
     "independent_route": "inference/spiked_diluted.py: the critical points of D(gamma) = m(gamma)/gamma (fixed points solve D = 1/lambda^2) found by brentq on gamma m'(gamma) - m(gamma), m = E[X E[X|y]] by a closed-form 3-atom denoiser and m' = E[Var^2] (Guo-Shamai-Verdu), trapezoid over G; cross-checked against bayes/channels.py's mixture route at rho = 1/4 and an mpmath quadrature at the two spinodals (agreement 1e-15); the algorithmic spinodal is 1/D at D's local minimum",
     "sources_disagree": [
       {
-        "value": "0.9805",
-        "cite": "AFUZ p. 5, 'Delta_alg ~ 0.9805 rho^2'"
+        "value": "0.9808",
+        "cite": "LKZ arXiv:1701.00858, Fig. 3, read off the figure (pixel analysis, +-2e-4)"
       }
     ]
   },

@@ -74,25 +74,44 @@ def _band(vals, errs, key, xs):
 
 
 def _finite(p):
+    """AMP and SVD over the seeds.  A run whose iterates go non-finite makes m_u_amp, m_v_amp undetermined (absent,
+    amp_status `undetermined`); finite runs that have not converged in t keep their bands (they are AMP at that t, the
+    SE's statement) but amp_status is `not-converged` and the finality says so."""
     seeds, iters = _checks.seeds(p.get("seeds", _SEEDS)), p.get("iters", 20)
     s0 = p.get("init_snr", "0.3")
     pu, pv = _pri(p)
-    mu, mv, tops = [], [], []
+    mu, mv, tops, fin, conv = [], [], [], [], []
     for s in seeds:
         Y, u, v = WS.wishart_matrix(p["N"], p["alpha"], p["snr"], pu, pv, s)
         r = WS.wishart_amp(Y, pu, pv, snr=p["snr"], iters=iters, v_init=WS.informative_start(v, pv, s0, s))
-        mu.append(float(r.u_hats[-1] @ u) / u.size)
-        mv.append(float(r.v_hats[-1] @ v) / v.size)
+        fin.append(r.finite)
+        conv.append(r.converged)
+        if r.finite:
+            mu.append(float(r.u_hats[-1] @ u) / u.size)
+            mv.append(float(r.v_hats[-1] @ v) / v.size)
         tops.append(float(np.linalg.svd(Y, compute_uv=False)[0]))
     se = WS.wishart_se(p["snr"], p["alpha"], pu, pv, iters=iters, init_snr=s0)
-    vals, errs = {"N": p["N"], "seeds": list(seeds), "iters": iters, "init_snr": s0,
+    n = len(seeds)
+    status = "undetermined" if not all(fin) else ("converged" if all(conv) else "not-converged")
+    vals, errs = {"N": p["N"], "seeds": list(seeds), "iters": iters, "init_snr": s0, "amp_status": status,
+                  "amp_finite_fraction": sum(fin) / n, "amp_converged_fraction": sum(conv) / n,
                   "m_u_se_t": se.trajectory[-1][0], "m_v_se_t": se.trajectory[-1][1]}, {}
-    for key, xs in (("m_u_amp", mu), ("m_v_amp", mv), ("sigma_top_svd", tops)):
+    bands = (("sigma_top_svd", tops),) if status == "undetermined" else (("m_u_amp", mu), ("m_v_amp", mv),
+                                                                        ("sigma_top_svd", tops))
+    for key, xs in bands:
         _band(vals, errs, key, xs)
-    return Out(vals, f"AMP over seeds {list(seeds)} at t = {iters}: m_u {vals['m_u_amp']:.5g} +- "
-               f"{vals['m_u_amp_halfwidth99']:.2g} (SE {vals['m_u_se_t']:.5g}); top singular value "
-               f"{vals['sigma_top_svd']:.5g} +- {vals['sigma_top_svd_halfwidth99']:.2g}", errors=errs,
-               statistical=tuple(errs))
+    amp = ("AMP UNDETERMINED: a run went non-finite" if status == "undetermined" else
+           f"AMP m_u {vals['m_u_amp']:.5g} +- {vals['m_u_amp_halfwidth99']:.2g} (SE {vals['m_u_se_t']:.5g}; {status})")
+    return Out(vals, f"over seeds {list(seeds)} at t = {iters}: {amp}; top singular value {vals['sigma_top_svd']:.5g} "
+               f"+- {vals['sigma_top_svd_halfwidth99']:.2g}", errors=errs, statistical=tuple(errs),
+               notes=(f"UNDETERMINED: AMP finite in {sum(fin)}/{n} runs",) if status == "undetermined" else ())
+
+
+def _amp_label(v):
+    note = {"converged": "", "not-converged": f"; NOT converged in t in {1 - v.get('amp_converged_fraction', 0):.0%} "
+            "of runs (the values are AMP at the given t: compare m_*_se_t)"}.get(v.get("amp_status"), "")
+    return Stability("not-computed", "amp-finite-N", KZ, "statistical: mean +- stderr over named seeds (99% "
+                     "Student-t half-width in <key>_halfwidth99), never certified: NOT final" + note)
 
 
 def spiked_wishart():
@@ -113,8 +132,9 @@ def spiked_wishart():
     fin = {**{k: thr for k in ("lambda_c", "lambda_c_se", "lambda_c_notes", "delta_c_lkz", "sigma_edge",
                                "sigma_top")},
            **{k: phys for k in ("m_u_se", "m_v_se", "mmse_u_se", "mmse_v_se", "m_u_se_t", "m_v_se_t")},
-           **{k: stat for k in ("m_u_amp", "m_v_amp", "sigma_top_svd")}}
-    meta = ("alpha", "prior_u", "prior_v", "snr", "se_converged", "N", "seeds", "iters", "init_snr",
+           "m_u_amp": _amp_label, "m_v_amp": _amp_label, "sigma_top_svd": stat}
+    meta = ("alpha", "prior_u", "prior_v", "snr", "se_converged", "N", "seeds", "iters", "init_snr", "amp_status",
+            "amp_finite_fraction", "amp_converged_fraction",
             "m_u_amp_halfwidth99", "m_v_amp_halfwidth99", "sigma_top_svd_halfwidth99")
     spec = ModelSpec("spiked_wishart", "real", "gaussian", constraint="rank-one bipartite spike, Bayes-optimal",
                      prior="gaussian")

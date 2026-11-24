@@ -11,14 +11,14 @@ notes write Y = sqrt(lambda_notes / N) x x^T + xi, so lambda_notes = 1/Delta.  R
 so LKZ's and AFUZ's horizontal axis Delta / rho^2 is replicant's 1 / lambda^2, and LKZ's Delta_c = rho^2 (Eq. (193))
 is lambda = 1 (snr_from_lkz, lkz_from_snr, snr_from_notes, notes_from_snr).
 
-Scalar channel y = gamma X + sqrt(gamma) G (spiked.py's): posterior weights over {0, +a, -a} proportional to
-w_x exp(x y - gamma x^2 / 2); F = E[X|y] and V = Var[X|y] in closed form (log-sum-exp).  Then
-    m(gamma)  = E[X F]                         (diluted_overlap; = 1 - mmse for this unit-variance prior),
-    m'(gamma) = E[V^2]                         (diluted_overlap_slope: Guo, Shamai & Verdu, mmse' = -E Var^2),
-    I(gamma)  = -E log sum_x' w_x' exp((x' - X) y - gamma (x'^2 - X^2) / 2)   (diluted_mutual_info; the log-partition
-                formula, a different integrand from F),
-by the trapezoid rule over G on [-10, 10], h = 0.01, exact over X (three atoms).  SE: gamma_{t+1} = lambda^2 m(gamma_t)
-(MV Eq. (2.24), as spiked.py; LKZ (213) with x = m/Delta).  Every nontrivial fixed point solves
+Scalar channel y = gamma X + sqrt(gamma) G (spiked.py's) is sqrt(gamma) times bayes/channels.py's y' = sqrt(snr) x + z
+at snr = gamma, so the prior and every scalar quantity come from channels (the one place priors live; the unit-variance
+`diluted` family keeps the amplitude exact as Sqrt(1/rho)):
+    m(gamma)  = E[X E[X|y]]       channels.scalar_moments (diluted_overlap; = 1 - mmse for this unit-variance prior),
+    m'(gamma) = E[Var(X|y)^2]     channels.scalar_moments(..., slope=True) (Guo, Shamai & Verdu: mmse' = -E Var^2),
+    I(gamma)                      channels.mutual_information (h(Y) - h(Z): a different integrand from m).
+SE: gamma_{t+1} = lambda^2 m(gamma_t) (MV Eq. (2.24), as spiked.py; LKZ (213) with x = m/Delta).  Every nontrivial
+fixed point solves
     D(gamma) = m(gamma) / gamma = 1 / lambda^2,
 and is stable iff D is decreasing there (the map's slope lambda^2 m' = gamma m'/m < 1).  D(0+) = 1.  The critical
 points of D (gamma m' = m) are found once per rho; on each monotone piece there is at most one root (bracketed), so no
@@ -35,7 +35,8 @@ fixed points; otherwise the Bayes values are None and the phase is `undetermined
 Sec. IV C 1): `hard` - the limits differ and the informative one has the lower Psi (AMP suboptimal); `easy` - AMP's
 (uninformative) limit is the Bayes one, q > 0; `impossible` - the Bayes q is 0.  `metastable` marks two distinct limits.
 
-_HOOKS (planted errors, tests only): "amplitude_power" (-1/2: a = rho^power; -1 is the unnormalised slip).
+_HOOKS (planted errors, tests only): "unit_variance" (True; False uses channels' sparse(rho, a = 1), the notes' and
+LKZ's unnormalised x in {0, +-1}: the convention slip).
 """
 import math
 from dataclasses import dataclass
@@ -45,12 +46,11 @@ from functools import lru_cache
 import numpy as np
 from scipy import optimize
 
+from ..bayes import channels as CH
 from ..core import Refusal
+from .spiked import _snr as _spiked_snr
 
-_HOOKS = {"amplitude_power": -0.5}
-_Z = np.linspace(-10.0, 10.0, 2001)
-_WZ = np.exp(-_Z**2 / 2)
-_WZ = _WZ / _WZ.sum()
+_HOOKS = {"unit_variance": True}
 _GRID = np.geomspace(1e-6, 1e3, 361)      # where the critical points of D are searched
 _EPS_START = 1e-6
 PRIOR = "diluted_rademacher"
@@ -70,36 +70,14 @@ def _rho(rho):
     return r
 
 
-def _atoms(rho):
-    a = rho ** _HOOKS["amplitude_power"]
-    x = np.array([0.0, a, -a])
-    w = np.array([1 - rho, rho / 2, rho / 2])
-    return x, w
+@lru_cache(maxsize=64)
+def _channel_prior(rho, unit):
+    r = Fraction(repr(rho))                 # the decimal the float prints (0.08 -> 2/25)
+    return CH.Prior("diluted", rho=r) if unit else CH.Prior("sparse", rho=r, a=1)
 
 
-def _post(rho, g, y):
-    """(F, V) for y (array) at scalar SNR g: posterior over the three atoms by log-sum-exp."""
-    x, w = _atoms(rho)
-    with np.errstate(divide="ignore"):
-        lw = np.log(w)
-    L = lw + y[..., None] * x - np.asarray(g)[..., None] * x**2 / 2
-    L -= L.max(axis=-1, keepdims=True)
-    p = np.exp(L)
-    p /= p.sum(axis=-1, keepdims=True)
-    F = p @ x
-    return F, p @ (x * x) - F * F
-
-
-def _avg(rho, g, fn):
-    """E over X (atoms) and G of fn(X, F, V) at y = g X + sqrt(g) G."""
-    x, w = _atoms(rho)
-    tot = 0.0
-    for xi, wi in zip(x, w):
-        if wi == 0:
-            continue
-        F, V = _post(rho, g, g * xi + math.sqrt(g) * _Z)
-        tot += wi * float(_WZ @ fn(xi, F, V))
-    return tot
+def _prior(r):
+    return _channel_prior(r, bool(_HOOKS["unit_variance"]))
 
 
 def _g(gamma):
@@ -110,45 +88,22 @@ def _g(gamma):
 
 
 def _m(r, g):
-    """m(gamma) = E[X F]: the atom 0 contributes nothing and +a, -a contribute equally (F is odd), so
-    m = rho a E_G F(gamma a + sqrt(gamma) G)."""
-    a = r ** _HOOKS["amplitude_power"]
-    u = a * (g * a + math.sqrt(g) * _Z)
-    if r == 1:
-        return a * float(_WZ @ np.tanh(u))
-    c = math.log(r / 2) - g * a * a / 2 - math.log1p(-r)        # log(w_+- / w_0) - gamma a^2 / 2
-    top = np.maximum(0.0, c + np.abs(u))
-    ep, em = np.exp(c + u - top), np.exp(c - u - top)
-    return r * a * a * float(_WZ @ ((ep - em) / (np.exp(-top) + ep + em)))
+    return CH.scalar_moments(_prior(r), g)
 
 
 def diluted_overlap(rho, gamma):
-    """m(gamma) = E[X E[X|y]] for y = gamma X + sqrt(gamma) G (binary64 trapezoid over G, exact over X)."""
+    """m(gamma) = E[X E[X|y]] for y = gamma X + sqrt(gamma) G (channels.scalar_moments at snr = gamma)."""
     return _m(_rho(rho), _g(gamma))
 
 
 def diluted_overlap_slope(rho, gamma):
-    """m'(gamma) = E[Var(X|y)^2] (Guo-Shamai-Verdu: d mmse / d snr = -E Var^2; m = E X^2 - mmse)."""
-    return _avg(_rho(rho), _g(gamma), lambda x, F, V: V * V)
+    """m'(gamma) = E[Var(X|y)^2] (channels.scalar_moments with slope)."""
+    return CH.scalar_moments(_prior(_rho(rho)), _g(gamma), slope=True)[1]
 
 
 def diluted_mutual_info(rho, gamma):
-    """I(X; y) in nats from the log-partition: -E log sum_x' w_x' exp((x' - X) y - gamma (x'^2 - X^2)/2)."""
-    r, g = _rho(rho), _g(gamma)
-    if g == 0:
-        return 0.0
-    x, w = _atoms(r)
-    tot = 0.0
-    for xi, wi in zip(x, w):
-        if wi == 0:
-            continue
-        y = g * xi + math.sqrt(g) * _Z
-        with np.errstate(divide="ignore"):
-            lw = np.log(w)
-        L = lw[None, :] + (x[None, :] - xi) * y[:, None] - g * (x[None, :]**2 - xi**2) / 2
-        top = L.max(axis=1)
-        tot -= wi * float(_WZ @ (top + np.log(np.exp(L - top[:, None]).sum(axis=1))))
-    return tot
+    """I(X; y) in nats (channels.mutual_information at snr = gamma; scaling y does not change I)."""
+    return CH.mutual_information(_prior(_rho(rho)), _g(gamma))
 
 
 def diluted_potential(snr, gamma, rho):
@@ -179,15 +134,8 @@ def notes_from_snr(snr, rho):
 # ---- the critical structure of D(gamma) = m / gamma ---------------------------------------------------------------
 def _s(rho, g):
     """gamma m'(gamma) - m(gamma): the sign of D'(gamma); g a scalar or a 1-d array (vectorised over gamma)."""
-    gs = np.atleast_1d(np.asarray(g, dtype=float))
-    x, w = _atoms(rho)
-    out = np.zeros(gs.size)
-    for xi, wi in zip(x, w):
-        if wi == 0:
-            continue
-        F, V = _post(rho, gs[:, None], gs[:, None] * xi + np.sqrt(gs)[:, None] * _Z[None, :])
-        out += wi * ((gs[:, None] * V * V - xi * F) @ _WZ)
-    return out if np.ndim(g) else float(out[0])
+    m, sl = CH.scalar_moments(_prior(rho), g, slope=True)
+    return np.asarray(g) * sl - m if np.ndim(g) else g * sl - m
 
 
 @lru_cache(maxsize=256)
@@ -225,6 +173,8 @@ def diluted_spinodals(rho):
 
 def clear_caches():
     _critical.cache_clear()
+    _channel_prior.cache_clear()
+    _it.cache_clear()
 
 
 # ---- fixed points at one lambda --------------------------------------------------------------------------------------
@@ -299,8 +249,8 @@ class DilutedSE:
 
 def diluted_state_evolution(snr, rho, *, max_iter=20000) -> DilutedSE:
     """Every SE fixed point at lambda = snr, the two iterated starts, the Bayes values and the phase (module doc)."""
-    lam, r = float(snr), _rho(rho)
-    if not (math.isfinite(lam) and lam > 0):
+    lam, r = float(_spiked_snr(snr)), _rho(rho)
+    if not lam > 0:
         raise Refusal("precondition:snr", f"snr = {snr!r}: the diluted prior needs a finite lambda > 0")
     if isinstance(max_iter, bool) or not isinstance(max_iter, int) or max_iter < 1:
         raise Refusal("precondition:positive-iters", f"max_iter = {max_iter!r} is not a positive int")
@@ -333,6 +283,11 @@ def diluted_state_evolution(snr, rho, *, max_iter=20000) -> DilutedSE:
 # ---- thresholds ---------------------------------------------------------------------------------------------------
 def diluted_it_threshold(rho):
     """lambda_IT: Psi of the lowest and the highest stable fixed point coincide (brentq between the spinodals)."""
+    return _it(_rho(rho))
+
+
+@lru_cache(maxsize=64)
+def _it(rho):
     sp = diluted_spinodals(rho)
     if sp is None:
         raise Refusal("no-transition:first-order", f"rho = {rho}: no spinodals (rho above the tricritical point), so "

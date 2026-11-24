@@ -15,6 +15,9 @@ Priors are finite mixtures of point masses and Gaussians, components (w_k, mu_k,
     sparse(rho=1/2, a=1)              (1 - rho) delta_0 + (rho/2)(delta_a + delta_{-a}), the diluted Rademacher
                                       prior; variance rho a^2 (a = 1/sqrt(rho) for unit variance: pick rho with
                                       a rational, e.g. rho = 1/4, a = 2)
+    diluted(rho=1/2)                  the unit-variance diluted Rademacher prior (K5): sparse with a = 1/sqrt(rho),
+                                      the amplitude kept exact as Sqrt(1/rho) (irrational for rho = 0.08); its
+                                      square is the rational 1/rho, so second_moment is exactly 1
 Posterior: component k has evidence N(y; sqrt(snr) mu_k, 1 + snr v_k) and, given k, x is Gaussian with mean
 mu_k + v_k sqrt(snr) (y - sqrt(snr) mu_k) / (1 + snr v_k) and variance v_k / (1 + snr v_k).
 
@@ -25,6 +28,8 @@ mu_k + v_k sqrt(snr) (y - sqrt(snr) mu_k) / (1 + snr v_k) and variance v_k / (1 
   mmse(prior, snr), mutual_information(prior, snr)       binary64 trapezoid quadrature over y (two integrals:
                                         E Var[x|y], and h(Y) = -E log p(y))
   overlaps(prior, snr, model=None)      {m = E x eta, q = E eta^2, q0}: data from `prior`, denoised with `model`
+  scalar_moments(prior, snr, slope=False)  fast path (atom-only priors, snr a float or 1-d array): m = E x eta and,
+                                        with slope, dm/dsnr = E Var[x|y]^2 (Guo-Shamai-Verdu: mmse' = -E Var^2)
   mmse_ball, information_ball           certified (arb) for gaussian (GSV Eqs. (11), (13)) and rademacher (GSV
                                         Eqs. (17), (18), via bounds/gauss.py); other priors are refused
   posterior_ball(prior, data, Delta)    KZ Eqs. (7.5)-(7.10) for N observations, in arb: mean, var, weights
@@ -56,6 +61,47 @@ def _var(v):
     return rational(v, "var")
 
 
+class Sqrt:
+    """sign * sqrt(radicand), radicand a positive Fraction: an exact atom position whose square is rational."""
+    __slots__ = ("sign", "radicand")
+
+    def __init__(self, radicand, sign=1):
+        self.radicand, self.sign = Fraction(radicand), sign
+
+    def __float__(self):
+        return self.sign * math.sqrt(self.radicand)
+
+    def __neg__(self):
+        return Sqrt(self.radicand, -self.sign)
+
+    def __mul__(self, other):
+        if isinstance(other, Sqrt) and other.radicand == self.radicand:
+            return self.sign * other.sign * self.radicand
+        return NotImplemented
+
+    def __gt__(self, other):
+        return float(self) > float(other)
+
+    def __lt__(self, other):
+        return float(self) < float(other)
+
+    def __eq__(self, other):
+        return isinstance(other, Sqrt) and (self.sign, self.radicand) == (other.sign, other.radicand)
+
+    def __hash__(self):
+        return hash((self.sign, self.radicand))
+
+    def arb(self):
+        return self.sign * arb_q(self.radicand).sqrt()
+
+    def __repr__(self):
+        return f"{'-' if self.sign < 0 else ''}sqrt({self.radicand})"
+
+
+def _arb(x):
+    return x.arb() if isinstance(x, Sqrt) else arb_q(x)
+
+
 _FAMILIES = {
     "gaussian": ({"var": 1}, lambda var: [(Fraction(1), Fraction(0), _var(var))]),
     "rademacher": ({}, lambda: [(Fraction(1, 2), Fraction(1), Fraction(0)), (Fraction(1, 2), Fraction(-1), Fraction(0))]),
@@ -64,6 +110,10 @@ _FAMILIES = {
     "sparse": ({"rho": Fraction(1, 2), "a": 1},
                lambda rho, a: [(1 - _rho(rho), Fraction(0), Fraction(0)), (_rho(rho) / 2, rational(a, "a"), Fraction(0)),
                                (_rho(rho) / 2, -rational(a, "a"), Fraction(0))]),
+    "diluted": ({"rho": Fraction(1, 2)},
+                lambda rho: [(1 - _rho(rho), Fraction(0), Fraction(0)),
+                             (_rho(rho) / 2, Sqrt(1 / _rho(rho)), Fraction(0)),
+                             (_rho(rho) / 2, -Sqrt(1 / _rho(rho)), Fraction(0))]),
 }
 
 
@@ -189,6 +239,46 @@ def mutual_information(prior, snr):
     return float(hy - 0.5 * math.log(2 * math.pi * math.e))
 
 
+# the fast path's grid: trapezoid h = 0.01 on [-10, 10] (agrees with overlaps()' h = 0.005 on [-12, 12] to 1e-13,
+# tests/test_spiked_diluted.py)
+_ZF = np.linspace(-10.0, 10.0, 2001)
+_WF = np.exp(-_ZF**2 / 2)
+_WF = _WF / _WF.sum()
+
+
+def scalar_moments(prior, snr, slope=False):
+    """m(snr) = E[x eta(y)] (and, with slope, dm/dsnr = E[Var(x|y)^2]) for y = sqrt(snr) x + z and an atom-only prior,
+    vectorised over a 1-d array of snr.  A prior symmetric under x -> -x is averaged over its x >= 0 atoms only (the
+    mirror atoms contribute equally); without slope the atom at 0 is skipped (it contributes x eta = 0)."""
+    w, mu, v = _arrays(prior)
+    if np.any(v > 0):
+        raise Refusal("unsupported:moments-prior", f"{prior!r} has a Gaussian component; scalar_moments is the "
+                      "atom-only fast path (use overlaps)")
+    s = np.atleast_1d(np.asarray(snr, dtype=float))
+    if not np.all(np.isfinite(s)) or np.any(s < 0):
+        raise Refusal("precondition:snr", f"snr = {snr!r}: need finite snr >= 0")
+    sym = sorted(zip(w, mu)) == sorted(zip(w, -mu))
+    keep = [k for k in range(len(w)) if (not sym or mu[k] >= 0) and (slope or mu[k] != 0)]
+    rs = np.sqrt(s)[:, None, None]
+    lw = np.log(w)
+    m = np.zeros(s.size)
+    sl = np.zeros(s.size)
+    for k in keep:
+        f = w[k] * (2 if sym and mu[k] > 0 else 1)
+        y = rs[:, :, 0] * mu[k] + _ZF[None, :]
+        L = lw + rs * mu * y[..., None] - (rs * mu)**2 / 2
+        L -= L.max(axis=-1, keepdims=True)
+        p = np.exp(L)
+        p /= p.sum(axis=-1, keepdims=True)
+        eta = p @ mu
+        m += f * mu[k] * (eta @ _WF)
+        if slope:
+            sl += f * ((p @ (mu * mu) - eta * eta)**2 @ _WF)
+    if np.ndim(snr) == 0:
+        return (float(m[0]), float(sl[0])) if slope else float(m[0])
+    return (m, sl) if slope else m
+
+
 def overlaps(prior, snr, model=None):
     """{m = E[x eta(y)], q = E[eta(y)^2], q0 = E x^2}: x from `prior`, eta the posterior mean under `model`
     (default: the same prior, the Nishimori line)."""
@@ -272,8 +362,8 @@ def posterior_ball(prior, data, Delta):
         logs, means, vars_ = [], [], []
         for w, mu, v in prior.components:
             tot = arb_q(v) + nv
-            logs.append(arb_q(w).log() - tot.log() / 2 - (ybar - arb_q(mu))**2 / (2 * tot))
-            means.append(arb_q(mu) + arb_q(v) * (ybar - arb_q(mu)) / tot)
+            logs.append(arb_q(w).log() - tot.log() / 2 - (ybar - _arb(mu))**2 / (2 * tot))
+            means.append(_arb(mu) + arb_q(v) * (ybar - _arb(mu)) / tot)
             vars_.append(arb_q(v) * nv / tot)
         top = max(logs, key=lambda x: x.mid())
         ex = [(x - top).exp() for x in logs]
@@ -286,5 +376,6 @@ def posterior_ball(prior, data, Delta):
                 "p_plus": ball_of(plus), "p_nonzero": ball_of(nonzero), "N": n}
 
 
-__all__ = ["DATASETS", "Prior", "denoiser", "denoiser_dy", "information_ball", "map_estimate", "mmse", "mmse_ball",
+__all__ = ["DATASETS", "Prior", "Sqrt", "denoiser", "denoiser_dy", "scalar_moments", "information_ball", "map_estimate",
+           "mmse", "mmse_ball",
            "mutual_information", "overlaps", "posterior_ball"]

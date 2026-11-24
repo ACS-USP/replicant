@@ -226,11 +226,17 @@ class WishartAMP:
     v_hats: list           # vhat^t, t = 0..iters (vhat^0 the start)
     snr: float
     alpha: float
+    increments: list       # |vhat^{t+1} - vhat^t|^2 / m
+    finite: bool           # False: an iterate went non-finite (the run stops there; its values are not usable)
+    converged: bool        # finite and the last increment <= tol
     label: str = "statistical"
 
 
 def _den(pr, sig2, h):
-    """(f(h), f'(h)) of the Bayes denoiser for h = mu x + sigma z with mu = sigma^2 (snr = sigma^2)."""
+    """(f(h), f'(h)) of the Bayes denoiser for h = mu x + sigma z with mu = sigma^2 (snr = sigma^2); a non-finite
+    sigma^2 gives non-finite output (caught by wishart_amp)."""
+    if not math.isfinite(sig2):
+        return np.full_like(h, math.nan), np.full_like(h, math.nan)
     if sig2 <= 0:
         return np.zeros_like(h), np.zeros_like(h)
     sig = math.sqrt(sig2)
@@ -238,8 +244,9 @@ def _den(pr, sig2, h):
     return mean(h / sig), CH.denoiser_dy(pr, sig2)(h / sig) / sig
 
 
-def wishart_amp(Y, prior_u, prior_v, *, snr, iters, v_init) -> WishartAMP:
-    """Rectangular Bayes AMP on Y (module docstring)."""
+def wishart_amp(Y, prior_u, prior_v, *, snr, iters, v_init, tol=1e-6) -> WishartAMP:
+    """Rectangular Bayes AMP on Y (module docstring).  A non-finite iterate stops the run with finite False;
+    converged means finite with the last increment |vhat^{t+1} - vhat^t|^2 / m <= tol (never a Refusal)."""
     Y = np.asarray(Y, dtype=float)
     if Y.ndim != 2 or min(Y.shape) < 2 or not np.all(np.isfinite(Y)):
         raise Refusal("precondition:matrix", f"Y has shape {Y.shape} or non-finite entries; need a finite n x m array")
@@ -253,16 +260,22 @@ def wishart_amp(Y, prior_u, prior_v, *, snr, iters, v_init) -> WishartAMP:
         raise Refusal("precondition:start", f"v_init has shape {vh.shape}; need ({m},)")
     sc, l2 = _HOOKS["onsager_scale"], lam * lam
     u_old, b_u = np.zeros(n), 0.0
-    us, vs = [], [vh]
-    for _ in range(iters):
-        uh, du = _den(pu, l2 * a * float(vh @ vh) / m, lam * (Y @ vh) - sc * b_u * u_old)
-        b_v = l2 * float(np.mean(du))
-        vh_new, dv = _den(pv, l2 * float(uh @ uh) / n, lam * (Y.T @ uh) - sc * b_v * vh)
-        b_u = l2 * a * float(np.mean(dv))
-        u_old, vh = uh, vh_new
-        us.append(uh)
-        vs.append(vh)
-    return WishartAMP(us, vs, lam, a)
+    us, vs, incs, finite = [], [vh], [], True
+    with np.errstate(over="ignore", invalid="ignore", divide="ignore"):
+        for _ in range(iters):
+            uh, du = _den(pu, l2 * a * float(vh @ vh) / m, lam * (Y @ vh) - sc * b_u * u_old)
+            b_v = l2 * float(np.mean(du))
+            vh_new, dv = _den(pv, l2 * float(uh @ uh) / n, lam * (Y.T @ uh) - sc * b_v * vh)
+            b_u = l2 * a * float(np.mean(dv))
+            if not (np.all(np.isfinite(uh)) and np.all(np.isfinite(vh_new)) and math.isfinite(b_u)):
+                finite = False
+                break
+            incs.append(float((vh_new - vh) @ (vh_new - vh)) / m)
+            u_old, vh = uh, vh_new
+            us.append(uh)
+            vs.append(vh)
+    ok = finite and bool(incs) and incs[-1] <= tol
+    return WishartAMP(us, vs, lam, a, incs, finite, ok)
 
 
 __all__ = ["WishartAMP", "WishartSE", "bbp_edge_scale", "bbp_threshold", "bbp_top_singular", "informative_start",

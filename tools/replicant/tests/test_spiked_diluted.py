@@ -54,21 +54,32 @@ def _planted(key, value, fn):
 
 
 def test_diluted_scalar_channel_against_channels_sparse_prior():
-    """m(gamma) = E[X E[X|y]] of the closed-form denoiser equals bayes/channels.py's mixture route for the same prior
-    (sparse, rho = 1/4, a = 2: unit variance) at several gamma; the slope m'(gamma) = E[Var(X|y)^2] (Guo-Shamai-Verdu,
-    mmse' = -E Var^2) matches a central difference; dI/dgamma = (1 - m)/2 (I-MMSE) with I from the log-partition
-    formula.  Planted control: the amplitude 1/rho (variance 1/rho, the unnormalised slip) breaks the agreement."""
+    """The diluted prior lives in bayes/channels.py (family `diluted`, amplitude Sqrt(1/rho)); its fast path
+    channels.scalar_moments equals channels' general mixture route overlaps() for the same prior written as
+    sparse(rho = 1/4, a = 2), and, at rho = 0.08 (irrational amplitude), an independent mpmath quadrature of
+    rho a E[F(gamma a + sqrt(gamma) Z)] with the closed-form 3-atom F.  The slope m'(gamma) = E[Var(X|y)^2]
+    (Guo-Shamai-Verdu) matches a central difference, and dI/dgamma = (1 - m)/2 (I-MMSE) with I = h(Y) - h(Z).
+    Control: the unnormalised prior (x in {0, +-1}, variance rho: the notes' and LKZ's) breaks the agreement."""
+    import mpmath as mp
     pr = CH.Prior("sparse", rho="1/4", a=2)
+    assert CH.Prior("diluted", rho="0.08").second_moment == 1
     for g in (0.05, 0.4, 1.3, 4.0):
         m_ch = CH.overlaps(pr, g)["m"]
-        assert abs(SD.diluted_overlap(0.25, g) - m_ch) < 1e-12, (g, SD.diluted_overlap(0.25, g), m_ch)
+        assert abs(SD.diluted_overlap(0.25, g) - m_ch) < 1e-13, (g, SD.diluted_overlap(0.25, g), m_ch)
         h = 1e-4 * g
         fd = (SD.diluted_overlap(0.25, g + h) - SD.diluted_overlap(0.25, g - h)) / (2 * h)
         assert abs(SD.diluted_overlap_slope(0.25, g) - fd) < 1e-7, (g, fd)
         di = (SD.diluted_mutual_info(0.25, g + h) - SD.diluted_mutual_info(0.25, g - h)) / (2 * h)
         assert abs(di - (1 - SD.diluted_overlap(0.25, g)) / 2) < 1e-7, (g, di)
+    with mp.workdps(20):
+        a = 1 / mp.sqrt(mp.mpf("0.08"))
+        for g in (mp.mpf("0.0444450374617"), mp.mpf("0.28797173862")):
+            e = mp.exp(-g * a * a / 2)
+            F = lambda y: mp.mpf("0.08") * a * mp.sinh(a * y) * e / (mp.mpf("0.92") + mp.mpf("0.08") * mp.cosh(a * y) * e)
+            want = mp.mpf("0.08") * a * mp.quad(lambda z: mp.npdf(z) * F(g * a + mp.sqrt(g) * z), [-mp.inf, 0, mp.inf])
+            assert abs(SD.diluted_overlap(RHO, float(g)) - want) < 1e-14, (g, want)
     assert abs(SD.diluted_overlap(RHO, 1e-6) / 1e-6 - 1) < 1e-4      # unit variance: m ~ gamma at 0
-    bad = _planted("amplitude_power", -1.0, lambda: SD.diluted_overlap(0.25, 0.4))
+    bad = _planted("unit_variance", False, lambda: SD.diluted_overlap(0.25, 0.4))
     assert abs(bad - CH.overlaps(pr, 0.4)["m"]) > 1e-2, bad
 
 
@@ -83,18 +94,18 @@ def test_diluted_rademacher_first_order():
     assert _ok("diluted_rho0p08_delta_it_over_rho2", 1 / lam_it**2), lam_it
     # LKZ Fig. 6, rho = 0.08: Delta_alg < Delta_c < Delta_IT < Delta_dyn
     assert sp.snr_dyn < lam_it < 1 < sp.snr_alg
-    hard = S.spiked_state_evolution(1 / math.sqrt(1.01), prior="diluted_rademacher", rho=RHO)
+    hard = S.spiked_state_evolution(1 / math.sqrt(1.02), prior="diluted_rademacher", rho=RHO)
     assert hard.phase == "hard", hard.note
     stable = [f for f in hard.fixed_points if f.stable]
     assert len(stable) == 2 and stable[0].gamma == 0 and stable[1].gamma > 0.3, hard.fixed_points
     assert hard.uninformative.gamma == 0 and hard.informative.gamma == stable[1].gamma
-    assert abs(hard.q - stable[1].gamma * 1.01) < 1e-14 and hard.bayes and len(hard.fixed_points) == 3
+    assert abs(hard.q - stable[1].gamma * 1.02) < 1e-14 and hard.bayes and len(hard.fixed_points) == 3
     meta = S.spiked_state_evolution(1 / math.sqrt(1.035), prior="diluted_rademacher", rho=RHO)
     assert meta.phase == "impossible" and meta.metastable and meta.q == 0, meta.note
     easy = S.spiked_state_evolution(1 / math.sqrt(0.97), prior="diluted_rademacher", rho=RHO)
     assert easy.phase == "easy" and not easy.metastable and easy.q > 0.3, easy.note
     assert len([f for f in easy.fixed_points if f.stable]) == 1
-    bad = _planted("amplitude_power", -1.0, lambda: SD.diluted_spinodals(RHO))
+    bad = _planted("unit_variance", False, lambda: SD.diluted_spinodals(RHO))
     assert bad is None or abs(1 / bad.snr_dyn**2 - 1.041) > 0.01, bad
 
 
@@ -143,11 +154,49 @@ def test_diluted_conventions_both_ways():
     _refuses(lambda: S.spiked_state_evolution(2, prior="diluted_rademacher", rho=1.5), "precondition:rho")
 
 
-def test_existing_priors_unchanged():
-    """The gaussian and rademacher SE (no rho) are the E6b results: q = 1 - 1/lambda^2 at lambda = 2 as banked."""
-    se = S.spiked_state_evolution(2)
-    assert type(se) is S.SEResult and _ok("q_gauss_snr2", se.q)
-    assert S.spiked_state_evolution("1.5", "rademacher") == S.spiked_state_evolution("1.5", "rademacher", rho=None)
+def _ser(x):
+    import mpmath as mp
+    if isinstance(x, mp.mpf):
+        return "mpf:" + mp.nstr(x, 30)
+    if isinstance(x, float):
+        return "f:" + repr(x)
+    if isinstance(x, (list, tuple)):
+        return [_ser(y) for y in x]
+    if isinstance(x, dict):
+        return {k: _ser(v) for k, v in x.items()}
+    return x
+
+
+def test_existing_routes_match_58953a7():
+    """Golden values recorded with the code of commit 58953a7 (before K5; `git archive 58953a7` into a temporary
+    directory, the same runs): spiked_wigner's gaussian and rademacher priors (threshold, SE, finite-N AMP) and the
+    sk amp route (SE, finite-N AMP) give bit-identical values on HEAD (tests/golden_58953a7.json)."""
+    import json
+    from pathlib import Path
+    from replicant.catalog import catalog
+    from replicant.compose import compose
+    cat = catalog()
+    for g in json.loads((Path(__file__).parent / "golden_58953a7.json").read_text()):
+        r = compose(cat[g["entry"]].spec, "amp").run(**g["params"])
+        assert _ser(r.values) == g["values"], (g["entry"], g["params"])
+
+
+def test_diluted_catalog_snr_parsing_and_finality():
+    """The diluted path parses snr like the plain path (a rational string is accepted, a bool is a named refusal);
+    q_se and matrix_mmse_se carry LM Thm 1, while overlap_se and mmse_se (vector quantities no fetched theorem covers,
+    and not AMP's performance in the hard phase) are not-computed."""
+    from replicant.catalog import catalog
+    from replicant.compose import compose
+    e = catalog()["spiked_wigner"]
+    r = compose(e.spec, "amp").run(prior="diluted_rademacher", rho="0.08", snr="1/2")
+    assert r.values["se_phase"] == "impossible" and r.values["q_se"] == 0, r.values
+    assert r.finality["q_se"].state == "exact-by-literature" and r.finality["matrix_mmse_se"].state == "exact-by-literature"
+    for k in ("overlap_se", "mmse_se"):
+        assert r.finality[k].state == "not-computed" and "LM Thm 1 covers" in r.finality[k].note, r.finality[k]
+    plain = compose(e.spec, "amp").run(snr="2")
+    assert plain.finality["overlap_se"].state == "exact-by-literature"        # MV Thm 2 on the plain path, unchanged
+    _refuses(lambda: compose(e.spec, "amp").run(prior="diluted_rademacher", rho="0.08", snr=True), "precondition:snr")
+    _refuses(lambda: S.spiked_state_evolution("x", prior="diluted_rademacher", rho=RHO), "precondition:snr")
 
 
 # ---- Ch. 11: the dense spin-glass game ---------------------------------------------------------------------------
