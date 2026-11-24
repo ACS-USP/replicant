@@ -77,6 +77,9 @@ python3 -m replicant run lasso --param alpha=0.5 --param rho=0.1 --param lam=0.0
 
 Existing entries gained parameters in the K series: `rem` `condensation=true` (K2), `sbm` `q` (q groups, K4),
 `spiked_wigner` `prior=diluted_rademacher` and the `sk` amp route `ansatz=1rsb` (ASP, K5), `ridge` `covariance` (K6).
+In the final-review fix wave `rfim`'s cavity route took the regular degree as `d` (as `potts_bethe` and
+`coloring`; `c` on a regular graph keeps its old meaning), and `coloring`'s ER clustering at q >= 4 (first-order)
+became an up-front refusal, `unsupported:er-first-order`, before any population runs.
 
 ## Related pages
 

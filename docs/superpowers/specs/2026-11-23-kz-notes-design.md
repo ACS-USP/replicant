@@ -155,9 +155,10 @@ one review and one fix round; every re-review was clean.
   `overlap_se` / `mmse_se`, the LASSO non-zero fraction `b` (BM's theorem needs pseudo-Lipschitz functions).
   `undetermined` (never refused): Potts first-order points without both starts converged, K4's first-order pair and
   EM decisions on non-stationary runs, the diluted SE without both starts, the ER q = 3 coloring c_c (only an upper
-  bound) and the regular q = 3 c_d, c_c (ZK's critical "5+"). One data-dependent refusal: an ER first-order
-  clustering transition is refused `unsupported:er-first-order` after the runs show it (the ER 1RSB path is
-  continuous-only).
+  bound) and the regular q = 3 c_d, c_c (ZK's critical "5+"). No data-dependent refusal: ER clustering at q >= 4
+  (first-order, ZK 2007) is refused `unsupported:er-first-order` on the input, before any population runs (the ER
+  1RSB path is continuous-only); at q = 3 an unexpectedly nontrivial probe labels c_d, c_c undetermined (final-review
+  fix wave; until then the refusal fired after the runs).
 - **Sources.** Fetched and read: GSV, DKMZ, KMMNSZZ, LKZ, BBP, AFUZ, ASP, DMM, BM, KMSSZ, Rangan, HMRT, ZK (REFERENCES.md,
   "Krzakala-Zdeborova lecture notes"). Not fetched, nothing banked from them: Wigner (1958), Marchenko-Pastur (1967),
   Krzakala-Zdeborova PRL 102 (2009) (quiet planting from the notes only), Mulet et al. (2002); KMRSZ (PNAS 104) was not
@@ -172,18 +173,25 @@ one review and one fix round; every re-review was clean.
   `coloring_c_ann_q3`, `coloring_c_ann_q5`; c_col comes from ZK Table II). The "5.4" of the pre-flight scan is the
   annealed threshold once (p. 108 names it so), not a second quantity. Source errata: DKMZ p. 17, HMRT Eq. (12).
 - **Bank.** No value from memory; each key has a cite and an independent route. Removed in review because no
-  independent route resolved them: `cs_alpha_l1_rho0p4` (a formula evaluated in scratch, an input), `coloring_c_d_q4`,
+  independent route resolved them: `cs_alpha_l1_rho0p4` (a formula evaluated here and compared with itself), `coloring_c_d_q4`,
   `coloring_c_c_q4`, `coloring_c_c_q3`, `coloring_regular_d_c_q3`. Read off figures (tolerance covering the reading):
   `cw_spinodal_fig1b4_beta1p5`, the two Fig. 2.2.1 readings, LKZ Fig. 3 (a disagreeing second source for AFUZ's
   Delta_alg). Inferred, said in the cite: Delta = 1 for the notes' scalar posteriors. UNCLAIMED (tests only): the two
-  non-backtracking values of KMMNSZZ Fig. 2.
+  non-backtracking values of KMMNSZZ Fig. 2. The `random_matrix` edge keys (`semicircle_edge`, `mp_edge_*`) have
+  their cavity route located by certified root isolation on the recursion's Moebius matrix (final-review fix wave;
+  before it, that route was the same closed form written by hand). The q = 5 c_d, c_c have two keys each on purpose
+  (the notes' print in sbm.json, ZK's in factor.json, each with the tolerance of its own print).
 - **Not implemented.** Listed in the GUIDE ("KZ NOTES, NOT IMPLEMENTED" and the K4-K6 bullets), among them
   Curie-Weiss dynamics, the fully connected Potts model, the RFIM large-deviation free entropy, the sparse spin-glass
   game, independent sets and matchings, relaxed BP and the GLM free entropy, the probit channel, the random subcube
   model, finite-N diluted AMP and ASP, the ER first-order 1RSB path. The success criterion "every method implemented
   or listed" was audited at K8 by searching the package against the gap maps, not by a row-by-row table.
-- **Pre-existing finding.** `families/sk.py`'s 1RSB at h = 0 selects a q0 > 0 stationary point (q0 = 0.2146 at
-  beta = 2) by largest f, not the textbook q0 = 0 solution; ASP reproduces it. Outside this series; left to the user.
+- **Pre-existing finding, resolved by the final review.** `families/sk.py`'s 1RSB at h = 0 selects the q0 > 0
+  stationary point (q0 = 0.2146 at beta = 2) by largest f, and that is correct: every 1RSB trial bounds the pressure
+  from above (Guerra), the q0 > 0 point minimises the 1RSB functional (-beta f = 1.5824177, f = -0.791209), and the
+  q0 = 0 stationary point is a saddle with -beta f = 1.5826096 (1.919e-4 higher; the review's P = 2.2755649 /
+  2.2757568 is the same pair plus ln 2 in its convention). `tests/test_sk.py` checks it by an independent
+  Nelder-Mead minimisation; ASP reproduces the selected point.
 - **Time standard.** The baseline (HEAD 9db72fa, clean export, cold) was 752 tests, 56.6 s and 54.7 s on a machine at
   load average about 5 (the documented 30 s was idle-machine), so growth was measured against same-session
   baselines at each task boundary. Per task (default tier, loaded machine): K1 about +0.9 s, K2 about +1 s, K3 under

@@ -7,6 +7,32 @@ All notable changes to BootLoops are recorded here. The format follows
 ## Unreleased
 
 ### Fixed
+- `replicant` (final-review fix wave of the Krzakala-Zdeborova series K1-K8): `coloring` ER clustering /
+  condensation at q >= 4 (first-order, ZK 2007) is refused `unsupported:er-first-order` on the input, before any
+  population runs (it used to fire after about 60 s of populations, seed-dependently); at q = 3 a nontrivial probe
+  labels c_d, c_c undetermined (kind first-order). `random_matrix`'s cavity edges are located by certified root
+  isolation (arb bisection) of trace^2 - 4 det on the recursion's Moebius matrix instead of the closed form typed by
+  hand (the `semicircle_edge` / `mp_edge_*` routes now say so; same values; planted hook `cavity_scale`).
+  `curie_weiss`: the cavity route's findroot fallback is audited (mnewton at the triple root of beta = 1, h = 0,
+  residual checked, named refusals) and the Lemma 2 audit text corrected (it runs at beta = 1, h = 0).
+  `rfim` cavity takes the regular degree as `d` (as `potts_bethe` / `coloring`); `c` keeps its old meaning on regular
+  graphs with identical values, both together or `d` on poisson are refused by name. `ridge` with an identity
+  spectrum (`covariance=1:1`) carries the isotropic labels. `spiked_wigner` diluted: the spinodals within ~1e-7 of
+  rho_tri (missed by the grid) are bracketed around the maximum of s, and at rho_tri the first-order flag is
+  labelled undetermined (`first_order_status`). `compressed_sensing`'s LP success fraction carries the exact 99%
+  Clopper-Pearson interval (its error was 0 at fraction 0 or 1). `sk` amp ASP refuses a malformed `start`
+  `precondition:start`. The CLI JSON spec names the prior that ran (`catalog_prior` keeps the matched default).
+  Entry descriptions of `sbm`, `spiked_wigner`, `ridge`, `sk`, `rem` (and the `sbm` spec constraint) match the code.
+  Bank text (sources unchanged): the edge routes; `coloring_c_ann_q3` O(1/N) as tested; `coloring_c_ks_q3` no longer
+  claims an untested Eq. (6.23) route; `coloring_c_ann_q5` 2 ln 5 / ln(5/4) = 14.4251 (was 14.427; value 14.4 +-
+  0.05 unchanged) and no first-moment sign-change claim; the two keys per q = 5 c_d / c_c (notes and ZK prints)
+  explained. Tests: the aggregate slow catalog RefCheck (about 7.5 min) split into one `@slow` test per entry
+  (coloring by `thresholds`; slowest 85 s); positive controls for the graph samplers, the Potts ER population and
+  the RFIM c -> oo limit; the tautological `test_rfim.py` assert replaced by the band check; `test_lasso.py` checks
+  named seeds 0-3 instead of a survey-picked seed; the layering audits share `testing.imports` (the
+  `test_potts_coloring` copy dropped imported names); `sk_1rsb`'s h = 0 selection checked as the best Guerra 1RSB
+  bound (the q0 = 0 point is a saddle 1.919e-4 higher in -beta f), and the GUIDE / As-built no longer call it open.
+  Default tier 850 tests, 62.92 s in the working tree under load (load averages 3.4-4.5); slow tier 270 tests.
 - `replicant`: `online_linear` (asymptote, crossing) and `online_drift` (small-drift law) no longer refuse a run
   whose diagnostic cannot decide; they label `asymptote_status`, `crossing_status`, `small_drift_status`
   undetermined and omit the value, as `online_tcm` and `online_scm` already did (the library functions still
