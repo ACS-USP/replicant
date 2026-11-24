@@ -1,5 +1,6 @@
-"""Catalog entries of KZ Ch. 1-3 (K1): `curie_weiss` (routes replica, cavity, exact), `rfim` (route replica; K3
-adds cavity here) and `random_matrix` (routes replica, cavity; kind wigner | wishart).
+"""Catalog entries of KZ Ch. 1-3 (K1): `curie_weiss` (routes replica, cavity, exact), `rfim` (route replica; K3's
+route cavity, the RFIM on random graphs, lives in catalog_rfim_sparse.py) and `random_matrix` (routes replica,
+cavity; kind wigner | wishart).
 
 Source: F. Krzakala & L. Zdeborova, "Statistical Physics Methods in Optimization and Machine Learning" (lecture
 notes, version of June 9 2024), read as the PDF and its text: "KZ".  Each entry states its convention in its
@@ -12,12 +13,14 @@ Run parameters:
   rfim (replica)         J (> 0, default 1), law (gaussian | bimodal), Delta (variance, default 1/2) or h0,
                          beta (the RS state point), N (exact sorted ground states, and with beta the
                          Hubbard-Stratonovich free entropy and Guerra's bounds), seeds (default 0-15)
+  rfim (cavity)          catalog_rfim_sparse.PARAMS (graph, c, J, law, Delta, h0, beta, pop, sweeps, seeds, N, iters)
   random_matrix          kind (wigner (default) | wishart), alpha (wishart: M/N), x (density point), y (> 0:
                          S(x + i y))
 """
 import mpmath as mp
 
 from .amp._stats import student_band
+from . import catalog_rfim_sparse as RS
 from .catalog import Out, RefCheck, Stability, entry, fstep, has
 from .core import Refusal
 from .csp import _checks
@@ -230,19 +233,24 @@ def rfim():
              fstep("rfim-exact-samples", f"{KZ}, Ex. 2.3 (exact ground states by sorting); Sec. 2.3, Ex. 2.2 "
                    "(Guerra's bounds)", _rf_sample, when=has("N"), skip="no N given")]
     refs = [RefCheck("meanfield", "rfim_fig221_emin_delta0p36", lambda v: v["e_min"], params={"Delta": "0.36"}),
-            RefCheck("meanfield", "rfim_fig221_emin_delta0p81", lambda v: v["e_min"], params={"Delta": "0.81"})]
+            RefCheck("meanfield", "rfim_fig221_emin_delta0p81", lambda v: v["e_min"], params={"Delta": "0.81"}),
+            RefCheck("factor", "bethe_peierls_beta_dim2", lambda v: v["beta_c_zero_field"], params={"c": 4},
+                     route="cavity")]
     rs = lambda k: _phys("rs", "Sec. 2.2", "replica-symmetric saddle; KZ Sec. 2.3 argues it exact by interpolation "
                          "(not a numbered theorem): NOT final")
     st = Stability("not-computed", "finite-N", "meanfield/rfim.py", "statistical: named seeds, never final")
     fin = {**{k: rs(k) for k in ("m", "phi", "f", "e", "e_min", "m_t0")},
            "delta_c_t0": _phys("rs", "Ex. 2.3", "derived here (2 J^2/pi), not printed by KZ"),
-           **{k: st for k in ("e_ground", "e_ground_plus", "phi_guerra_lower", "phi_exact", "phi_guerra_upper")}}
+           **{k: st for k in ("e_ground", "e_ground_plus", "phi_guerra_lower", "phi_exact", "phi_guerra_upper")},
+           **RS.FINALITY}
     return entry("rfim", ModelSpec("rfim", "ising", "gaussian", constraint="fully connected, random fields"), KZ,
-                 {"replica": steps}, refs, {"replica": "replica RS (physics-level); exact finite-N checks statistical"},
-                 "the fully connected random field Ising model: RS free entropy, T = 0 ground energy, exact sorted "
-                 "ground states and Guerra's bounds", finality=fin,
-                 meta=("law", "law_scale", "J", "N", "seeds", "e_ground_plus_halfwidth99"),
-                 parameters={"replica": ("J", "law", "Delta", "h0", "beta", "N", "seeds")})
+                 {"replica": steps, "cavity": RS.cavity_steps()}, refs,
+                 {"replica": "replica RS (physics-level); exact finite-N checks statistical",
+                  "cavity": "random graphs: population dynamics and BP on sampled graphs (statistical, named seeds)"},
+                 "the random field Ising model: fully connected (RS free entropy, T = 0 ground energy, exact sorted "
+                 "ground states, Guerra's bounds) and on random graphs (cavity: population dynamics, BP)", finality=fin,
+                 meta=("law", "law_scale", "J", "N", "seeds", "e_ground_plus_halfwidth99") + RS.META,
+                 parameters={"replica": ("J", "law", "Delta", "h0", "beta", "N", "seeds"), "cavity": RS.PARAMS})
 
 
 # ---- random_matrix ---------------------------------------------------------------------------------------

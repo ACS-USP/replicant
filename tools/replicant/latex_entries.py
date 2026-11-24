@@ -375,6 +375,7 @@ def derivation(name, route):
            "percolation_graph": "percolation", "percolation_lattice": "percolation_lattice",
            "percolation_kcore": "percolation_kcore", "percolation_bootstrap": "percolation_kcore", "curie_weiss": "meanfield",
            "rfim": "meanfield", "random_matrix": "meanfield", "scalar_denoising": "bayes", "sparse_denoising": "bayes",
+           "potts_bethe": "factor", "coloring": "factor",
            **_MC}.get(name)
     if mod is not None:
         from importlib import import_module

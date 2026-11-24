@@ -13,6 +13,7 @@ def entries() -> list:
     from .catalog_csp import csp_entries
     from .catalog_dense_memory import dense_memory_entries
     from .catalog_entries import dense_entries
+    from .catalog_factor import factor_entries
     from .catalog_inference import inference_entries
     from .catalog_lattice import lattice_entries
     from .catalog_mc import mc_entries
@@ -27,7 +28,7 @@ def entries() -> list:
     return (dense_entries() + sparse_entries() + csp_entries() + inference_entries()
             + learning_entries() + series_entries() + lattice_entries() + bounds_entries()
             + online_entries() + percolation_entries() + [percolation_lattice()] + kcore_entries()
-            + mc_entries() + dense_memory_entries() + meanfield_entries() + bayes_entries())
+            + mc_entries() + dense_memory_entries() + meanfield_entries() + bayes_entries() + factor_entries())
 
 
 __all__ = ["entries"]

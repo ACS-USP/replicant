@@ -87,6 +87,9 @@ def curie_weiss(route):
 
 def rfim(route):
     from .meanfield import rfim as RF
+    if route == "cavity":
+        from .latex_factor import rfim_cavity
+        return rfim_cavity()
     return [text("Model", "H = -(J N/2) Sbar^2 - sum_i h_i s_i, h_i i.i.d. N(0, Delta) (Delta the variance) or +-h0",
                  source=f"{_KZ}, Ch. 2, p. 37"),
             cited("Replica-symmetric free entropy and its saddle (Eqs. (2.1)-(2.2))",

@@ -23,7 +23,7 @@ From the repository root:
 
 ```
 python3 tools/replicant/selftest.py                        # default battery, about 30 s
-cd tools && python3 -m replicant list                      # the 38 catalog entries
+cd tools && python3 -m replicant list                      # the 45 catalog entries
 python3 -m replicant run perceptron --param alpha=1.5 --out /tmp/result.json --latex /tmp/p.tex
 ```
 
@@ -179,7 +179,7 @@ sample`), and `--pdf` (with `--latex`) to compile the derivation.
   block that does, the longitudinal mode), `pinned_check.py` (integer-n Hessian, an independent check),
   `pinned_report.py` (the table of `docs/replicant/pinned_joint_replicon.md`).
 - `catalog*.py`, `compose.py` (+ `compose_result.py`: `Result` and the finality rule), `cli.py`,
-  `__main__.py`: the 43-entry catalog (registered in `catalog_index.py`; `catalog_ts.py` holds the
+  `__main__.py`: the 45-entry catalog (registered in `catalog_index.py`; `catalog_ts.py` holds the
   teacher-student entry, `catalog_pspin.py` the two p-spin entries; LaTeX in `latex_pspin.py`), the
   composer, the command line.
 - `meanfield/`, `rmt/` (K1, Krzakala & Zdeborova's lecture notes, Ch. 1-3): `curie_weiss.py` (Theorem 1 in arb,
@@ -193,6 +193,14 @@ sample`), and `--pdf` (with `--latex`) to compile the derivation.
   `sparse_vector.py` (one-hot vector denoising, Theorem 15 and its REM route); catalog entries `scalar_denoising`,
   `sparse_denoising` (`catalog_bayes.py`, `latex_bayes.py`); `families/rem.py` gains the participation ratio, its
   second moment and the overlap law (Ch. 15).
+- `factor/`, `coloring/` (K3, the notes' Ch. 4-6): `factor/graph.py` (factor graphs with q-state variables, samplers of
+  trees, d-regular and Erdos-Renyi graphs), `factor/bp.py` (sum-product BP, marginals, the Bethe free entropy labelled
+  exact on trees and an approximation on loops), `factor/population.py` (population dynamics over a factor law),
+  `factor/enumerate.py` (exact Z by enumeration); `coloring/potts_bp.py` (paramagnetic and ferromagnetic fixed points,
+  beta_stab, the q >= 3 first-order spinodal and crossing, c_ann, c_KS), `coloring/potts_graph.py` (BP on sampled
+  graphs from the planted and a random start), `coloring/first_moment.py` (exact E Z over G(N, M)); catalog entries
+  `potts_bethe`, `coloring` (`catalog_factor.py`, `latex_factor.py`) and the `rfim` route `cavity`
+  (`catalog_rfim_sparse.py`).
 - `latex*.py`, `tex*.py`, `derive_tex.py`: the LaTeX derivation writer.
 - `tests/`, `selftest.py`: the battery.
 
