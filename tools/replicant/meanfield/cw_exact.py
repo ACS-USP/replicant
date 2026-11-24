@@ -16,7 +16,9 @@ Rate functions of Sbar at field h (the true rate is I*(m) = Phi - phi(m), Eq. (1
   "gartner_ellis" (Sec. 1.2.3, Theorem 3): I(m) = sup_k [k m - lambda(k)], lambda(k) = lim (1/N) ln
       <e^{N k Sbar}> = sup_m' [phi(m') + k m'] - sup_m' phi(m') (Varadhan on Theorem 1).
 Both are the convex envelope of I*: equal to it at the exposed points, below it on (-m*, m*) when h = 0 and
-beta > 1.  Floats (scipy bounded Brent on a concave objective; Phi by a grid-and-refine maximisation of phi).
+beta > 1.  Floats.  The two routes share no code: Legendre maximises over h' with scipy's bounded Brent, Phi by a
+grid-and-refine maximisation of phi; Gartner-Ellis builds lambda(k) by a direct sup over m' of the tilted exponent
+(its own grid, entropy and golden-section search) and maximises over k with the same golden section.
 
   cw_exact_z(N, beta, h) -> Ball;  cw_exact(N, beta, h) -> CWExact;  cw_exact_rate(N, m, beta, h) -> Ball
   cw_finite_size_term(beta, h) -> mpf;  cw_rate_function(m, beta, h, route) -> float;  cw_ldp_rate -> float
@@ -121,7 +123,7 @@ def cw_finite_size_term(beta, h=0):
             raise
         raise Refusal("precondition:off-critical", f"beta = {beta}, h = {h}: {r.detail}") from None
     with mp.workdps(30):
-        m, b = sol.fixed_points[-1].m.mid(), mp.mpf(rational(beta, "beta").numerator) / rational(beta).denominator
+        m, b = sol.argmax.m.mid(), mp.mpf(rational(beta, "beta").numerator) / rational(beta).denominator
         curv = 1 - b * (1 - m * m)
         if not curv > mp.mpf("1e-6"):
             raise Refusal("precondition:off-critical", f"beta = {beta}, h = {h}: at (or too near) the critical "
@@ -151,6 +153,54 @@ def _concave_sup(fn, lo, hi):
     return -r.fun
 
 
+def _rate_legendre(m, b, hh):
+    """sup_h' [b (h' - hh) m - Phi(b, h') + Phi(b, hh)], Phi by _sup_potential (Sec. 1.2.2)."""
+    base = _sup_potential(b, hh)
+    return max(0.0, _concave_sup(lambda hp: b * (hp - hh) * m - _sup_potential(b, hp) + base, hh - 12, hh + 12))
+
+
+# Gartner-Ellis route: its own code (tests/test_curie_weiss.py checks it shares no helper with the Legendre route)
+_GE_GRID = np.linspace(-1, 1, 8001)[1:-1]
+
+
+def _ge_golden(fn, lo, hi, tol=1e-12):
+    """Golden-section maximum of a unimodal fn on [lo, hi] (the value)."""
+    g = (math.sqrt(5) - 1) / 2
+    a, b = lo, hi
+    c, d = b - g * (b - a), a + g * (b - a)
+    fc, fd = fn(c), fn(d)
+    while b - a > tol:
+        if fc > fd:
+            b, d, fd = d, c, fc
+            c = b - g * (b - a)
+            fc = fn(c)
+        else:
+            a, c, fc = c, d, fd
+            d = a + g * (b - a)
+            fd = fn(d)
+    return max(fc, fd)
+
+
+def _ge_tilted(mm, b, hh, k):
+    """ln of the tilted LDP weight: H(m') + b m'^2/2 + (b hh + k) m' (Theorem 1's exponent plus k m')."""
+    return (math.log(2) - ((1 + mm) * np.log1p(mm) + (1 - mm) * np.log1p(-mm)) / 2
+            + b * mm * mm / 2 + (b * hh + k) * mm)
+
+
+def _ge_scgf_sup(b, hh, k):
+    """sup over m' of the tilted exponent: grid maximum, then golden section on the two neighbouring cells."""
+    vals = _ge_tilted(_GE_GRID, b, hh, k)
+    i = int(np.argmax(vals))
+    lo, hi = _GE_GRID[max(i - 1, 0)], _GE_GRID[min(i + 1, len(_GE_GRID) - 1)]
+    return max(float(vals[i]), _ge_golden(lambda x: float(_ge_tilted(np.float64(x), b, hh, k)), lo, hi, 1e-14))
+
+
+def _rate_gartner_ellis(m, b, hh):
+    """sup_k [k m - lambda(k)], lambda(k) = sup_m' [phi(m') + k m'] - sup_m' phi(m') (Theorem 3 + Varadhan)."""
+    base = _ge_scgf_sup(b, hh, 0.0)
+    return max(0.0, _ge_golden(lambda k: k * m - (_ge_scgf_sup(b, hh, k) - base), -12 * b, 12 * b, 1e-10))
+
+
 def cw_rate_function(m, beta, h=0, route="legendre"):
     """The convex rate of Sbar at field h by the Legendre route or the Gartner-Ellis route (floats)."""
     if route not in ROUTES:
@@ -158,11 +208,7 @@ def cw_rate_function(m, beta, h=0, route="legendre"):
     m, b, hh = float(m), float(rational(beta, "beta")), float(rational(h, "h", positive=False))
     if not -1 < m < 1:
         raise Refusal("precondition:magnetization", f"m = {m}: need -1 < m < 1")
-    base = _sup_potential(b, hh)
-    if route == "legendre":
-        return max(0.0, _concave_sup(lambda hp: b * (hp - hh) * m - _sup_potential(b, hp) + base, hh - 12, hh + 12))
-    lam = lambda k: _sup_potential(b, hh + k / b) - base
-    return max(0.0, _concave_sup(lambda k: k * m - lam(k), -12 * b, 12 * b))
+    return (_rate_legendre if route == "legendre" else _rate_gartner_ellis)(m, b, hh)
 
 
 def cw_ldp_rate(m, beta, h=0):

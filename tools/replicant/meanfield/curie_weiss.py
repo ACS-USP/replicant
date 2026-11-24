@@ -69,6 +69,7 @@ class CWSolution:
     fixed_points: tuple
     selected: CWFixedPoint | None
     phi: Ball             # Phi(beta, h) = max_m phi(m)
+    argmax: CWFixedPoint  # a global maximum of phi (at h = 0 with three roots: "upper", phi(+-m*) are equal)
 
     @property
     def magnetization(self):
@@ -193,7 +194,7 @@ def cw_solution(beta, h=0, branch=None) -> CWSolution:
         if hq == 0 and not lo.overlaps(up):
             raise Refusal("no-solution:audit", f"h = 0: phi(+-m*) differ ({lo}, {up}); phi is even")
     glob = fps[0] if len(fps) == 1 else (fps[2] if hq >= 0 else fps[0])
-    return CWSolution(beta, h, fps, sel, glob.phi)
+    return CWSolution(beta, h, fps, sel, glob.phi, glob)
 
 
 def cw_magnetization(beta, h=0, branch=None) -> Ball:

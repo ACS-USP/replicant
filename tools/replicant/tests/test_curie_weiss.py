@@ -130,13 +130,19 @@ def test_cw_toolboxes_share_no_code():
     assert not var & cav and not var & fld and not cav & fld, (var & cav, var & fld, cav & fld)
     planted = ast.parse("def _h(x):\n    return x\n\ndef a(x):\n    return _h(x)\n\ndef b(x):\n    return _h(x) + 1\n")
     assert _closure(planted, "a") & _closure(planted, "b") == {"_h"}
+    # the two rate routes of cw_exact.py are disjoint too (Legendre: _sup_potential, Brent; Gartner-Ellis: its own
+    # tilted exponent and golden section)
+    tree = ast.parse(Path(CX.__file__).read_text())
+    leg, ge = _closure(tree, "_rate_legendre"), _closure(tree, "_rate_gartner_ellis")
+    assert {"_sup_potential", "_phi"} <= leg and {"_ge_scgf_sup", "_ge_golden"} <= ge, (leg, ge)
+    assert not leg & ge, leg & ge
 
 
 def test_cw_exact_z_converges():
     """(1/N) ln Z_N -> Phi with N (phi_N - Phi) -> -(1/2) ln(1 - beta (1 - m*^2)) (+ ln 2 at h = 0, beta > 1) at
     O(1/N); the rate at finite N matches the Legendre route at exposed points within Lemma 1-2's window, follows the
     true (non-convex) rate at non-exposed points, and the cavity potential phi~ is not a rate (KZ p. 16)."""
-    for beta, h in (("3/2", "1/20"), ("1/2", "0"), ("3/2", "0")):
+    for beta, h in (("3/2", "1/20"), ("3/2", "-1/20"), ("1/2", "0"), ("3/2", "0")):
         phi, term = CW.cw_free_entropy(beta, h).mid(), CX.cw_finite_size_term(beta, h)
         gaps = []
         for n in (50, 200, 800):
