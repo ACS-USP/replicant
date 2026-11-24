@@ -16,6 +16,11 @@
                    with sbm.py); sbm_q_pd.py: planted-measure population dynamics and the
                    first-order thresholds c_d, c_c; sbm_learn.py: EM (BP-learning) and the group
                    count; nonbacktracking.py: the non-backtracking spectrum and spectral clustering
+  spiked_diluted.py the diluted-Rademacher spiked Wigner (K5, KZ Ex. 8.2; LKZ): every SE fixed point, the
+                   spinodals, the IT threshold, the hard phase, the tricritical point (spiked.py dispatches to it)
+  wishart.py       rank-one spiked Wishart (K5, KZ Sec. 12.3.3): two-overlap Bayes SE, rectangular Bayes AMP,
+                   the BBP edge lambda_c = alpha^(-1/4) and the top singular value
+  spin_glass_game.py the dense spin-glass game of KZ Ch. 11 as the Rademacher spike (lambda = beta, derived)
 """
 from .ldpc import (DEGREE_PAIRS, BecThresholds, DEResult, RegularPair, bec_bp_threshold,
                    bec_density_evolution, bec_map_threshold, bec_map_threshold_area,

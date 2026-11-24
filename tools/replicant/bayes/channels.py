@@ -20,6 +20,7 @@ mu_k + v_k sqrt(snr) (y - sqrt(snr) mu_k) / (1 + snr v_k) and variance v_k / (1 
 
   Prior(name, **p)                      .components, .second_moment (q0 = E x^2)
   denoiser(prior, snr) -> (mean_fn, var_fn)   numpy-vectorised posterior mean (KZ's eta, Eq. (7.22)) and variance
+  denoiser_dy(prior, snr) -> fn         d E[x|y] / dy = sqrt(snr) Var[x|y] (the Onsager derivative, K5)
   map_estimate(prior, y, snr)           argmax of the posterior (atoms only, or a single Gaussian)
   mmse(prior, snr), mutual_information(prior, snr)       binary64 trapezoid quadrature over y (two integrals:
                                         E Var[x|y], and h(Y) = -E log p(y))
@@ -106,9 +107,10 @@ def _arrays(prior):
     return w, mu, v
 
 
-def _posterior(prior, y, s):
-    """(responsibilities r[..., k], component means m[..., k], component variances c[k]) at snr s (float)."""
-    w, mu, v = _arrays(prior)
+def _posterior(prior, y, s, arrays=None):
+    """(responsibilities r[..., k], component means m[..., k], component variances c[k]) at snr s (float);
+    `arrays` = _arrays(prior), passed by denoiser() so its closures convert the Fractions once, not per call."""
+    w, mu, v = arrays if arrays is not None else _arrays(prior)
     y = np.asarray(y, dtype=float)[..., None]
     rs = math.sqrt(s)
     d = 1 + s * v
@@ -122,16 +124,26 @@ def _posterior(prior, y, s):
 def denoiser(prior, snr):
     """(mean_fn, var_fn): y (any numpy shape) -> E[x | y], Var[x | y] for y = sqrt(snr) x + z."""
     s = float(_snr(snr))
+    arr = _arrays(prior)
 
     def mean_fn(y):
-        r, m, _ = _posterior(prior, y, s)
+        r, m, _ = _posterior(prior, y, s, arr)
         return (r * m).sum(axis=-1)
 
     def var_fn(y):
-        r, m, c = _posterior(prior, y, s)
+        r, m, c = _posterior(prior, y, s, arr)
         mean = (r * m).sum(axis=-1)
         return (r * (m * m + c)).sum(axis=-1) - mean * mean
     return mean_fn, var_fn
+
+
+def denoiser_dy(prior, snr):
+    """y -> d E[x | y] / dy for y = sqrt(snr) x + z.  Differentiating E[x|y] = int x p(x) e^{sqrt(snr) x y} dx / Z(y)
+    under the integral gives sqrt(snr) (E[x^2|y] - E[x|y]^2): the snr-scaled posterior variance (K5's Onsager
+    terms; tested against a central difference in tests/test_wishart.py)."""
+    rs = math.sqrt(float(_snr(snr)))
+    _, var_fn = denoiser(prior, snr)
+    return lambda y: rs * var_fn(y)
 
 
 def map_estimate(prior, y, snr):
@@ -274,5 +286,5 @@ def posterior_ball(prior, data, Delta):
                 "p_plus": ball_of(plus), "p_nonzero": ball_of(nonzero), "N": n}
 
 
-__all__ = ["DATASETS", "Prior", "denoiser", "information_ball", "map_estimate", "mmse", "mmse_ball",
+__all__ = ["DATASETS", "Prior", "denoiser", "denoiser_dy", "information_ball", "map_estimate", "mmse", "mmse_ball",
            "mutual_information", "overlaps", "posterior_ball"]

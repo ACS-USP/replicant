@@ -36,7 +36,7 @@ ROUTES = {"rem": {"replica"}, "sk": {"replica", "cavity", "amp"}, "pspin": {"rep
           "population_annealing_mc": {"sample"}, "dense_memory": {"replica"}, "dense_memory_ising": {"replica"},
           "curie_weiss": {"replica", "cavity", "exact"}, "rfim": {"replica", "cavity"},
           "random_matrix": {"replica", "cavity"}, "scalar_denoising": {"exact"}, "sparse_denoising": {"replica"},
-          "potts_bethe": {"cavity"}, "coloring": {"cavity"}}
+          "potts_bethe": {"cavity"}, "coloring": {"cavity"}, "spiked_wishart": {"amp"}}
 
 
 def _bank_keys():

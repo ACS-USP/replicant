@@ -15,6 +15,8 @@ _BOL = "Bolthausen, Commun. Math. Phys. 325, 333 (2014), arXiv:1201.2891"
 _BK = ("Barbier, Krzakala, Macris, Miolane & Zdeborova, PNAS 116, 5451 (2019), "
        "arXiv:1708.03395")
 _RAN = "Rangan, IEEE ISIT 2011, 2168, arXiv:1010.5141"
+_KZ_ASP = ("Krzakala & Zdeborova, lecture notes (June 9 2024), Sec. 12.2.5; Antenucci, Krzakala, Urbani & "
+           "Zdeborova, arXiv:1807.01296")
 RR, XI = sp.Symbol("r", positive=True), sp.Symbol("xi", real=True)
 OM, VV, YY = sp.Symbol("omega", real=True), sp.Symbol("V", positive=True), sp.Symbol("y")
 
@@ -38,6 +40,11 @@ def sk_amp():
              "iterates converge only on the RS-stable side of the AT line with h > 0 "
              "(Bolthausen Thm 2.1). Finite-N values are statistical: mean +- stderr over "
              "named seeds with a 99% Student-t half-width.", _BM),
+        cited("ansatz=1rsb: approximate survey propagation, the 1RSB equations as its state evolution (KZ Eqs. "
+              "(12.63)-(12.65), amp/asp.py)",
+              r"q_1^{t+1} = \mathbb{E}_U\langle\tanh^2\Xi\rangle,\quad q_0^{t+1} = \mathbb{E}_U\langle\tanh\Xi"
+              r"\rangle^2,\quad \langle g\rangle = \frac{\mathbb{E}_V[\cosh^m\Xi\, g]}{\mathbb{E}_V\cosh^m\Xi},\quad "
+              r"\Xi = \beta\big(h + \sqrt{q_0^t}\,U + \sqrt{q_1^t - q_0^t}\,V\big)", _KZ_ASP),
     ]
 
 

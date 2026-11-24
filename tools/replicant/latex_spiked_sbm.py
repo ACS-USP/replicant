@@ -19,6 +19,7 @@ _DAM = "Deshpande, Abbe & Montanari, arXiv:1507.08685 (2015)"
 _DKMZ = "Decelle, Krzakala, Moore & Zdeborova, Phys. Rev. E 84, 066106 (2011), arXiv:1109.3041"
 _KZ = ("Krzakala & Zdeborova, Statistical Physics Methods in Optimization and Machine Learning, lecture notes "
        "(June 9 2024), Ch. 10")
+_LKZ = "Lesieur, Krzakala & Zdeborova, J. Stat. Mech. (2017) 073403, arXiv:1701.00858"
 _KMM = ("Krzakala, Moore, Mossel, Neeman, Sly, Zdeborova & Zhang, PNAS 110, 20935 (2013), arXiv:1306.5550")
 _MNS = ("Mossel, Neeman & Sly, arXiv:1202.1499 (2015) and arXiv:1311.4115 (2018); Massoulie, "
         "arXiv:1311.3085 (2014)")
@@ -73,6 +74,27 @@ def spiked_wigner(route):
               f"{_LM}, Sec. 2.3, Prop. 4; {_DAM}, Thm 4.3 and Lemma 3.3"),
         text("Finite-N checks", "Bayes AMP on sampled matrices over named seeds: |<xhat, x>|/N, the "
              "cosine, the sign-resolved and the matrix MSE with 99% Student-t bands (statistical)"),
+    ] + _diluted()
+
+
+def _diluted():
+    """prior=diluted_rademacher (K5, inference/spiked_diluted.py; KZ Ex. 8.2; LKZ Sec. IV C)."""
+    from .inference import spiked_diluted as SD
+    R = sp.Symbol("rho", positive=True)
+    return [
+        text("Diluted Rademacher prior (K5)", "x = 0 with probability 1 - rho, +-1/sqrt(rho) with rho/2 each (unit "
+             "variance); LKZ's and the notes' x in {0, +-1} with noise variance Delta map by Delta/rho^2 = 1/lambda^2",
+             source=_LKZ),
+        sym("Uninformative instability (LKZ Eq. (193): Delta_c = rho^2)", sp.Eq(sp.Symbol("Delta_c"), R**2),
+            source=_LKZ, check=Check((R,), lambda r: SD.lkz_from_snr(SD.diluted_overlap_slope(float(r), 0.0)**-0.5,
+                                                                    float(r)), (("0.08",), ("0.5",), ("1",)), "rhs")),
+        cited("Fixed points and spinodals: D(gamma) = m(gamma)/gamma = 1/lambda^2; a fixed point is stable iff D' < 0; "
+              "the local minimum and maximum of D are Delta_alg/rho^2 and Delta_dyn/rho^2",
+              r"\gamma = \lambda^2 m(\gamma),\quad m(\gamma) = \mathbb{E}\,X\,\mathbb{E}[X\mid\gamma X + "
+              r"\sqrt{\gamma}Z],\quad m'(\gamma) = \mathbb{E}\,\mathrm{Var}[X\mid\cdot]^2", f"{_LKZ}, Sec. IV C 1"),
+        cited("Bayes fixed point and the IT threshold: the lower RS potential among the two converged starts",
+              r"\Psi(\gamma) = \frac{\lambda^2}{4} + \frac{\gamma^2}{4\lambda^2} - \frac{\gamma}{2} + I(\gamma)",
+              f"{_DAM}, Eq. (9); {_LKZ}"),
     ]
 
 

@@ -25,10 +25,12 @@ def entries() -> list:
     from .catalog_percolation_lattice import percolation_lattice
     from .catalog_series import series_entries
     from .catalog_sparse import sparse_entries
+    from .catalog_wishart import spiked_wishart
     return (dense_entries() + sparse_entries() + csp_entries() + inference_entries()
             + learning_entries() + series_entries() + lattice_entries() + bounds_entries()
             + online_entries() + percolation_entries() + [percolation_lattice()] + kcore_entries()
-            + mc_entries() + dense_memory_entries() + meanfield_entries() + bayes_entries() + factor_entries())
+            + mc_entries() + dense_memory_entries() + meanfield_entries() + bayes_entries() + factor_entries()
+            + [spiked_wishart()])
 
 
 __all__ = ["entries"]

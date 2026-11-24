@@ -134,15 +134,52 @@ def _sk_q_se_t(v):
                      "for each fixed t as N -> oo, Gaussian J)")
 
 
+def _sk_ansatz(p):
+    """ansatz rs (default: AMP / TAP, its SE) or 1rsb (ASP, its SE: amp/asp.py, K5); m only with 1rsb."""
+    a = p.get("ansatz", "rs")
+    if a not in ("rs", "1rsb"):
+        raise Refusal("precondition:known-ansatz", f"sk amp: ansatz = {a!r}: rs (AMP) or 1rsb (approximate survey "
+                      "propagation)")
+    if a == "rs" and p.get("m") is not None:
+        raise Refusal("precondition:known-parameter", "m (the Parisi parameter) applies to ansatz=1rsb only")
+    if a == "1rsb":
+        stray = [k for k in ("N", "seeds", "iters", "law") if p.get(k) is not None]
+        if stray:
+            raise Refusal("unsupported:asp-finite-n", f"{', '.join(stray)}: ansatz=1rsb runs the ASP state "
+                          "evolution only (finite-N ASP is not implemented)")
+        if p.get("beta") is None or p.get("m") is None:
+            raise Refusal("precondition:state-point", "the sk amp route with ansatz=1rsb needs beta and m")
+    return Out({}, f"ansatz {a}")
+
+
+def _sk_asp(p):
+    from .amp.asp import asp_fixed_point
+    r = asp_fixed_point(p["beta"], p["m"], p.get("h", 0))
+    vals = {"m": r.m, "asp_converged": r.converged}
+    if r.converged:
+        vals.update({"q0_asp": r.q0, "q1_asp": r.q1})
+    return Out(vals, r.note, notes=() if r.converged else (f"UNDETERMINED: {r.note}",))
+
+
+_ASP_CITE = ("Krzakala & Zdeborova, lecture notes (June 9 2024), Sec. 12.2.5, Eqs. (12.63)-(12.65); Antenucci, "
+             "Krzakala, Urbani & Zdeborova, arXiv:1807.01296, Sec. IV B")
+
+
 def sk_amp_route():
-    steps = [fstep("amp-state-evolution", BM11, _sk_se),
+    rs = lambda p: p.get("ansatz", "rs") == "rs"
+    steps = [fstep("amp-ansatz", "AMP (rs) or approximate survey propagation (1rsb)", _sk_ansatz),
+             fstep("amp-state-evolution", BM11, _sk_se, when=rs, skip="ansatz=1rsb (ASP)"),
              fstep("amp-finite-n", BM11 + " (finite-N iterates: statistical)", _sk_finite,
-                   when=has("N"), skip="no N given (finite-N AMP runs only with N)")]
+                   when=lambda p: rs(p) and has("N")(p), skip="no N given (finite-N AMP runs only with N)"),
+             fstep("asp-state-evolution", _ASP_CITE, _sk_asp, when=lambda p: not rs(p), skip="ansatz rs")]
+    asp = Stability("not-computed", "1rsb-asp-se", _ASP_CITE,
+                    "fixed point of ASP's state evolution at the given Parisi m: the 1RSB q0, q1 equations (the m "
+                    "equation is not imposed); 1RSB is not the exact SK solution: physics-level, NOT final")
     fin = {"q_se": _sk_q_se, "q_se_t": _sk_q_se_t,
-           "q_amp": _stat("q_amp", "AMP on sampled matrices (amp/sk.py)")}
+           "q_amp": _stat("q_amp", "AMP on sampled matrices (amp/sk.py)"), "q0_asp": asp, "q1_asp": asp}
     meta = ("se_converged", "se_fixed_points", "se_amp_converges", "N", "seeds", "iters",
-            "law", "q_amp_halfwidth99", "q_amp_runs", "amp_converged")
-    return AmpRoute(steps, SK_CAVEAT, ("beta", "h", "N", "seeds", "iters", "law"), fin, meta)
+            "law", "q_amp_halfwidth99", "q_amp_runs", "amp_converged", "m", "asp_converged")
+    return AmpRoute(steps, SK_CAVEAT, ("beta", "h", "N", "seeds", "iters", "law", "ansatz", "m"), fin, meta)
 
 
 # ---- teacher-student -------------------------------------------------------------------

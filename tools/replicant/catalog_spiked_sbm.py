@@ -8,7 +8,7 @@ check that the SE root is its global minimum).  Run parameters:
   snr           SE at lambda = snr: gamma_se, q_se, overlap_se, mmse_se, matrix_mmse_se
   snr, N        Bayes AMP on N x N matrices over named seeds (default 0-7, iters 30): q_amp,
                 overlap_amp, mmse_amp, matrix_mmse_amp (mean +- stderr, 99% t half-width)
-  prior         gaussian | rademacher
+  prior         gaussian | rademacher | diluted_rademacher (with rho: catalog_spiked_diluted.py, K5)
 sbm: two groups, edge probability a/N inside, b/N across (inference/sbm.py).  Route `cavity`:
 BP on the graph is the cavity method; the Kesten-Stigum line is the instability of its
 factorized fixed point (DKMZ Sec. IV.A).  Run parameters:
@@ -17,6 +17,7 @@ factorized fixed point (DKMZ Sec. IV.A).  Run parameters:
   a, b, N       BP over named seeds (default 0-9, iters 2000): bp_overlap (statistical)
 """
 from . import catalog_sbm_q as Q
+from . import catalog_spiked_diluted as D
 from .catalog import Out, RefCheck, Stability, entry, fstep, has
 from .core import Refusal
 from .csp import _checks
@@ -60,6 +61,9 @@ def _band(key, band):
 
 # ---- spiked Wigner -------------------------------------------------------------------------------
 def _sw_threshold(p):
+    D.stray(p)
+    if D.is_diluted(p):
+        return Out({}, "diluted_rademacher: the K5 path (catalog_spiked_diluted.py)")
     _stray(p, ("seeds", "iters"), "snr")
     if p.get("N") is not None and p.get("snr") is None:
         raise Refusal("precondition:state-point", "finite-N AMP needs snr (and N)")
@@ -128,6 +132,16 @@ def _sw_amp(v):
                      "the global minimum of the RS potential): NOT final")
 
 
+def _plain(cond):
+    return lambda p: not D.is_diluted(p) and cond(p)
+
+
+def _either(diluted, plain):
+    """Finality of a key both paths report: the diluted path's runs carry `rho` in their values."""
+    pick = lambda v: diluted if v.get("rho") is not None else plain
+    return lambda v: (lambda f: f(v) if callable(f) else f)(pick(v))
+
+
 def _stat(src):
     return Stability("not-computed", "amp-finite-N", src,
                      "statistical: finite-N mean +- stderr over the named seeds (99% Student-t "
@@ -136,11 +150,11 @@ def _stat(src):
 
 def spiked_wigner():
     steps = [fstep("spiked-threshold", f"{LM}; {DAM}", _sw_threshold),
-             fstep("spiked-state-evolution", f"{MV}; {LM}; {DAM}", _sw_se, when=has("snr"),
-                   skip="no snr given"),
+             fstep("spiked-state-evolution", f"{MV}; {LM}; {DAM}", _sw_se, when=_plain(has("snr")),
+                   skip="no snr given (or the diluted prior)"),
              fstep("spiked-amp-finite-n", f"{MV} (finite-N iterates: statistical)", _sw_finite,
-                   when=has("snr", "N"), skip="needs snr and N")]
-    refs = [RefCheck("spiked", "lambda_c_gaussian", lambda v: v["lambda_c"], route="amp"),
+                   when=_plain(has("snr", "N")), skip="needs snr and N (not the diluted prior)")] + D.steps()
+    refs = D.refs() + [RefCheck("spiked", "lambda_c_gaussian", lambda v: v["lambda_c"], route="amp"),
             RefCheck("spiked", "lambda_c_rademacher", lambda v: v["lambda_c"],
                      params={"prior": "rademacher"}, route="amp")]
     for tag, lam in (("0p8", "0.8"), ("1p5", "1.5"), ("2", "2"), ("3", "3")):
@@ -157,15 +171,17 @@ def spiked_wigner():
     fin = {"lambda_c": lc, "gamma_se": _sw_rs, "q_se": _sw_rs, "matrix_mmse_se": _sw_rs,
            "overlap_se": _sw_amp, "mmse_se": _sw_amp,
            **{k: stat for k in ("q_amp", "overlap_amp", "mmse_amp", "matrix_mmse_amp")}}
+    dil = D.finality()
+    fin = {**dil, **{k: _either(dil[k], f) if k in dil else f for k, f in fin.items()}}
     meta = ("prior", "snr", "se_fixed_points", "se_bayes", "se_below_floor", "N", "seeds", "iters",
             "amp_converged_fraction", "q_amp_halfwidth99", "overlap_amp_halfwidth99",
-            "mmse_amp_halfwidth99", "matrix_mmse_amp_halfwidth99")
+            "mmse_amp_halfwidth99", "matrix_mmse_amp_halfwidth99") + D.META
     spec = ModelSpec("spiked_wigner", "real", "gaussian", constraint="rank-one spike, Bayes-optimal",
                      prior="gaussian")
     return entry("spiked_wigner", spec, LM, {"amp": steps}, refs, {"amp": SW_CAVEAT},
                  "rank-one spiked Wigner: Bayes-optimal SE, threshold lambda_c = 1, finite-N Bayes AMP",
                  default_route="amp", finality=fin, meta=meta,
-                 parameters={"amp": ("snr", "prior", "N", "seeds", "iters")})
+                 parameters={"amp": ("snr", "prior", "N", "seeds", "iters") + D.PARAMS})
 
 
 # ---- stochastic block model ----------------------------------------------------------------------

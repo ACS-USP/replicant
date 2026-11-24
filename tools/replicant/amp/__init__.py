@@ -15,6 +15,8 @@ mpmath, scipy.special and replicant.core).
   gamp_ensemble(N, alpha, prior, *, seeds, iters) -> GAMPEnsemble (99% t bands)
   perceptron_state_evolution(alpha, prior, teacher=True, *, iters) -> gamp_se.SEResult
   ising_thresholds()                              -> Thresholds(alpha_it, alpha_amp)
+  asp.asp_fixed_point(beta, m, h)                 -> ASPResult(q0, q1): approximate survey propagation's
+                                                     SE, the 1RSB q equations at fixed Parisi m (K5)
 See amp/gamp.py and amp/gamp_se.py for the perceptron (Bayes-optimal only on the
 Nishimori line; GAMP SE for GLMs is a claim, Barbier et al. 2019 Claim 1), and amp/sk.py
 for the SK conventions and validity statement (SE is a theorem for Gaussian J at each

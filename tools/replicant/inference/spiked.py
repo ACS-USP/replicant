@@ -188,8 +188,15 @@ def _roots(lam2, prior):
     return tuple(out)
 
 
-def spiked_state_evolution(snr, prior="gaussian") -> SEResult:
-    """Fixed points of MV Eq. (2.24); reports the largest (see the module docstring)."""
+def spiked_state_evolution(snr, prior="gaussian", rho=None):
+    """Fixed points of MV Eq. (2.24); reports the largest (see the module docstring).  prior="diluted_rademacher"
+    (with rho) goes to inference/spiked_diluted.py: every fixed point, both starts, the hard phase (a DilutedSE)."""
+    if prior == "diluted_rademacher":
+        from .spiked_diluted import diluted_state_evolution
+        return diluted_state_evolution(_snr(snr), rho)
+    if rho is not None:
+        raise Refusal("precondition:known-parameter", f"rho = {rho!r} applies to prior diluted_rademacher only, "
+                      f"not {prior!r}")
     lam = _snr(snr)
     _prior(prior)
     L2 = float(lam)**2
