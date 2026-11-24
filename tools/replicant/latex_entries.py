@@ -374,7 +374,8 @@ def derivation(name, route):
            "online_scm": "online_scm", "percolation_bethe": "percolation",
            "percolation_graph": "percolation", "percolation_lattice": "percolation_lattice",
            "percolation_kcore": "percolation_kcore", "percolation_bootstrap": "percolation_kcore", "curie_weiss": "meanfield",
-           "rfim": "meanfield", "random_matrix": "meanfield", **_MC}.get(name)
+           "rfim": "meanfield", "random_matrix": "meanfield", "scalar_denoising": "bayes", "sparse_denoising": "bayes",
+           **_MC}.get(name)
     if mod is not None:
         from importlib import import_module
         return getattr(import_module(f".latex_{mod}", __package__), name)(route)

@@ -8,6 +8,7 @@ entries at the end of entries(); the earlier entries' order never changes.
 
 def entries() -> list:
     """[CatalogEntry] of every entry, built fresh (catalog() builds them once and caches them)."""
+    from .catalog_bayes import bayes_entries
     from .catalog_bounds import bounds_entries
     from .catalog_csp import csp_entries
     from .catalog_dense_memory import dense_memory_entries
@@ -26,7 +27,7 @@ def entries() -> list:
     return (dense_entries() + sparse_entries() + csp_entries() + inference_entries()
             + learning_entries() + series_entries() + lattice_entries() + bounds_entries()
             + online_entries() + percolation_entries() + [percolation_lattice()] + kcore_entries()
-            + mc_entries() + dense_memory_entries() + meanfield_entries())
+            + mc_entries() + dense_memory_entries() + meanfield_entries() + bayes_entries())
 
 
 __all__ = ["entries"]

@@ -266,7 +266,7 @@ def test_reference_checks_available_through_result():
 # ---- run parameters of catalog entries (final review, Important 1) ----------------------
 # The parameter names the GUIDE's INPUTS line and worked examples use, per entry and route.
 _DOCUMENTED = {
-    ("rem", "replica"): {"beta", "N_scale"},
+    ("rem", "replica"): {"beta", "N_scale", "condensation"},
     ("sk", "replica"): {"beta", "h", "fullrsb", "ansatz"},
     ("perceptron", "rsb"): {"kappa", "ansatz", "levels"},
     ("sk", "cavity"): {"beta", "h"},
@@ -329,6 +329,8 @@ _DOCUMENTED = {
     ("rfim", "replica"): {"J", "law", "Delta", "h0", "beta", "N", "seeds"},
     ("random_matrix", "replica"): {"kind", "alpha", "x", "y"},
     ("random_matrix", "cavity"): {"kind", "alpha", "x", "y"},
+    ("scalar_denoising", "exact"): {"prior", "rho", "var", "a", "Delta", "data"},
+    ("sparse_denoising", "replica"): {"Delta", "d"},
 }
 
 

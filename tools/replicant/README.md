@@ -179,7 +179,7 @@ sample`), and `--pdf` (with `--latex`) to compile the derivation.
   block that does, the longitudinal mode), `pinned_check.py` (integer-n Hessian, an independent check),
   `pinned_report.py` (the table of `docs/replicant/pinned_joint_replicon.md`).
 - `catalog*.py`, `compose.py` (+ `compose_result.py`: `Result` and the finality rule), `cli.py`,
-  `__main__.py`: the 41-entry catalog (registered in `catalog_index.py`; `catalog_ts.py` holds the
+  `__main__.py`: the 43-entry catalog (registered in `catalog_index.py`; `catalog_ts.py` holds the
   teacher-student entry, `catalog_pspin.py` the two p-spin entries; LaTeX in `latex_pspin.py`), the
   composer, the command line.
 - `meanfield/`, `rmt/` (K1, Krzakala & Zdeborova's lecture notes, Ch. 1-3): `curie_weiss.py` (Theorem 1 in arb,
@@ -187,12 +187,18 @@ sample`), and `--pdf` (with `--latex`) to compile the derivation.
   sum in arb, the rate functions), `rfim.py` (the fully connected RFIM: RS, exact sorted ground states,
   Guerra's bounds), `rmt/stieltjes.py` (Wigner and Wishart spectra by replica and cavity routes); catalog
   entries `curie_weiss`, `rfim`, `random_matrix` (`catalog_meanfield.py`, `latex_meanfield.py`).
+- `bayes/` (K2, the notes' Ch. 7): `channels.py` (the scalar Gaussian channel y = sqrt(snr) x + z, priors as
+  point-mass / Gaussian mixtures, the vectorised posterior-mean denoiser, MAP, MMSE and mutual information, certified
+  for the Gaussian and +-1 priors), `identities.py` (Nishimori, Stein and I-MMSE validators returning a CheckResult),
+  `sparse_vector.py` (one-hot vector denoising, Theorem 15 and its REM route); catalog entries `scalar_denoising`,
+  `sparse_denoising` (`catalog_bayes.py`, `latex_bayes.py`); `families/rem.py` gains the participation ratio, its
+  second moment and the overlap law (Ch. 15).
 - `latex*.py`, `tex*.py`, `derive_tex.py`: the LaTeX derivation writer.
 - `tests/`, `selftest.py`: the battery.
 
 ## Test tiers
 
-- Default: `python3 tools/replicant/selftest.py` (752 tests; the 662 before the margin law and the pinned
+- Default: `python3 tools/replicant/selftest.py` (781 tests after K2; the 662 before the margin law and the pinned
   directions took about 30 s, measured 30.2 s cold on a clean export after the final fix wave). Also `python3 run_selftests.py replicant` from the repository root, with the venv activated (it runs
   the `python3` on PATH; without python-flint the certified lattice, bounds and percolation tests and the Monte
   Carlo exact targets fail, by design).

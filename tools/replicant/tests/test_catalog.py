@@ -34,7 +34,8 @@ ROUTES = {"rem": {"replica"}, "sk": {"replica", "cavity", "amp"}, "pspin": {"rep
           "percolation_bootstrap": {"cavity", "sample"}, "cluster_mc": {"sample"},
           "wang_landau_mc": {"sample"}, "histogram_reweighting_mc": {"sample"},
           "population_annealing_mc": {"sample"}, "dense_memory": {"replica"}, "dense_memory_ising": {"replica"},
-          "curie_weiss": {"replica", "cavity", "exact"}, "rfim": {"replica"}, "random_matrix": {"replica", "cavity"}}
+          "curie_weiss": {"replica", "cavity", "exact"}, "rfim": {"replica"}, "random_matrix": {"replica", "cavity"},
+          "scalar_denoising": {"exact"}, "sparse_denoising": {"replica"}}
 
 
 def _bank_keys():

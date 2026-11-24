@@ -1,0 +1,32 @@
+{
+  "gauss_posterior_mean_eq7_8": {
+    "value": "0.630",
+    "tol": "0.001",
+    "cite": "F. Krzakala & L. Zdeborova, 'Statistical Physics Methods in Optimization and Machine Learning: An Introduction to Replica, Cavity & Message-Passing techniques', lecture notes, version of June 9 2024 (the PDF read page by page and as text), Sec. 7.2.1, Eqs. (7.8)-(7.9) (p. 117; notes.txt lines 7110-7121): the Gaussian-prior posterior N(x; sum y_i/(N + Delta), Delta/(N + Delta)) for the 10 printed measurements (7.8) 'is Gaussian with mean 0.630. and variance 0.091..' (printed; tolerance one unit in the last printed digit). PRINTED WITHOUT Delta: the noise variance is not stated for this data set; Delta = 1 is INFERRED (it reproduces all three printed posteriors; Delta = 1/2 and 2 reproduce none, tests/test_bayes_scalar.py). At Delta = 1 the mean is sum y_i/(N + 1) = 6.92641576/11 = 0.62967. Convention: y_i = x* + sqrt(Delta) z_i (KZ Eq. (7.4)), x* ~ N(0, 1); bayes/channels.py's snr = N/Delta.",
+    "independent_route": "an mpmath quadrature of P(y|x) P(x) over the printed data (KZ Eq. (7.5)), no closed form, and the float denoiser of bayes/channels.py at snr = N/Delta (tests/test_bayes_scalar.py)"
+  },
+  "gauss_posterior_var_eq7_8": {
+    "value": "0.091",
+    "tol": "0.001",
+    "cite": "F. Krzakala & L. Zdeborova, 'Statistical Physics Methods in Optimization and Machine Learning: An Introduction to Replica, Cavity & Message-Passing techniques', lecture notes, version of June 9 2024 (the PDF read page by page and as text), Sec. 7.2.1, Eq. (7.9) (p. 117): the posterior variance 'variance 0.091..' (printed; tolerance one unit in the last digit). PRINTED WITHOUT Delta: the noise variance is not stated for this data set; Delta = 1 is INFERRED (it reproduces all three printed posteriors; Delta = 1/2 and 2 reproduce none, tests/test_bayes_scalar.py). At Delta = 1 it is Delta/(N + Delta) = 1/11 = 0.0909. Convention as gauss_posterior_mean_eq7_8.",
+    "independent_route": "the mpmath quadrature of the posterior's second moment (tests/test_bayes_scalar.py)"
+  },
+  "gb_p_nonzero_eq7_11": {
+    "value": "0.8233787142909471",
+    "tol": "6e-9",
+    "cite": "F. Krzakala & L. Zdeborova, 'Statistical Physics Methods in Optimization and Machine Learning: An Introduction to Replica, Cavity & Message-Passing techniques', lecture notes, version of June 9 2024 (the PDF read page by page and as text), Sec. 7.2.1, Eqs. (7.10)-(7.11) (p. 117; notes.txt lines 7127-7147): Gauss-Bernoulli prior N(x; 0, 1)/2 + delta(x)/2, 10 printed measurements (7.11), 'p non zero is 0.8233787142909471' (printed, 16 digits). PRINTED WITHOUT Delta: the noise variance is not stated for this data set; Delta = 1 is INFERRED (it reproduces all three printed posteriors; Delta = 1/2 and 2 reproduce none, tests/test_bayes_scalar.py). At Delta = 1 the printed data give 0.82337871330591 (1/(1 + sqrt((N + Delta)/Delta) exp(-(sum y)^2/(2 Delta (N + Delta)))), Eq. (7.10)); the 9.9e-10 difference is the rounding of the data to 8 decimals (|d sum y| <= 5e-8 and dp/d(sum y) = 0.103 bound it by 5.2e-9, hence tol 6e-9). Data typo: a ']' after 1.11920946 in (7.11).",
+    "independent_route": "the mpmath quadrature of P(y|x) P(x) over the point mass and the Gaussian (tests/test_bayes_scalar.py); the mixture posterior of bayes/channels.py evaluated in arb"
+  },
+  "sparse_delta_c": {
+    "value": "0.721347520444481703679962340501",
+    "tol": "1e-25",
+    "cite": "F. Krzakala & L. Zdeborova, 'Statistical Physics Methods in Optimization and Machine Learning: An Introduction to Replica, Cavity & Message-Passing techniques', lecture notes, version of June 9 2024 (the PDF read page by page and as text), Sec. 7.3, Theorem 15, Eqs. (7.57)-(7.58) and p. 126 ('Delta_c = 1/(2 log 2)'; notes.txt lines 7600-7726; the extraction's 'Delta <= 1/2 log 2' is 1/(2 log 2), confirmed by Eq. (7.92) and the PDF): the symbolic threshold (no decimal is printed), evaluated with mpmath at 50 digits, rounded to 30. Convention: y = x* + sqrt(Delta/N) z, x* one of the d = 2^N basis vectors (KZ Eq. (7.51)).",
+    "independent_route": "the REM route: the d - 1 wrong components form a REM at N_scale = 1/2, beta = sqrt(2/Delta) (families/rem.py), whose beta_c = 2 sqrt(ln 2) maps to Delta_c = 2/beta_c^2 (bayes/sparse_vector.py free_entropy_via_rem; tests/test_bayes_scalar.py)"
+  },
+  "sparse_f_delta_half": {
+    "value": "0.306852819440054690582767878542",
+    "tol": "1e-25",
+    "cite": "F. Krzakala & L. Zdeborova, 'Statistical Physics Methods in Optimization and Machine Learning: An Introduction to Replica, Cavity & Message-Passing techniques', lecture notes, version of June 9 2024 (the PDF read page by page and as text), Sec. 7.3, Theorem 15, Eq. (7.57): f(Delta) = 1/(2 Delta) - log 2 for Delta <= Delta_c (printed, a theorem proved in the notes by the bounds of Lemmas 8-9, whose labels 'Upper bound' / 'Lower bound' are swapped); the value is its evaluation at Delta = 1/2 (1 - log 2), mpmath at 50 digits rounded to 30. Convention as sparse_delta_c.",
+    "independent_route": "the REM route max(1/(2 Delta) - log 2, -log 2 - 1/(2 Delta) - beta f_REM(beta)) with beta = sqrt(2/Delta) (families/rem.py); the exact finite-d (1/N) E log Z by quadrature and by direct sampling over named seeds at N = 10 (tests/test_bayes_scalar.py)"
+  }
+}

@@ -32,6 +32,7 @@ from .families.hopfield import hopfield_alpha_c, hopfield_rs, hopfield_t0
 from .families.margin_law import (collapse, collapse_residual, law_capacity, law_entropy_point,
                                   parse_margin_law)
 from .families.perceptron import gardner_capacity, gardner_entropy_point
+from .catalog_bayes import rem_condensation
 from .families.rem import rem_1rsb, rem_critical_beta, rem_free_energy
 from .families.parisi import PARISI_CITE, krsb_ground_energy, parisi_ground_energy
 from .families.sk import FULLRSB_GRID, sk_1rsb, sk_ground_energy, sk_replicon, sk_rs
@@ -98,19 +99,20 @@ def rem():
                    _rem_tc),
              fstep("rem-saddle", REM_CITE + "; 1RSB form: Mezard, Parisi & Virasoro (1987)",
                    _rem_saddle, when=has("beta"), skip="no beta given")]
+    c_step, c_refs, c_fin = rem_condensation(_rem_scale)
     refs = [RefCheck("rem", "tc_derrida", lambda v: v["T_c"]),
             RefCheck("rem", "ground_energy_derrida", lambda v: v["f"], params={"beta": 3}),
             RefCheck("rem", "m_times_beta_over_beta_c", lambda v: v["m"] * v["beta"] / v["beta_c"],
-                     params={"beta": 3})]
+                     params={"beta": 3})] + c_refs
     exact = lambda v: Stability(
         "exact-by-literature", v.get("ansatz", "1rsb"),
         "Derrida, Phys. Rep. 67, 29 (1980); Phys. Rev. B 24, 2613 (1981) (exact solution: "
         "microcanonical entropy s(e)); Derrida & Mottishaw, arXiv:1410.1432 (m = T/T_c)")
     fin = {k: exact for k in ("beta_c", "T_c", "f", "q", "q0", "q1", "m", "e")}
-    return entry("rem", ModelSpec("rem", "ising", "gaussian"), REM_CITE, {"replica": steps},
+    return entry("rem", ModelSpec("rem", "ising", "gaussian"), REM_CITE, {"replica": steps + [c_step]},
                  refs, {"replica": CAVEAT}, "random energy model: T_c, frozen 1RSB phase",
-                 finality=fin, meta=("N_scale", "beta"),
-                 parameters={"replica": ("beta", "N_scale")})
+                 finality={**fin, **c_fin}, meta=("N_scale", "beta"),
+                 parameters={"replica": ("beta", "N_scale", "condensation")})
 
 
 # ---- SK ------------------------------------------------------------------------------

@@ -16,5 +16,17 @@
     "tol": "1e-20",
     "cite": "Derrida & Mottishaw, J. Stat. Mech. (2015) P01021, arXiv:1410.1432, Eqs. (4)-(6): Parisi q(x) = Theta(x - 1 + <P2>) with <P2> = 1 - mu, mu = T/T_c below T_c, so the 1RSB breakpoint is m = T/T_c = beta_c/beta; same in Derrida & Mottishaw, J. Phys. A 55 (2022), doi:10.1088/1751-8121/ac71e9, arXiv:2202.12584, Eq. (5) (<Y_2> = 1 - beta_c/beta). Meaning: m * beta / beta_c = 1 for beta >= beta_c",
     "independent_route": "replicant derives m* symbolically: -beta f(m) = ln 2 / m + N_scale beta^2 m / 2, the energy part from ansatz.sum_offdiag_power (q in {0, 1}) with ansatz.n_to_zero, the entropy part from (2^N)^(n/m) block choices; sympy solves d/dm = 0 to sqrt(2 ln 2 / N_scale)/beta"
+  },
+  "participation_ratio_kz1539_beta3": {
+    "value": "0.444963592561534829097890236737",
+    "tol": "1e-25",
+    "cite": "F. Krzakala & L. Zdeborova, 'Statistical Physics Methods in Optimization and Machine Learning: An Introduction to Replica, Cavity & Message-Passing techniques', lecture notes, version of June 9 2024 (the PDF read page by page and as text), Sec. 15.2.4, Eq. (15.39) (p. 229; notes.txt lines 14042-14112): 'EY = 1 - m = 1 - beta_c/beta' (printed, a replica 1RSB result, physics-level); the value is its evaluation at beta = 3, mpmath at 50 digits rounded to 30. KZ p. 230 says the participation ratio 'diverges' at T_c: Y -> 0 there, its inverse (the quantity plotted in Fig. 15.2.1) diverges. Convention: KZ Eq. (15.1), P(E) = N(0, N/2), is replicant's N_scale = 1/2 (beta_c = 2 sqrt(ln 2)); m = beta_c/beta; banked at beta = 3 (m = 0.5550364...).",
+    "independent_route": "exact REM sampling (2^14 i.i.d. energies over seeds 0-399, the Gibbs weights) and the exact finite-N moment E[Y] = int du 2^N E[x^2 e^-x] (E e^-x)^(2^N - 1) by quadrature (families/rem.py, no replicas): the sampled 99% band contains the exact finite-N value and lies within the declared finite-N systematic 0.035 of 1 - m at N = 14, beta = 4 beta_c (tests/test_rem_condensation.py); Derrida & Mottishaw, arXiv:1410.1432, Eqs. (4)-(6) (<P2> = 1 - mu, read for the m_times_beta_over_beta_c key)"
+  },
+  "participation_ratio_sq_kz1566_beta3": {
+    "value": "0.280316263324023325360848800919",
+    "tol": "1e-25",
+    "cite": "F. Krzakala & L. Zdeborova, 'Statistical Physics Methods in Optimization and Machine Learning: An Introduction to Replica, Cavity & Message-Passing techniques', lecture notes, version of June 9 2024 (the PDF read page by page and as text), Exercise 15.2, Eq. (15.66) (p. 234; notes.txt lines 14357-14367): 'E[Y^2] = (3 - 5m + 2m^2)/3' for beta >= beta_c (printed as an exercise result, replica, physics-level); the value is its evaluation at beta = 3, mpmath at 50 digits rounded to 30. Convention: KZ Eq. (15.1), P(E) = N(0, N/2), is replicant's N_scale = 1/2 (beta_c = 2 sqrt(ln 2)); m = beta_c/beta; banked at beta = 3 (m = 0.5550364...).",
+    "independent_route": "exact REM sampling over named seeds and the exact finite-N E[Y^2] = int du [2^N B4 g^(2^N - 1) + 2^N (2^N - 1) B2^2 g^(2^N - 2)]/6 by quadrature (families/rem.py): band, exact value and (15.66) agree within the declared 0.035 at N = 14, beta = 4 beta_c (tests/test_rem_condensation.py); E[Y^2] > E[Y]^2 (not self-averaging)"
   }
 }
