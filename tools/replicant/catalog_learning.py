@@ -21,6 +21,11 @@ here, not a level-(a) derivation.  The rigorous statements are random-matrix the
                    risk_rs, rs_V, rs_q, rs_m
   n (seeds)        finite-n R_X by SVD over named seeds (default 0-19; lam default 0): risk_sim
                    (mean +- stderr, 99% Student-t half-width), p = round(gamma n)
+  covariance       (K6, KZ notes Sec. 18.1.2) "isotropic" (default: every value above, unchanged) or a spectrum
+                   "e1:w1,e2:w2,..." of Sigma (rows x ~ N(0, Sigma), beta uniform on the sphere): the ridgeless and
+                   ridge closed forms in the kappa form of learning/ridge.py (HMRT Thm 3 / Cor. 2, Thm 6) and the
+                   finite-n fits with that Sigma; the RS saddle point and the optimal penalty are isotropic-only
+                   and skipped with a spectrum
 """
 import mpmath as mp
 
@@ -52,6 +57,14 @@ def _g(p):
     return R._num(p["gamma"], "gamma", positive=True)
 
 
+def _cov(p):
+    return p.get("covariance") or "isotropic"
+
+
+def _iso(p):
+    return R.covariance_spectrum(_cov(p)) is None
+
+
 def _state(p):
     if p.get("gamma") is None:
         raise Refusal("precondition:state-point", "the ridge entry needs gamma = p/n (> 0)")
@@ -59,14 +72,17 @@ def _state(p):
         raise Refusal("precondition:known-parameter", "seeds is a finite-n parameter: need n")
     s2, r2 = R._num(p.get("sigma2", 1), "sigma2"), R._num(p.get("signal", 1), "signal")
     lam = p.get("lam")
-    return Out({"gamma": _g(p), "sigma2": s2, "signal": r2,
-                "lam": None if lam is None else R._num(lam, "lambda")},
-               "isotropic Gaussian design, linear teacher (HMRT Eqs. (1)-(2))")
+    vals = {"gamma": _g(p), "sigma2": s2, "signal": r2, "lam": None if lam is None else R._num(lam, "lambda")}
+    if p.get("covariance") is not None:
+        R.covariance_spectrum(p["covariance"])
+        vals["covariance"] = p["covariance"]
+    return Out(vals, "isotropic Gaussian design, linear teacher (HMRT Eqs. (1)-(2))" if _iso(p) else
+               f"Gaussian design with covariance spectrum {p['covariance']}, linear teacher (HMRT Eqs. (1)-(2))")
 
 
 def _ridgeless(p):
     g, s2, r2 = _g(p), p.get("sigma2", 1), p.get("signal", 1)
-    b, v = R.ridgeless_bias_variance(g, s2, r2)
+    b, v = R.ridgeless_bias_variance(g, s2, r2, _cov(p))
     with mp.workdps(30):
         return Out({"risk_ridgeless": b + v, "bias_ridgeless": b, "variance_ridgeless": v,
                     "test_mse_ridgeless": b + v + R._num(s2, "sigma2")},
@@ -83,10 +99,11 @@ def _optimal(p):
 
 def _ridge(p):
     g, lam, s2, r2 = _g(p), p["lam"], p.get("sigma2", 1), p.get("signal", 1)
-    b, v = R.ridge_bias_variance(g, lam, s2, r2)
+    b, v = R.ridge_bias_variance(g, lam, s2, r2, _cov(p))
     with mp.workdps(30):
         return Out({"risk": b + v, "bias": b, "variance": v, "test_mse": b + v + R._num(s2, "sigma2")},
-                   "Marchenko-Pastur Stieltjes transform at z = -lam (HMRT Eq. (43))")
+                   "Marchenko-Pastur Stieltjes transform at z = -lam (HMRT Eq. (43))" if _iso(p) else
+                   "effective penalty kappa of the covariance spectrum (learning/ridge.py; HMRT Thm 6)")
 
 
 def _replica(p):
@@ -106,7 +123,7 @@ def _finite(p):
     g, lam = _g(p), p.get("lam", 0)
     pdim = int(mp.nint(g * n))
     seeds = _checks.seeds(p.get("seeds", _SEEDS))
-    band = SIM.ridge_ensemble(n, pdim, lam, p.get("sigma2", 1), seeds, p.get("signal", 1))
+    band = SIM.ridge_ensemble(n, pdim, lam, p.get("sigma2", 1), seeds, p.get("signal", 1), _cov(p))
     return Out({"risk_sim": band.mean, "risk_sim_halfwidth99": band.half_width, "n": n, "p": pdim,
                 "gamma_n": pdim / n, "seeds": list(seeds)},
                f"R_X over seeds {list(seeds)} at n = {n}, p = {pdim}: {band.mean:.6g} +- "
@@ -117,7 +134,21 @@ def _finite(p):
                       "for Gaussian X), so the band need not contain the limit",))
 
 
+_COV = (f"{HMRT}, Thm 3 / Cor. 2 (min-norm, Eqs. (10)-(11)) and Thm 6 (ridge, Eqs. (36)-(39)), equidistributed "
+        "beta (G = H); evaluated in the kappa form of KZ notes Sec. 18.1.2 (learning/ridge.py), checked against "
+        "Eqs. (10)-(11), (36)-(39) in tests/test_ridge_covariates.py")
+
+
+def _cov_label(v):
+    return Stability("exact-by-literature", "rs", _COV,
+                     f"covariance spectrum {v['covariance']}: limits for x = Sigma^(1/2) z with i.i.d. z (finite 4 + "
+                     "eta moment), beta uniform on the sphere |beta| = r, n, p -> oo with p/n -> gamma, lam > 0 or "
+                     "the min-norm limit")
+
+
 def _ridgeless_label(v):
+    if v.get("covariance") is not None and R.covariance_spectrum(v["covariance"]) is not None:
+        return _cov_label(v)
     if v["gamma"] < 1:
         return Stability("exact-by-literature", "rs", f"{HMRT}, Prop. 2, Eq. (8)",
                          "gamma < 1: least squares risk -> sigma^2 gamma/(1 - gamma), no bias (HMRT "
@@ -129,7 +160,7 @@ def _ridgeless_label(v):
 
 
 def _ridge_label(v):
-    if v.get("lam") == 0:
+    if v.get("lam") == 0 or (v.get("covariance") is not None and R.covariance_spectrum(v["covariance"]) is not None):
         return _ridgeless_label(v)
     return Stability("exact-by-literature", "rs", f"{HMRT}, Cor. 5, Eq. (43); Thm 6, Eqs. (38)-(39)",
                      "lam > 0: R -> r^2 lam^2 m'(-lam) + sigma^2 gamma (m - lam m') (HMRT Cor. 5); the "
@@ -150,15 +181,15 @@ def ridge():
                    "(the interpolation peak)"),
              fstep("ridge-optimal-penalty", f"{HMRT}, Cor. 5; {DW}; {AS}", _optimal,
                    when=lambda p: R._num(p.get("sigma2", 1), "sigma2") > 0
-                   and R._num(p.get("signal", 1), "signal") > 0,
+                   and R._num(p.get("signal", 1), "signal") > 0 and _iso(p),
                    skip="sigma2 = 0: no positive minimiser (the ridgeless limit is the infimum); or "
                    "signal = 0: lam* = sigma^2 gamma / r^2 is infinite (the null estimator "
-                   "beta_hat = 0 is optimal)"),
+                   "beta_hat = 0 is optimal); or a covariance spectrum (HMRT Cor. 5 is isotropic)"),
              fstep("ridge-closed-form", f"{HMRT}, Cor. 5, Eq. (43)", _ridge, when=has("lam"),
                    skip="no lam given"),
              fstep("ridge-replica-rs", LGC, _replica,
-                   when=lambda p: p.get("lam") is not None and R._num(p["lam"], "lambda") > 0,
-                   skip="needs lam > 0"),
+                   when=lambda p: p.get("lam") is not None and R._num(p["lam"], "lambda") > 0 and _iso(p),
+                   skip="needs lam > 0 and isotropic covariance (the saddle point is specialised to Sigma = I)"),
              fstep("ridge-finite-n", "SVD fit over named seeds (learning/ridge_sim.py)", _finite,
                    when=has("n"), skip="no n given")]
     refs = []
@@ -197,13 +228,14 @@ def ridge():
            **{k: opt for k in ("lambda_opt", "risk_opt", "test_mse_opt")},
            **{k: rs for k in ("risk_rs", "rs_V", "rs_q", "rs_m")},
            "risk_sim": lambda v: _sim_label()}
-    meta = ("gamma", "sigma2", "signal", "lam", "rs_closed_form_gap", "risk_sim_halfwidth99", "n", "p",
+    meta = ("gamma", "sigma2", "signal", "lam", "covariance", "rs_closed_form_gap", "risk_sim_halfwidth99", "n", "p",
             "gamma_n", "seeds")
     spec = ModelSpec("ridge", "real", "gaussian", constraint="linear teacher, ridge / min-norm student")
     return entry("ridge", spec, HMRT, {"replica": steps}, refs, {"replica": CAVEAT},
                  "ridge / ridgeless least squares on isotropic Gaussian design: double descent at "
                  "gamma = 1, optimal ridge, RS saddle point", default_route="replica", finality=fin,
-                 meta=meta, parameters={"replica": ("gamma", "lam", "sigma2", "signal", "n", "seeds")})
+                 meta=meta, parameters={"replica": ("gamma", "lam", "sigma2", "signal", "n", "seeds",
+                                                            "covariance")})
 
 
 def learning_entries():

@@ -20,6 +20,10 @@ mean differs from the limit by O(1/n) (for Gaussian X and gamma < 1 exactly
 E R_X = sigma^2 p / (n - p - 1), not sigma^2 gamma / (1 - gamma)), so a fixed-n band need not
 contain the limit; extrapolate_in_n fits mean_n = R_inf + c / n over several n (weighted least
 squares on the bands' standard errors) and returns the band of R_inf.
+A covariance spectrum (K6; learning/ridge.covariance_spectrum) gives rows x_i ~ N(0, Sigma) with Sigma diagonal:
+the first w_1 p coordinates have variance e_1, the next w_2 p e_2, ... (w_k p must be integers); the same draws
+are scaled column-wise (X = Z Sigma^{1/2}), and R_X = (beta_hat - beta)^T Sigma (beta_hat - beta) averaged over the
+noise: bias e^T Sigma e, variance sigma^2 sum_k w_k^2 v_k^T Sigma v_k.  "isotropic" runs the code above unchanged.
 """
 from dataclasses import dataclass
 
@@ -28,7 +32,7 @@ import numpy as np
 from ..amp._stats import student_band
 from ..core import Refusal
 from ..csp import _checks
-from .ridge import _num
+from .ridge import _num, covariance_spectrum
 
 
 def _size(k, name):
@@ -48,13 +52,28 @@ class RidgeFit:
     risk_x: float                # R_X = B_X + V_X
 
 
-def ridge_fit(n, p, lam, sigma2, seed, signal=1):
+def _diagonal(spec, p):
+    """The per-coordinate variances of the spectrum (w_k p coordinates each; non-integer counts refused)."""
+    out = []
+    for e, w in spec:
+        k = w * p
+        if k.denominator != 1:
+            raise Refusal("precondition:covariance", f"weight {w} x p = {k} coordinates is not an integer at p = {p}")
+        out += [float(e)] * int(k)
+    return np.array(out)
+
+
+def ridge_fit(n, p, lam, sigma2, seed, signal=1, covariance="isotropic"):
     """One sampled problem and its ridge (lam > 0) or min-norm (lam = 0) fit by SVD."""
     n, p = _size(n, "n"), _size(p, "p")
+    spec = covariance_spectrum(covariance)
+    sig = None if spec is None else _diagonal(spec, p)
     lam, s2, r2 = (float(_num(lam, "lambda")), float(_num(sigma2, "sigma2")),
                    float(_num(signal, "signal")))
     rng = np.random.default_rng(_checks.seed(seed))
     X = rng.standard_normal((n, p))
+    if sig is not None:
+        X = X * np.sqrt(sig)
     g = rng.standard_normal(p)
     beta = np.sqrt(r2) * g / np.linalg.norm(g)
     y = X @ beta + np.sqrt(s2) * rng.standard_normal(n)
@@ -70,19 +89,23 @@ def ridge_fit(n, p, lam, sigma2, seed, signal=1):
     d = beta_hat - beta
     r = y - X @ beta_hat
     e = beta - Vt.T @ (f * (Vt @ beta))
-    bias, var = float(e @ e), s2 * float(w @ w)
-    return RidgeFit(beta, beta_hat, float(d @ d), float(r @ r) / n, bias, var, bias + var)
+    if sig is None:
+        bias, var = float(e @ e), s2 * float(w @ w)
+        return RidgeFit(beta, beta_hat, float(d @ d), float(r @ r) / n, bias, var, bias + var)
+    bias = float(e @ (sig * e))
+    var = s2 * float((w * w) @ ((Vt * Vt) @ sig))
+    return RidgeFit(beta, beta_hat, float(d @ (sig * d)), float(r @ r) / n, bias, var, bias + var)
 
 
-def ridge_simulate(n, p, lam, sigma2, seed, signal=1) -> float:
+def ridge_simulate(n, p, lam, sigma2, seed, signal=1, covariance="isotropic") -> float:
     """HMRT's finite-n risk R_X for one named seed (module docstring)."""
-    return ridge_fit(n, p, lam, sigma2, seed, signal).risk_x
+    return ridge_fit(n, p, lam, sigma2, seed, signal, covariance).risk_x
 
 
-def ridge_ensemble(n, p, lam, sigma2, seeds, signal=1):
+def ridge_ensemble(n, p, lam, sigma2, seeds, signal=1, covariance="isotropic"):
     """amp._stats.Band (99% Student-t) of ridge_simulate over the named seeds (>= 2)."""
     seeds = _checks.seeds(seeds)
-    return student_band([ridge_simulate(n, p, lam, sigma2, s, signal) for s in seeds])
+    return student_band([ridge_simulate(n, p, lam, sigma2, s, signal, covariance) for s in seeds])
 
 
 def extrapolate_in_n(bands, conf=0.99):
@@ -110,7 +133,7 @@ def extrapolate_in_n(bands, conf=0.99):
 SIZE_SEED_OFFSET = 10**6     # seeds of the k-th size are seeds + k * SIZE_SEED_OFFSET
 
 
-def limit_ensemble(ns, gamma, lam, sigma2, seeds, signal=1):
+def limit_ensemble(ns, gamma, lam, sigma2, seeds, signal=1, covariance="isotropic"):
     """({n: Band}, Band of R_inf): ridge_ensemble at each size n (p = gamma n, must be an integer)
     over the named seeds shifted by k * SIZE_SEED_OFFSET for the k-th size (disjoint seed sets:
     independent sizes), then extrapolate_in_n."""
@@ -123,7 +146,7 @@ def limit_ensemble(ns, gamma, lam, sigma2, seeds, signal=1):
         p = int(round(g * _size(n, "n")))
         if p != g * n:
             raise Refusal("precondition:size", f"gamma n = {g * n} is not an integer at n = {n}")
-        raw[n] = ridge_ensemble(n, p, lam, sigma2, [s + k * SIZE_SEED_OFFSET for s in seeds], signal)
+        raw[n] = ridge_ensemble(n, p, lam, sigma2, [s + k * SIZE_SEED_OFFSET for s in seeds], signal, covariance)
     return raw, extrapolate_in_n(raw)
 
 

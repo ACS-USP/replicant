@@ -23,14 +23,14 @@ From the repository root:
 
 ```
 python3 tools/replicant/selftest.py                        # default battery, about 30 s
-cd tools && python3 -m replicant list                      # the 46 catalog entries
+cd tools && python3 -m replicant list                      # the 48 catalog entries
 python3 -m replicant run perceptron --param alpha=1.5 --out /tmp/result.json --latex /tmp/p.tex
 ```
 
 `run` also takes a spec file for a model near a catalogued one
 (`python3 -m replicant run spec.json --param beta=1.5 --param h=0`; schema in the GUIDE),
 `--route rsb` for `perceptron` at T = 0 with kappa < 0 (1RSB, K-step RSB, full-RSB estimate: `python3 -m replicant run
-perceptron --route rsb --param kappa=-1`; results in [RESULTS_negative_perceptron_rsb.md](RESULTS_negative_perceptron_rsb.md)), `--route amp` for `sk`, `teacher_student`, `spiked_wigner` and `spiked_wishart` (state evolution, and finite-N AMP / GAMP with
+perceptron --route rsb --param kappa=-1`; results in [RESULTS_negative_perceptron_rsb.md](RESULTS_negative_perceptron_rsb.md)), `--route amp` for `sk`, `teacher_student`, `spiked_wigner`, `spiked_wishart`, `lasso` and `compressed_sensing` (state evolution, and finite-N AMP / GAMP with
 `--param N=...`), `--route cavity` for the entries that have a cavity route (required for `viana_bray`, `xorsat`,
 `ksat`, `ldpc_bec`, `sbm` and `bethe_ising`, which are cavity-only: `python3 -m replicant run viana_bray --route
 cavity`, `python3 -m replicant run xorsat --route cavity`; the percolation entries `percolation_bethe`,
@@ -85,7 +85,10 @@ sample`), and `--pdf` (with `--latex`) to compile the derivation.
   the hard phase, the tricritical point; `catalog_spiked_diluted.py`), the entry `spiked_wishart` (amp)
   (`inference/wishart.py`: two-overlap SE, rectangular AMP, the BBP edge; `catalog_wishart.py`, `latex_wishart.py`),
   the dense spin-glass game as the Rademacher spike (`inference/spin_glass_game.py`), and approximate survey
-  propagation for `sk` (`amp/asp.py`, `--route amp --param ansatz=1rsb --param m=...`).
+  propagation for `sk` (`amp/asp.py`, `--route amp --param ansatz=1rsb --param m=...`).  K6 (the notes' Ch. 12, 16,
+  18): `linear/` (GAMP with a Channel x Prior interface and its Bayes SE, the LASSO by AMP with the derived
+  calibration and an exact coordinate-descent solver, the compressed-sensing boundaries), the entries `lasso`
+  (replica, amp) and `compressed_sensing` (amp) (`catalog_linear.py`, `latex_linear.py`), and `ridge`'s `covariance`.
 - `learning/` (E7): ridge and ridgeless least squares on isotropic Gaussian design (`ridge.py`: the
   Marchenko-Pastur closed forms of Hastie-Montanari-Rosset-Tibshirani, the optimal penalty;
   `ridge_rs.py`: the RS saddle point of the linear student, a cited closed form solved here;
@@ -214,7 +217,7 @@ sample`), and `--pdf` (with `--latex`) to compile the derivation.
 
 ## Test tiers
 
-- Default: `python3 tools/replicant/selftest.py` (781 tests after K2, 803 after K4, 821 after K5; the 662 before the margin law and the pinned
+- Default: `python3 tools/replicant/selftest.py` (781 tests after K2, 803 after K4, 821 after K5, 835 after K6; the 662 before the margin law and the pinned
   directions took about 30 s, measured 30.2 s cold on a clean export after the final fix wave). Also `python3 run_selftests.py replicant` from the repository root, with the venv activated (it runs
   the `python3` on PATH; without python-flint the certified lattice, bounds and percolation tests and the Monte
   Carlo exact targets fail, by design).

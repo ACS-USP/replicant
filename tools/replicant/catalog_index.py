@@ -19,6 +19,7 @@ def entries() -> list:
     from .catalog_mc import mc_entries
     from .catalog_meanfield import meanfield_entries
     from .catalog_learning import learning_entries
+    from .catalog_linear import linear_entries
     from .catalog_online import online_entries
     from .catalog_percolation import percolation_entries
     from .catalog_percolation_kcore import kcore_entries
@@ -30,7 +31,7 @@ def entries() -> list:
             + learning_entries() + series_entries() + lattice_entries() + bounds_entries()
             + online_entries() + percolation_entries() + [percolation_lattice()] + kcore_entries()
             + mc_entries() + dense_memory_entries() + meanfield_entries() + bayes_entries() + factor_entries()
-            + [spiked_wishart()])
+            + [spiked_wishart()] + linear_entries())
 
 
 __all__ = ["entries"]

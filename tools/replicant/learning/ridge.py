@@ -34,7 +34,26 @@ so bias = r^2 lam^2 m (1 + gamma m) / sqrt D and variance = sigma^2 gamma (1 - l
 ridge and ridgeless closed forms (tests plant a missing bias or a scaled variance; the replica saddle
 point in ridge_rs.py, the simulation in ridge_sim.py and HMRT's separate R* = sigma^2 gamma m(-lam*)
 in optimal_test_error do not read it).
+
+General covariance (K6; KZ notes Sec. 18.1.2, Eqs. (18.26)-(18.31), well-specified; HMRT Thm 3 / Cor. 2 (min-norm)
+and Thm 6, Eqs. (36)-(39) (ridge)): rows x_i ~ N(0, Sigma), Sigma with the spectrum H = sum_k w_k delta_{e_k}
+(`covariance` = [(e_k, w_k)], e_k > 0, weights summing to 1; "isotropic" = the closed forms above), beta uniform on
+the sphere |beta| = r (HMRT's equidistributed G = H).  With df1 = int s/(s + kappa) dH, df2 = int s^2/(s + kappa)^2 dH,
+t2 = int s/(s + kappa)^2 dH, the effective penalty kappa solves
+    lam = kappa (1 - gamma df1(kappa))       (the root with gamma df1 < 1; lam = 0: kappa = 0 for gamma < 1, the
+                                              root of gamma df1 = 1 for gamma > 1, HMRT Eq. (10) with
+                                              c0 = 1/(gamma kappa))
+    bias = r^2 kappa^2 t2 / (1 - gamma df2),   variance = sigma^2 gamma df2 / (1 - gamma df2).
+Derivation (replicant's, from the notes' AMP fixed point (18.26)-(18.31) in W = Sigma^{1/2} x space: W_hat = S u,
+S = Sigma (Sigma + kappa)^{-1}, u = W* + tau z, tau^2 = (E + Delta)/alpha, kappa = lam_notes/(alpha - b),
+b = tr S / p; alpha = 1/gamma, lam_notes = lam/gamma, Delta = sigma^2): E = r^2 kappa^2 t2 + gamma (E + sigma^2) df2.
+At Sigma = I these are the isotropic closed forms (kappa (1 + kappa - gamma) = lam (1 + kappa)); tests check them
+against every banked isotropic value through this path, against HMRT's own Eqs. (10)-(11), (36)-(39), and against
+SVD fits (learning/ridge_sim.py).  The q-trace printed at the end of Sec. 18.1.2 has alpha (E + Delta) where this
+derivation (and (18.15)) needs (E + Delta)/alpha (tests/test_ridge_covariates.py).
 """
+from fractions import Fraction
+
 import mpmath as mp
 
 from ..core import Refusal
@@ -72,13 +91,74 @@ def stieltjes_mp(gamma, lam):
     return m, m * (1 + gamma * m) / sD, sD
 
 
-def ridgeless_bias_variance(gamma, sigma2, signal=1):
-    """(bias, variance) of the min-norm least squares limit (HMRT Eq. (8)); gamma = 1 refused."""
+def covariance_spectrum(covariance):
+    """None for "isotropic" (or None); else a tuple of (eigenvalue, weight) Fractions from [(e, w), ...] or the string
+    "e1:w1,e2:w2,...": e > 0, w > 0, weights summing exactly to 1, else Refusal precondition:covariance."""
+    if covariance is None or covariance == "isotropic":
+        return None
+    try:
+        pairs = ([tuple(t.split(":")) for t in covariance.split(",")] if isinstance(covariance, str)
+                 else [tuple(t) for t in covariance])
+        spec = tuple((Fraction(str(e).strip()), Fraction(str(w).strip())) for e, w in pairs)
+    except (TypeError, ValueError, ZeroDivisionError):
+        raise Refusal("precondition:covariance", f"covariance={covariance!r}: need 'isotropic' or eigenvalue:weight "
+                      "pairs, e.g. '1/2:1/2,2:1/2'") from None
+    if not spec or any(e <= 0 or w <= 0 for e, w in spec) or sum(w for _, w in spec) != 1:
+        raise Refusal("precondition:covariance", f"covariance={covariance!r}: eigenvalues and weights must be > 0 "
+                      "and the weights must sum to 1")
+    return spec
+
+
+def _moments(spec, kappa):
+    """(df1, df2, t2) of the spectrum at kappa (module docstring); call inside mp.workdps."""
+    df1 = df2 = t2 = mp.mpf(0)
+    for e, w in spec:
+        e, w = mp.mpf(e.numerator) / e.denominator, mp.mpf(w.numerator) / w.denominator
+        d = e + kappa
+        df1, df2, t2 = df1 + w * e / d, df2 + w * e * e / (d * d), t2 + w * e / (d * d)
+    return df1, df2, t2
+
+
+def _kappa(spec, g, lm):
+    """The effective penalty (module docstring) by bisection to 2^-100 relative (no derivative needed)."""
+    def bisect(f, lo, hi):
+        flo = f(lo)
+        for _ in range(200):
+            mid = (lo + hi) / 2
+            fm = f(mid)
+            if (fm > 0) == (flo > 0):
+                lo, flo = mid, fm
+            else:
+                hi = mid
+            if hi - lo <= mp.mpf(2) ** -100 * hi:
+                break
+        return (lo + hi) / 2
+    top = max(mp.mpf(e.numerator) / e.denominator for e, _ in spec)
+    k0 = mp.mpf(0) if g < 1 else bisect(lambda k: g * _moments(spec, k)[0] - 1, mp.mpf(0), g * top)
+    if lm == 0:
+        return k0
+    return bisect(lambda k: k * (1 - g * _moments(spec, k)[0]) - lm, k0, lm + g * top)
+
+
+def _spectrum_bias_variance(spec, g, lm, s2, r2):
+    with mp.workdps(_DPS):
+        k = _kappa(spec, g, lm)
+        _, df2, t2 = _moments(spec, k)
+        bias, var = r2 * k * k * t2 / (1 - g * df2), s2 * g * df2 / (1 - g * df2)
+        return +(_SCALE["bias"] * bias), +(_SCALE["variance"] * var)
+
+
+def ridgeless_bias_variance(gamma, sigma2, signal=1, covariance="isotropic"):
+    """(bias, variance) of the min-norm least squares limit (HMRT Eq. (8); a covariance spectrum: HMRT Thm 3 /
+    Cor. 2 in the module's kappa form); gamma = 1 refused."""
     g, _, s2, r2 = _args(gamma, 0, sigma2, signal)
+    spec = covariance_spectrum(covariance)
     if g == 1:
         raise Refusal("precondition:gamma-not-one",
                       "gamma = 1: the ridgeless risk diverges at the interpolation threshold for "
                       "sigma^2 > 0 (HMRT Eq. (8) states the limits for gamma < 1 and gamma > 1 only)")
+    if spec is not None:
+        return _spectrum_bias_variance(spec, g, mp.mpf(0), s2, r2)
     with mp.workdps(_DPS):
         if g < 1:
             bias, var = mp.mpf(0), s2 * g / (1 - g)
@@ -87,19 +167,22 @@ def ridgeless_bias_variance(gamma, sigma2, signal=1):
         return +(_SCALE["bias"] * bias), +(_SCALE["variance"] * var)
 
 
-def ridgeless_test_error(gamma, sigma2, signal=1):
+def ridgeless_test_error(gamma, sigma2, signal=1, covariance="isotropic"):
     """Limiting excess risk of min-norm least squares (HMRT Eq. (8)): mpf."""
-    b, v = ridgeless_bias_variance(gamma, sigma2, signal)
+    b, v = ridgeless_bias_variance(gamma, sigma2, signal, covariance)
     with mp.workdps(_DPS):
         return b + v
 
 
-def ridge_bias_variance(gamma, lam, sigma2=0, signal=1):
-    """(bias, variance) of the limiting ridge risk (HMRT Cor. 5, Eq. (43)); lam = 0 is the
-    ridgeless limit."""
+def ridge_bias_variance(gamma, lam, sigma2=0, signal=1, covariance="isotropic"):
+    """(bias, variance) of the limiting ridge risk (HMRT Cor. 5, Eq. (43); a covariance spectrum: HMRT Thm 6 in the
+    module's kappa form); lam = 0 is the ridgeless limit."""
     g, lm, s2, r2 = _args(gamma, lam, sigma2, signal)
+    spec = covariance_spectrum(covariance)
     if lm == 0:
-        return ridgeless_bias_variance(g, s2, r2)
+        return ridgeless_bias_variance(g, s2, r2, covariance)
+    if spec is not None:
+        return _spectrum_bias_variance(spec, g, lm, s2, r2)
     with mp.workdps(_DPS):
         m, _, sD = stieltjes_mp(g, lm)
         bias = r2 * lm * lm * m * (1 + g * m) / sD
@@ -107,10 +190,10 @@ def ridge_bias_variance(gamma, lam, sigma2=0, signal=1):
         return +(_SCALE["bias"] * bias), +(_SCALE["variance"] * var)
 
 
-def ridge_test_error(gamma, lam, sigma2=0, signal=1):
+def ridge_test_error(gamma, lam, sigma2=0, signal=1, covariance="isotropic"):
     """Limiting excess risk R = bias + variance of ridge with penalty lam (HMRT Eq. (43)): mpf.
     The test MSE with a fresh noisy label is R + sigma2."""
-    b, v = ridge_bias_variance(gamma, lam, sigma2, signal)
+    b, v = ridge_bias_variance(gamma, lam, sigma2, signal, covariance)
     with mp.workdps(_DPS):
         return b + v
 
@@ -164,5 +247,5 @@ def argmin_lambda(gamma, sigma2, signal=1, lo="1e-6", hi="1e3", tol="1e-14"):
         return mp.exp(t)
 
 
-__all__ = ["argmin_lambda", "optimal_lambda", "optimal_test_error", "ridge_bias_variance",
+__all__ = ["argmin_lambda", "covariance_spectrum", "optimal_lambda", "optimal_test_error", "ridge_bias_variance",
            "ridge_test_error", "ridgeless_bias_variance", "ridgeless_test_error", "stieltjes_mp"]
