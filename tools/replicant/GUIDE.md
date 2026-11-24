@@ -1868,76 +1868,77 @@ banked in `reference/perceptron.json` as independent targets. Honest limits:
   (default tier): time averages at N = 8 equal the exact spectrum means within 99% bands at four betas,
   and the planted acceptance rule (x0.8) and the reversed exchange sign are detected at every beta.
 
-ACCEPTANCE GATES: `python3 tools/replicant/selftest.py` (default tier: 841 tests after K7, 58.96 s wall on a loaded
-machine (load average about 5; the 662 tests of the v1 final fix wave measured 30.2 s cold on an idle one); also
-`python3 run_selftests.py replicant`, which runs the `python3` on PATH; run both from the activated project venv,
-which has python-flint) covers the core and refusal paths, the symbolic derivation against independent expressions,
-level agreement (a)=(b) for every family where both exist, every catalog entry against its banked non-slow values,
-the cavity routes, the composer and the held-out models, the CLI and the LaTeX writer (displayed equations
-re-checked numerically), the derived replicon (E1) and 1RSB (E2), AMP / GAMP and state evolution (E3), the 1RSB
-replicon and the Gardner transition (E4), K-XORSAT and K-SAT (closed forms, small-N exact checks, BP on trees, the
-SP-rule audit, small SP populations), LDPC density evolution and small peeling runs, the spiked-Wigner and SBM
-state evolution / KS line, the ridge closed forms and small simulations, the exact series and its operator, the
-certified lattice values and Guerra bounds, the PT detailed-balance gate and exact enumeration (E11), the
-dense-memory noise by four routes, its exact finite-N sampler against the exact REM quadrature of
-`families/rem.py`, the paper's gradient descent and the single-flip dynamics, with planted controls (D1), and the
-online-learning ODEs, Gaussian averages and a small simulation band (O1), the linear perceptron's ODEs, closed
-forms, offline geometry, ridge route and small online and offline simulation bands (O2), the drift flow, the VKC
-modulations and their class maximisation, VKC's drift-independence claim, the KC93 bound for every rule, stationary
-states and small-drift laws against the bank and a small drifting-teacher simulation band (O3), the TCM's
-internal-representation averages, CC95 Eqs. (5), (21), (24), (30), (32) against the TCM route, CKC96's equivalence
-with O1's noisy perceptron (and a planted wrong mapping failing), the asymptotic constants against K and a K = 3
-simulation band (O4), the SCM's erf averages against Gauss-Hermite (with planted normalisation errors), the papers'
-fixed points, eigenvalues and critical rates against the ODE, the plateau report (escaped, undetermined, none, the
-rtol check) and a small simulation band with the eta^2 term planted out (O5), VC97's Eq. (3) and its gradients
-against O5's erf route, the closed ODE against quadrature of the pointwise modulation, the optimality positive
-control (perturbed modulations decay slower where H is positive definite, one decays faster at the saddle), Fig. 1
-and the K = M = 2 plateau against the bank, gradient descent beaten, and a tiny simulation band with H
-misnormalised planted (O6), the 1D observables against exact rings and the 2D energy and specific heat against
-Kaufman-torus derivatives and the E8 series (I1), the correlation length against Onsager's strip spectrum and the
-direct strip matrix, the nu / eta consistency checks and the critical diagonal correlations (I2), the anisotropic,
-triangular and honeycomb free energies by two or three routes, the star-triangle and four-sector duality identities
-on exact tori and the high-temperature torus identity (I3), each with planted errors; the percolation fixed points,
-closed forms and sampled bands (P1), the 2D thresholds, exponents, Cardy's two routes, the exact crossing
-polynomials and Newman-Ziff sweeps against enumeration (P2), the k-core and bootstrap fixed points and thresholds
-against DGM's form, csp/xorsat.py and Balogh-Pittel's closed forms, and exact peeling / spreading (P3), each with
-planted errors; the cluster samplers' stationarity chi^2 and ergodicity with measured power and planted errors,
-Kaufman's polynomial and P2's crossing polynomial as exact targets (M1), Wang-Landau against the exact g(E), the
-multicanonical and Ferrenberg-Swendsen estimates against exact values with planted errors of measured power (M2),
-and population annealing's free energy against Kaufman and enumeration, its families and labels and the finite-R
-bias (M3), and the Krzakala-Zdeborova lecture-notes series: Curie-Weiss by three toolboxes with disjoint call
-graphs and the exact binomial Z_N, the RFIM against exact sorted ground states and Guerra's sandwich, the spectra
-against eigvalsh (K1); the scalar posteriors against the notes' prints, I-MMSE, Nishimori and Stein with planted
-violations, sparse denoising against the REM, the REM condensation moments against exact finite-N quadrature and
-sampling (K2); BP and the Bethe free entropy exact on trees and labelled an approximation on loops, the q = 2 Potts
-against the certified `bethe_ising`, the population's homogeneous limits, the exact first moment against brute
-force (K3); q-group BP against `sbm` at q = 2 (no shared code), the computed q = 5 brackets, Ihara-Bass (K4); every
-diluted SE fixed point and the conventions both ways, the Wishart SE against its Gaussian closed form and small
-rectangular AMP, ASP against `sk_1rsb`, the golden pre-K5 values (K5); GAMP against amp/gamp, the LASSO against
-Bayati-Montanari's formulas and coordinate descent, the l1 boundary by two routes, ridge with a covariance against
-HMRT's definitions and all 14 ridge keys (K6); the colorability table, the rigidity scaling, the planted coloring's
-SBM link and small-N counts against the first moment and Bethe (K7), each with planted errors. `--full` adds 258
-`@slow` tests (the KZ series at reference sizes: the q = 5 SBM c_d, c_c by population dynamics, the finite-N BP
-pair, the non-backtracking bank and EM; the colorability, clustering and regular 1RSB tables by population
-dynamics, the planted-BP threshold at N = 5000 and the ER first-order refusal; the KS test of coloring BP on
-graphs; the slow catalog RefCheck over every entry, about 7.5 min; the negative-margin perceptron's RSB ladder: K =
-2 about 30 s per kappa, K = 3 about 7 minutes; full-RSB Parisi up to K = 9, population dynamics at reference sizes,
-the XORSAT GF(2) crossing at N = 400-2000 and leaf removal at N = 100000, the K-SAT SP-population crossing and BP
-window, the LDPC crossing at N = 20000, the spiked AMP and SBM bands at reference sizes, the ridge 1/n bands at n =
-400, 1000, the online ODE-vs-simulation bands at N = 1000 (8 s; linear perceptron 2.3 s; drifting teacher 9 s; TCM
-at N = 3 x 300 4 s, CC95 Fig. 1 and the nonlocal asymptote 8 s; SCM through the plateau at N = 1000 13 s, BRW's Eq.
-(17) and SS's 1/eta law 6 s; VC97's K = M = 2 plateau about 2 min), the I1-I3 lattice checks at larger sizes, the
-ER critical window and the finite-size-scaling validation on the four solved lattices (P1, P2), the k-core second
-routes at extreme parameters (P3), the cluster Monte Carlo at L = 8-32 and the z fits, Wang-Landau at L = 4-16,
-multicanonical and Ferrenberg-Swendsen runs against Kaufman, population annealing at 8 x 8, 16 x 16 and SK N = 18
-(M1-M3), the 2RSB certified bound and the K = 5 chain, the E11 Monte Carlo / enumeration held-out routes (about 4.6
-min), the Hopfield replicon scans, the p-spin T -> 0 energy, solver-based composed and LaTeX checks, a PDF compile
-when a TeX engine is present) and is not yet re-timed after K1-K7 (34 min 39 s with 859 tests, cold, on a clean
-export, before the v1 final fix wave; the K = 3 RSB test alone is about 7 minutes); run it before merging a change
-to a family. The `@slow` marker is honoured by `selftest.py` only: pytest ignores it and would run everything.
-Level agreement between the derivation and the pipelines is a consistency check, not new evidence for the ansatz;
-the cavity route reproducing the replica RS equations is an independent derivation but NOT independent evidence for
-the RS ansatz.
+ACCEPTANCE GATES: `python3 tools/replicant/selftest.py` (default tier: 841 tests, about 61 s (measured 60.57 s and
+60.56 s wall, cold, on a clean export of bcc55fc, under load: load averages 3.5-4.3); the 662 tests of the v1 final
+fix wave measured 30.2 s cold on an idle machine; also `python3 run_selftests.py replicant`, which runs the
+`python3` on PATH; run both from the activated project venv, which has python-flint) covers the core and refusal
+paths, the symbolic derivation against independent expressions, level agreement (a)=(b) for every family where both
+exist, every catalog entry against its banked non-slow values, the cavity routes, the composer and the held-out
+models, the CLI and the LaTeX writer (displayed equations re-checked numerically), the derived replicon (E1) and
+1RSB (E2), AMP / GAMP and state evolution (E3), the 1RSB replicon and the Gardner transition (E4), K-XORSAT and
+K-SAT (closed forms, small-N exact checks, BP on trees, the SP-rule audit, small SP populations), LDPC density
+evolution and small peeling runs, the spiked-Wigner and SBM state evolution / KS line, the ridge closed forms and
+small simulations, the exact series and its operator, the certified lattice values and Guerra bounds, the PT
+detailed-balance gate and exact enumeration (E11), the dense-memory noise by four routes, its exact finite-N
+sampler against the exact REM quadrature of `families/rem.py`, the paper's gradient descent and the single-flip
+dynamics, with planted controls (D1), and the online-learning ODEs, Gaussian averages and a small simulation band
+(O1), the linear perceptron's ODEs, closed forms, offline geometry, ridge route and small online and offline
+simulation bands (O2), the drift flow, the VKC modulations and their class maximisation, VKC's drift-independence
+claim, the KC93 bound for every rule, stationary states and small-drift laws against the bank and a small
+drifting-teacher simulation band (O3), the TCM's internal-representation averages, CC95 Eqs. (5), (21), (24), (30),
+(32) against the TCM route, CKC96's equivalence with O1's noisy perceptron (and a planted wrong mapping failing),
+the asymptotic constants against K and a K = 3 simulation band (O4), the SCM's erf averages against Gauss-Hermite
+(with planted normalisation errors), the papers' fixed points, eigenvalues and critical rates against the ODE, the
+plateau report (escaped, undetermined, none, the rtol check) and a small simulation band with the eta^2 term
+planted out (O5), VC97's Eq. (3) and its gradients against O5's erf route, the closed ODE against quadrature of the
+pointwise modulation, the optimality positive control (perturbed modulations decay slower where H is positive
+definite, one decays faster at the saddle), Fig. 1 and the K = M = 2 plateau against the bank, gradient descent
+beaten, and a tiny simulation band with H misnormalised planted (O6), the 1D observables against exact rings and
+the 2D energy and specific heat against Kaufman-torus derivatives and the E8 series (I1), the correlation length
+against Onsager's strip spectrum and the direct strip matrix, the nu / eta consistency checks and the critical
+diagonal correlations (I2), the anisotropic, triangular and honeycomb free energies by two or three routes, the
+star-triangle and four-sector duality identities on exact tori and the high-temperature torus identity (I3), each
+with planted errors; the percolation fixed points, closed forms and sampled bands (P1), the 2D thresholds,
+exponents, Cardy's two routes, the exact crossing polynomials and Newman-Ziff sweeps against enumeration (P2), the
+k-core and bootstrap fixed points and thresholds against DGM's form, csp/xorsat.py and Balogh-Pittel's closed
+forms, and exact peeling / spreading (P3), each with planted errors; the cluster samplers' stationarity chi^2 and
+ergodicity with measured power and planted errors, Kaufman's polynomial and P2's crossing polynomial as exact
+targets (M1), Wang-Landau against the exact g(E), the multicanonical and Ferrenberg-Swendsen estimates against
+exact values with planted errors of measured power (M2), and population annealing's free energy against Kaufman and
+enumeration, its families and labels and the finite-R bias (M3), and the Krzakala-Zdeborova lecture-notes series:
+Curie-Weiss by three toolboxes with disjoint call graphs and the exact binomial Z_N, the RFIM against exact sorted
+ground states and Guerra's sandwich, the spectra against eigvalsh (K1); the scalar posteriors against the notes'
+prints, I-MMSE, Nishimori and Stein with planted violations, sparse denoising against the REM, the REM condensation
+moments against exact finite-N quadrature and sampling (K2); BP and the Bethe free entropy exact on trees and
+labelled an approximation on loops, the q = 2 Potts against the certified `bethe_ising`, the population's
+homogeneous limits, the exact first moment against brute force (K3); q-group BP against `sbm` at q = 2 (no shared
+code), the computed q = 5 brackets, Ihara-Bass (K4); every diluted SE fixed point and the conventions both ways,
+the Wishart SE against its Gaussian closed form and small rectangular AMP, ASP against `sk_1rsb`, the golden pre-K5
+values (K5); GAMP against amp/gamp, the LASSO against Bayati-Montanari's formulas and coordinate descent, the l1
+boundary by two routes, ridge with a covariance against HMRT's definitions and all 14 ridge keys (K6); the
+colorability table, the rigidity scaling, the planted coloring's SBM link and small-N counts against the first
+moment and Bethe (K7), each with planted errors. `--full` adds 258 `@slow` tests (the KZ series at reference sizes:
+the q = 5 SBM c_d, c_c by population dynamics, the finite-N BP pair, the non-backtracking bank and EM; the
+colorability, clustering and regular 1RSB tables by population dynamics, the planted-BP threshold at N = 5000 and
+the ER first-order refusal; the KS test of coloring BP on graphs; the slow catalog RefCheck over every entry, about
+7.5 min; the negative-margin perceptron's RSB ladder: K = 2 about 30 s per kappa, K = 3 about 7 minutes; full-RSB
+Parisi up to K = 9, population dynamics at reference sizes, the XORSAT GF(2) crossing at N = 400-2000 and leaf
+removal at N = 100000, the K-SAT SP-population crossing and BP window, the LDPC crossing at N = 20000, the spiked
+AMP and SBM bands at reference sizes, the ridge 1/n bands at n = 400, 1000, the online ODE-vs-simulation bands at N
+= 1000 (8 s; linear perceptron 2.3 s; drifting teacher 9 s; TCM at N = 3 x 300 4 s, CC95 Fig. 1 and the nonlocal
+asymptote 8 s; SCM through the plateau at N = 1000 13 s, BRW's Eq. (17) and SS's 1/eta law 6 s; VC97's K = M = 2
+plateau about 2 min), the I1-I3 lattice checks at larger sizes, the ER critical window and the finite-size-scaling
+validation on the four solved lattices (P1, P2), the k-core second routes at extreme parameters (P3), the cluster
+Monte Carlo at L = 8-32 and the z fits, Wang-Landau at L = 4-16, multicanonical and Ferrenberg-Swendsen runs
+against Kaufman, population annealing at 8 x 8, 16 x 16 and SK N = 18 (M1-M3), the 2RSB certified bound and the K =
+5 chain, the E11 Monte Carlo / enumeration held-out routes (about 4.6 min), the Hopfield replicon scans, the p-spin
+T -> 0 energy, solver-based composed and LaTeX checks, a PDF compile when a TeX engine is present) and takes 1099
+tests, about 48 minutes (measured 47 min 37 s wall, cold, on a clean export of bcc55fc, under load: load averages
+3.1 to 8.4 during the run); the K = 3 RSB test alone is about 7 minutes and the slow catalog RefCheck about 7.5;
+run it before merging a change to a family. The `@slow` marker is honoured by `selftest.py` only: pytest ignores it
+and would run everything. Level agreement between the derivation and the pipelines is a consistency check, not new
+evidence for the ansatz; the cavity route reproducing the replica RS equations is an independent derivation but NOT
+independent evidence for the RS ansatz.
 
 KNOWN HAZARDS:
 - Rigor: PHYSICS-LEVEL, not proven, except the certified entries (`ising2d`, `ising1d`,

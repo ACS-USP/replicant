@@ -17,7 +17,7 @@ sys.path.insert(0, os.path.join(HERE, "tests"))
 
 def summary_line(passed, failed, skipped):
     return (f"replicant selftest: {passed} passed, {failed} failed, {skipped} skipped "
-            "(slow; use --full, about 35 minutes on a laptop, measured 34 min 39 s)")
+            "(slow; use --full, about 48 minutes, measured 47 min 37 s on a loaded machine)")
 
 
 def main(argv):

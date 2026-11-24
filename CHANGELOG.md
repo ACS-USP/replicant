@@ -253,7 +253,12 @@ All notable changes to BootLoops are recorded here. The format follows
   K1-K7 entry run literally, the errata of the notes and of the primaries, the KZ-series hazards and what is not
   implemented), README, `tools/README.md`, REFERENCES (each source of the series: read, fetched with its arXiv id, or
   not fetched), the spec's as-built section and the wiki bundle (`docs/wiki/`); `compose.py`'s module docstring
-  (a rigor may be a callable of the values). No number or behaviour changed.
+  (a rigor may be a callable of the values). No number or behaviour changed. Time standard, re-timed on clean
+  `git archive` exports of bcc55fc, cold, on a LOADED machine (the earlier ~30 s and 34 min 39 s were idle-machine
+  figures and are not comparable): default tier 841 tests, 60.57 s and 60.56 s (load averages 3.5-4.3); full tier
+  (`--full`) 1099 tests, 0 failed, 47 min 37 s (load averages 3.1 to 8.4 during the run). Series growth by the
+  per-task same-session baselines: about 6 s for K1-K7 (baseline 752 tests, 54.7-56.6 s at load about 5).
+  `selftest.py`'s summary line and its test (`tests/test_cli.py`) state the new full-tier time.
 - `replicant` (documentation and cleanup, O7): GUIDE (catalog, refusal table, routes, finality notes, hazards,
   every worked example re-run literally on a clean export), README, REFERENCES (every source of the four plans
   classified primary / secondary / abstract only) and the online spec's and three plans' as-built sections updated;

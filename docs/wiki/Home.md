@@ -22,8 +22,8 @@ calculation for a nearby model.
   - `statistical`: sampled values over named seeds.
 - A LaTeX writer that turns any run, refusals included, into a derivation appendix.
 - A battery runner without pytest:
-  - default tier, 841 tests;
-  - `--full` adds 258 `@slow` tests.
+  - default tier, 841 tests, about 61 s (measured under load);
+  - `--full` adds 258 `@slow` tests (1099 in all), about 48 minutes (measured 47 min 37 s under load).
 
 ## Pages
 
@@ -47,7 +47,7 @@ calculation for a nearby model.
 ```bash
 python3 -m venv .venv && source .venv/bin/activate
 pip install mpmath sympy numpy scipy python-flint pytest
-python3 tools/replicant/selftest.py                 # default battery, about 30 s
+python3 tools/replicant/selftest.py                 # default battery, about a minute
 cd tools && python3 -m replicant list               # the 48 catalog entries
 python3 -m replicant run perceptron --param alpha=1.5 --out /tmp/result.json --latex /tmp/p.tex
 ```
