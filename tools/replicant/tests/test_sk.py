@@ -174,3 +174,31 @@ def test_cache_key_ignores_global_precision():
     plain = _key("0.9")
     with mp.workdps(40):             # an earlier test may leave mp.dps raised
         assert _key("0.9") == _key(0.9) == plain
+
+
+def test_catalog_refuses_an_unknown_state_point_ansatz():
+    """sk replica at a beta with ansatz = 2rsb ran no saddle step and returned no values; it is now
+    refused by name.  rs and 1rsb still run."""
+    from replicant.catalog import catalog
+    e = catalog()["sk"]
+    r = _refuses(lambda: e.run(route="replica", beta="2", ansatz="2rsb"), "precondition:known-ansatz")
+    assert "rs | 1rsb" in r.detail
+    assert "q1" in e.run(route="replica", beta="2", ansatz="1rsb") and "q" in e.run(route="replica", beta="2")
+
+
+def test_1rsb_functional_at_q0_zero_matches_an_independent_quadrature():
+    """The h = 0, q0 = 0 candidate of the 1RSB solver: the functional now integrates the kinked inner
+    average on the half line (families/sk.py _rsb_parts_q0_zero) and agrees with an independent mpmath
+    tanh-sinh evaluation to 1e-12 at beta = 2, 2.5, 3.  Control: the generic 80 x 80 Gauss-Hermite path
+    (reached with q0 = 1e-300) is off by more than 1e-7 at beta = 3, so the comparison can fail."""
+    from fractions import Fraction
+
+    from replicant.families import sk
+    from test_guerra import _p1rsb_q0_zero_mp
+    ok2 = lambda v: 1e-7 < v[0] < 1 - 1e-7 and 1e-7 < v[1] < 1
+    for b in (2.0, 2.5, 3.0):
+        q = float(sk._rs_q(sk._key(b), sk._key(0.0)))
+        q1, m = sk._newton(lambda v: sk._rsb_eqs(b, 0.0, 0.0, *v)[1:], (min(1.15 * q, 0.99), 0.5), ok2)
+        ref = _p1rsb_q0_zero_mp(Fraction(b), Fraction(q1), Fraction(m))
+        assert abs(sk._rsb_phi_e(b, 0.0, 0.0, q1, m)[0] - ref) < 1e-12, b
+    assert abs(sk._rsb_phi_e(3.0, 0.0, 1e-300, q1, m)[0] - ref) > 1e-7

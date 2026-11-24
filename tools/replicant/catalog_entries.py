@@ -114,8 +114,17 @@ def rem():
 
 
 # ---- SK ------------------------------------------------------------------------------
+SK_ANSATZE = ("rs", "1rsb")
+
+
 def _ansatz_is(name):
     return lambda p: p.get("beta") is not None and p.get("ansatz", "rs") == name
+
+
+def _sk_unknown_ansatz(p):
+    raise Refusal("precondition:known-ansatz", f"sk replica: ansatz = {p['ansatz']!r}: the state-point saddles "
+                  f"are {' | '.join(SK_ANSATZE)}; K-step RSB and full RSB are the T = 0 ground energies "
+                  "(fullrsb=True, no beta)")
 
 
 def _sk_tc(p):
@@ -158,7 +167,10 @@ def _sk_1rsb(p):
 
 
 def sk():
-    steps = [fstep("sk-critical-temperature", SK_CITE.split(";")[0], _sk_tc,
+    steps = [fstep("sk-ansatz", "Parisi, J. Phys. A 13, L115 (1980) (the RS, 1RSB and K-step ansatze)",
+                   _sk_unknown_ansatz, when=lambda p: p.get("ansatz", "rs") not in SK_ANSATZE,
+                   skip="ansatz rs or 1rsb"),
+             fstep("sk-critical-temperature", SK_CITE.split(";")[0], _sk_tc,
                    when=lacks("beta"), skip="beta given (state point)"),
              fstep("sk-ground-energy", SK_CITE.split(";")[0] + " (RS); Parisi, PRL 43, 1754 "
                    "(1979) (1RSB)", _sk_e0, when=lacks("beta"), skip="beta given (state point)"),

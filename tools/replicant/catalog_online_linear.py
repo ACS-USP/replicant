@@ -14,8 +14,10 @@ Run parameters:
   M, R0, Q0         teacher norm (default 1); initial state (default R0 = 1e-3 M for the optimal rule
                     or the greedy eta, else 0; Q0 = M)
   (no alpha; sphere, eta = 1) asymptote at alpha = 60: rho_inf, eg_inf (KC Eqs. (24), (25)); optimal
-                    at Q0 = M: tail_constant = e^alpha (1 - rho) at alpha = 20 (Eq. (31))
-  (no alpha; optimal, sphere, Q0 = M) alpha_cross: online optimal vs offline standard (KC p. 11)
+                    at Q0 = M: tail_constant = e^alpha (1 - rho) at alpha = 20 (Eq. (31)); an ODE not
+                    converged at alpha = 60 labels asymptote_status undetermined, the asymptote omitted
+  (no alpha; optimal, sphere, Q0 = M) alpha_cross: online optimal vs offline standard (KC p. 11); not
+                    exactly one sign change on the grid labels crossing_status undetermined, alpha_cross omitted
   alpha             the online curve (R, Q, rho, eg, eps_sign) and the offline T = 0 solutions at the
                     same alpha (online/linear_offline.py), with ridge (E7) as a second route for the
                     pseudoinverse
@@ -82,7 +84,14 @@ def _asym_when(p):
 
 def _asymptote(p):
     f = _flow(p)
-    a = L.asymptote(f, _init(p, f))
+    try:
+        a = L.asymptote(f, _init(p, f))
+    except Refusal as r:
+        if r.reason != "undetermined:asymptote":
+            raise
+        why = f"{r.detail}; rho_inf, eg_inf and tail_constant not reported"
+        return Out({"asymptote_status": f"undetermined:asymptote: {why}"}, f"UNDETERMINED asymptote ({why})",
+                   notes=(f"asymptote UNDETERMINED: {why}",))
     vals = {"rho_inf": a.rho, "eg_inf": a.eg, "alpha_big": a.alpha}
     if a.tail is not None:
         vals["tail_constant"] = a.tail
@@ -142,7 +151,14 @@ def _cross_when(p):
 
 
 def _crossing(p):
-    x = OFF.crossing_alpha(_num(p, "M", 1))
+    try:
+        x = OFF.crossing_alpha(_num(p, "M", 1))
+    except Refusal as r:
+        if r.reason != "undetermined:crossing":
+            raise
+        why = f"{r.detail}; alpha_cross not reported"
+        return Out({"crossing_status": f"undetermined:crossing: {why}"}, f"UNDETERMINED crossing ({why})",
+                   notes=(f"crossing UNDETERMINED: {why}",))
     return Out({"alpha_cross": x}, f"rho_online_opt(alpha) = rho_offline_std(alpha) at alpha = {x:.6g}")
 
 
@@ -211,7 +227,7 @@ def online_linear():
            **{f"{q}_offline_{a}": off for q in ("rho", "eg") for a in OFF.ALGORITHMS},
            "rho_offline_optimal_ridge": rid, "eg_pinv_ridge": rid, "eg_sim": sim, "rho_sim": sim}
     meta = ("rule", "constraint", "eta", "M", "R0", "Q0", "alpha", "alpha_big", "closed_form_gap",
-            "ridge_gamma", "eg_sim_halfwidth99", "N", "seeds")
+            "ridge_gamma", "eg_sim_halfwidth99", "N", "seeds", "asymptote_status", "crossing_status")
     hint = "give alpha (the learning curve), or rule = optimal without alpha (the asymptote and the crossing)"
     steps = [*steps, nothing_computed(fin, hint)]
     spec = ModelSpec("online_linear", "spherical", "gaussian", constraint="online", prior="teacher")

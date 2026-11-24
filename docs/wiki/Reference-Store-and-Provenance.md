@@ -43,7 +43,9 @@ Every catalog entry is checked against numbers from the literature. These are ba
 - **Deterministic keys**: `refdata.check` accepts `got` within `tol` of the main value or of any
   `sources_disagree` value.
 - **Statistical keys**: the band is `t(0.995, runs - 1) * hypot(stderr, tol)`, a 99% Student-t
-  band, plus an optional systematic term.
+  band, plus an optional systematic term. The percolation finite-size-scaling checks put a bootstrap
+  standard deviation in the stderr slot. Their "99%" is therefore nominal: the band has no exact
+  coverage.
 - A reference quantity missing from the run's values is refused with
   `precondition:reference-quantity`.
 

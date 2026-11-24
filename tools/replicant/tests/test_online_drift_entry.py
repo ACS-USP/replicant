@@ -92,3 +92,19 @@ def test_guide_is_true():
     v = e.run(route="online", D="0.01", drift="deterministic")
     assert f"`eps_inf` {v['eps_inf']:.6f}" in guide and f"`eps_inf_kc93` {v['eps_inf_kc93']:.6f}" in guide
     assert "`drift.stationary(drift.drift_flow(\"optimal\", D=0.1)).eps` -> 0.195856" in guide
+
+
+def test_undetermined_small_drift_is_labelled_not_refused():
+    """AdaTron at eta = 10: the log-slope of eps_inf between D = 1e-12 and 1e-11 is 0, not the derived
+    1/delta = 1/3, so small_drift_status is undetermined and eps_exponent / eps_coefficient are omitted;
+    the run is not refused.  The library function still refuses by name; eta = 1 is determined."""
+    from replicant.online import drift as DR
+    e = catalog()["online_drift"]
+    res = compose(e.spec, "online").run(rule="adatron", eta="10")
+    v = res.values
+    assert v["small_drift_status"].startswith("undetermined:small-drift: adatron/random")
+    assert "eps_exponent" not in v and "eps_coefficient" not in v
+    assert any("small-drift law UNDETERMINED" in n for n in res.notes)
+    _refuses(lambda: DR.small_drift("adatron", "random", eta=10.0), "undetermined:small-drift")
+    v = compose(e.spec, "online").run(rule="adatron").values
+    assert abs(v["eps_exponent"] - 1 / 3) < 0.01 and "small_drift_status" not in v

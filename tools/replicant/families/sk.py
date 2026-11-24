@@ -35,6 +35,9 @@ order parameters (at h = 0 this is a q0 > 0 point, above the q0 = 0 one).
 The grid is checked against 160 x 160 nodes: at beta = 2 everything agrees to
 ~1e-11, at beta = 3 f to ~2e-10 and (q0, q1, m) to ~1e-6; beta > 3 is refused
 (the y-integrand gets too sharp).  The T = 0 1RSB uses 200 Hermite nodes.
+The q0 = 0 candidate at h = 0 is evaluated on the half line instead (_rsb_parts_q0_zero): there the
+outer average is trivial and the inner one's kink at y = 0 cost the Hermite grid up to 3.8e-6 at
+beta = 3; the half-line form agrees with an independent mpmath quadrature to ~1e-13.
 
 Honest label: the n -> 0 continuation and the RS/1RSB ansatze are
 physics-level (Parisi), not proven; the numbers carry quadrature error only.
@@ -156,7 +159,33 @@ def _lncosh(u):   # ln cosh u, overflow-safe
     return a + np.log1p(np.exp(-2 * a)) - math.log(2)
 
 
+_GL_X, _GL_W = np.polynomial.legendre.leggauss(200)
+
+
+def _rsb_parts_q0_zero(b, q1, m):
+    """_rsb_parts at h = q0 = 0, where the outer Gaussian is trivial and the inner one has a kink of
+    |y| at y = 0 that Gauss-Hermite does not resolve (the GUIDE's hazard: 3.8e-6 at beta = 3).  By
+    symmetry the inner average is twice the half line z > 0; there cosh^m(b s z) phi(z) =
+    e^{c^2/2} phi(z - c) 2^{-m} (1 + e^{-2 b s z})^m with c = m b s, s = sqrt(q1), a smooth integrand,
+    integrated by 200-point Gauss-Legendre on [0, c + 14] (the Gaussian tail beyond is below 1e-40)."""
+    s = math.sqrt(q1)
+    c = m * b * s
+    top = c + 14.0
+    z = (_GL_X + 1) * top / 2
+    w = _GL_W * top / 2
+    u = b * s * z
+    f = w * np.exp(m * np.log1p(np.exp(-2 * u)) - m * math.log(2) - (z - c) ** 2 / 2) / math.sqrt(2 * math.pi)
+    Z = 2 * f.sum()
+    t = np.tanh(u)
+    av = lambda g: 2 * (f * g).sum() / Z           # even g only; the odd average of tanh is 0
+    one = np.ones(len(_X))
+    return ((math.log(Z) + c * c / 2) * one, 0.0 * one, av(t * t) * one, av(_lncosh(u)) * one,
+            av(t * s * z) * one)
+
+
 def _rsb_parts(b, h, q0, q1, m):
+    if h == 0 and q0 == 0:
+        return _rsb_parts_q0_zero(b, q1, m)
     y = h + math.sqrt(q0) * _X[:, None] + math.sqrt(q1 - q0) * _X[None, :]
     lc, t = _lncosh(b * y), np.tanh(b * y)
     L = m * lc

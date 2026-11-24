@@ -10,7 +10,9 @@ Run parameters:
   rule              optimal (default) | annealed_hebb | step | symmetric (VKC Eqs. (22)-(25), each optimal
                     in its information class, drift_rules.VKC_CLASS) | hebb | perceptron | adatron (O1)
   drift             random (default) | deterministic
-  D                 the drift rate; without D: the small-drift law eps_inf ~ c D^(1/delta) (noise = 0)
+  D                 the drift rate; without D: the small-drift law eps_inf ~ c D^(1/delta) (noise = 0); a
+                    log-slope off the derived 1/delta (adatron at eta = 10) labels small_drift_status
+                    undetermined, eps_exponent and eps_coefficient omitted
   eta, noise        learning rate (O1 rules; the optimal and VKC rules need 1) and flip probability;
                     noise_estimate: the noise the optimal rule assumes
   R0, Q0            initial state (default R0 = 0.01 for the rules that read rho, else 0; Q0 = 1)
@@ -88,7 +90,14 @@ def _small_when(p):
 
 
 def _small(p):
-    sd = DR.small_drift(p.get("rule", "optimal"), p.get("drift", "random"), eta=_num(p, "eta", 1))
+    try:
+        sd = DR.small_drift(p.get("rule", "optimal"), p.get("drift", "random"), eta=_num(p, "eta", 1))
+    except Refusal as r:
+        if r.reason != "undetermined:small-drift":
+            raise
+        why = f"{r.detail}; eps_exponent and eps_coefficient not reported"
+        return Out({"small_drift_status": f"undetermined:small-drift: {why}"}, f"UNDETERMINED small-drift law ({why})",
+                   notes=(f"small-drift law UNDETERMINED: {why}",))
     return Out({"eps_exponent": sd.exponent, "eps_exponent_derived": sd.exponent_derived,
                 "eps_coefficient": sd.coefficient},
                f"eps_inf at D = {sd.Ds}: {sd.eps}; log-slope {sd.exponent:.6f} (derived 1/delta = "
@@ -187,7 +196,7 @@ def online_drift():
            **{k: small for k in ("eps_exponent", "eps_coefficient")}, "eps_inf_closed": closed,
            "eps_inf_kc93": kc, "eps_sim": sim}
     meta = ("rule", "drift", "D", "eta", "noise", "R0", "Q0", "alpha", "bound_gap", "closed_form_gap",
-            "eps_exponent_derived", "eps_sim_halfwidth99", "N", "seeds", "sim_status")
+            "eps_exponent_derived", "eps_sim_halfwidth99", "N", "seeds", "sim_status", "small_drift_status")
     hint = "give alpha (the learning curve) or a drift D > 0 (the stationary state and the small-drift law)"
     steps = [*steps, nothing_computed(fin, hint)]
     spec = ModelSpec("online_drift", "spherical", "gaussian", constraint="online", prior="teacher")

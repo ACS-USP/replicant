@@ -163,8 +163,8 @@ def _p1rsb_q0_zero_mp(beta, q1, m, dps=30):
 def test_planted_evaluator_error_is_detected():
     """The nested evaluator's innermost exponent planted (cosh^{1.01 m}): the chain's functional
     comparison catches it.  Cheap point q0 = 0 (the outer Gaussian is trivial); the reference is an
-    independent mpmath evaluation (the package's float64 functional is only good to ~7e-10 at this
-    off-optimum point: families/sk.py _rsb_phi_e gives 1.5962745995322627 vs 1.59627459887046...)."""
+    independent mpmath evaluation (the package's float64 functional, before its half-line q0 = 0
+    evaluator, was off by ~7e-10 at this point: 1.5962745995322627 vs 1.59627459887046...)."""
     from replicant.bounds import check_bound_chain, krsb, package_values
     rs = package_values(2, K=1)[0]
     pt = rs.replace(level=1, qs=(0, Fraction(3, 5)), ms=(Fraction(1, 2),),

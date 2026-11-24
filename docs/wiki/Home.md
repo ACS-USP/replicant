@@ -22,7 +22,7 @@ calculation for a nearby model.
   - `statistical`: sampled values over named seeds.
 - A LaTeX writer that turns any run, refusals included, into a derivation appendix.
 - A battery runner without pytest:
-  - default tier, 748 tests;
+  - default tier, 752 tests;
   - `--full` adds 231 `@slow` tests.
 
 ## Pages

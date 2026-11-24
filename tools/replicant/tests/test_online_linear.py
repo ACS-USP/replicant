@@ -5,7 +5,8 @@ Kinouchi & Caticha, Phys. Rev. E 52, 2878 (1995) (KC95; read from the preprint I
 components, linear outputs b = B . xi and h = J . xi, update J <- (1 - Omega/N) J + (eta/N) F xi,
 R = J . B, Q = J . J, rho = R / sqrt(Q M), e_g = <(b - h)^2> / 2 = (M + Q - 2R) / 2 (KC Eq. (4)),
 alpha = examples / N.  constraint "sphere" holds Q fixed through Omega (KC Eq. (8));
-"none" is Omega = 0.  Bank: reference/online_linear.json.
+"none" is Omega = 0.  Bank: reference/online_linear.json.  The catalog entry, its refusals and the
+GUIDE rows are in test_online_linear_entry.py.
 """
 import ast
 import math
@@ -17,8 +18,6 @@ from pathlib import Path
 import numpy as np
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-from replicant.catalog import catalog, check_ref, run_cached
-from replicant.compose import compose
 from replicant.core import Refusal
 from replicant.learning import ridge
 from replicant.online import linear as L
@@ -324,79 +323,3 @@ def test_ode_vs_simulation_band_large_n():
         print(f"{rule}/{cons}/eta={eta}: sim {sim.band.mean:.5f} +- {sim.band.half_width:.5f} ode "
               f"{ode:.5f} planted {bad:.5f} ({abs(bad - sim.band.mean) / sim.band.half_width:.1f} hw)")
         assert abs(bad - sim.band.mean) > 2 * sim.band.half_width
-
-
-# ---- refusals ----------------------------------------------------------------------------------
-def test_refusals():
-    _refuses(lambda: L.linear_flow("hebb"), "unsupported:rule")
-    _refuses(lambda: L.linear_flow("standard", eta=0), "precondition:eta")
-    _refuses(lambda: L.linear_flow("standard", eta="fast"), "precondition:eta")
-    _refuses(lambda: L.linear_flow("optimal", eta=0.5), "precondition:optimal-eta")
-    _refuses(lambda: L.linear_flow("optimal", eta="greedy"), "precondition:optimal-eta")
-    _refuses(lambda: L.linear_flow("standard", constraint="ball"), "precondition:constraint")
-    _refuses(lambda: L.linear_flow("standard", M=0), "precondition:teacher-norm")
-    _refuses(lambda: L.linear_flow("standard", averages="mc"), "precondition:averages")
-    f = L.linear_flow("standard", constraint="sphere")
-    _refuses(lambda: L.integrate_linear(f, 1.0), "precondition:state-point")
-    _refuses(lambda: L.integrate_linear(f, 1.0, (0.0, 0.0)), "precondition:initial-overlap")
-    _refuses(lambda: L.integrate_linear(f, 1.0, (2.0, 1.0)), "precondition:initial-overlap")
-    _refuses(lambda: L.integrate_linear(f, -1.0, (0.0, 1.0)), "precondition:alpha")
-    _refuses(lambda: L.integrate_linear(L.linear_flow("optimal"), 1.0, (0.0, 1.0)),
-             "precondition:initial-overlap")
-    _refuses(lambda: L.integrate_linear(L.linear_flow("standard", eta="greedy"), 1.0, (0.0, 0.0)),
-             "precondition:initial-overlap")
-    _refuses(lambda: OFF.offline(0.5, "adaline"), "unsupported:algorithm")
-    _refuses(lambda: OFF.offline(0, "standard"), "precondition:alpha")
-    _refuses(lambda: OFF.offline(0.5, "standard", M=1, Q=0.25), "precondition:offline-window")
-    _refuses(lambda: OFF.offline(0.5, "standard", constraint="ball"), "precondition:constraint")
-
-
-def test_catalog_entry_runs_and_refuses():
-    e = catalog()["online_linear"]
-    v = run_cached(e, "online", {})[0]                           # every default (generic tables)
-    assert v["rule"] == "optimal" and v["constraint"] == "sphere"
-    v = e.run(route="online", alpha="0.5")
-    assert abs(v["rho"] - math.sqrt(1 - math.exp(-0.5))) < 1e-5
-    assert abs(v["rho_offline_standard"] - 0.5) < 1e-12 and abs(v["rho_offline_optimal_ridge"]
-                                                                - math.sqrt(0.5)) < 1e-12
-    assert not e.finality["rho"].final and not e.finality["rho_offline_optimal"].final
-    _refuses(lambda: compose(e.spec, "online").run(rul="optimal"), "precondition:known-parameter")
-    _refuses(lambda: e.run(route="online", rule="standard", eta="greedy", constraint="none",
-                           R0=0, Q0=0, alpha=1), "precondition:initial-overlap")
-    _refuses(lambda: e.run(route="online", rule="hebb"), "unsupported:rule")
-    _refuses(lambda: e.run(route="online", constraint="ball"), "precondition:constraint")
-    _refuses(lambda: e.run(route="online", rule=lambda b, h, Q, R: b - h), "unsupported:rule")
-    for ref in e.refs[:2]:                     # test_catalog checks all 13 in the default tier
-        out = check_ref(e, ref)
-        assert out.ok, out
-
-
-def test_guide_is_true():
-    """The GUIDE's online_linear rows: every refusal reason listed is raised by the code, and the
-    worked example's numbers are what the CLI prints."""
-    import io
-    import json
-
-    from replicant.cli import main
-    root = Path(__file__).resolve().parent.parent
-    guide = (root / "GUIDE.md").read_text()
-    assert "| `online_linear`" in guide and "`online_linear` (online): `rule`" in guide
-    code = "".join(p.read_text() for p in [*(root / "online").glob("linear*.py"),
-                                           root / "online" / "simulate_linear.py",
-                                           root / "catalog_online_linear.py"])
-    for reason in ("unsupported:rule", "unsupported:algorithm", "precondition:eta",
-                   "precondition:optimal-eta", "precondition:constraint", "precondition:teacher-norm",
-                   "precondition:averages", "precondition:state-point", "precondition:initial-overlap",
-                   "precondition:alpha", "precondition:asymptote", "precondition:offline-window",
-                   "undetermined:asymptote", "undetermined:crossing", "no-solution:rho-zero",
-                   "precondition:method", "undetermined:descent"):
-        assert f'"{reason}"' in code, reason
-    out = io.StringIO()
-    assert main(["run", "online_linear", "--route", "online", "--param", "alpha=0.5"], out,
-                io.StringIO()) == 0
-    v = json.loads(out.getvalue())["values"]
-    assert "alpha_cross" not in v and "rho_inf" not in v
-    v.update(run_cached(catalog()["online_linear"], "online", {})[0])     # the run without alpha
-    for key, fmt in (("rho", ".6f"), ("gamma_temperature", ".6f"), ("alpha_cross", ".6f"),
-                     ("rho_offline_optimal_ridge", ".6f"), ("tail_constant", ".7f")):
-        assert f"`{key}` {v[key]:{fmt}}" in guide, (key, v[key])

@@ -6,6 +6,17 @@ All notable changes to BootLoops are recorded here. The format follows
 
 ## Unreleased
 
+### Fixed
+- `replicant`: `online_linear` (asymptote, crossing) and `online_drift` (small-drift law) no longer refuse a run
+  whose diagnostic cannot decide; they label `asymptote_status`, `crossing_status`, `small_drift_status`
+  undetermined and omit the value, as `online_tcm` and `online_scm` already did (the library functions still
+  refuse by name). `sk` replica at a beta with an ansatz other than rs / 1rsb (e.g. `2rsb`), which ran no saddle
+  and returned no values, is refused `precondition:known-ansatz`. `families/sk.py` evaluates the h = q0 = 0
+  1RSB candidate on the half line (Gauss-Legendre), removing the Gauss-Hermite kink error (3.8e-6 at beta = 3,
+  now ~1e-13 against an independent mpmath quadrature); no selected result changes. Tests: four new, and
+  `test_online_linear.py` / `test_lattice_geom.py` split (`test_online_linear_entry.py`,
+  `test_lattice_geom_entries.py`) under the ~400-line convention; default tier 752 tests.
+
 ### Added
 - `replicant` (pinned directions): the perceptron family with fixed external directions at level (a), the joint
   pair problem of random documents (maximal margin of a pair {i, j} of unit vectors of overlap c against n - 2
