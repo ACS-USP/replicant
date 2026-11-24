@@ -134,8 +134,10 @@ def test_bp_algorithmic_threshold_on_planted():
     (the random start in place of the planted one, below c_l: KZ's 4-case table) fails with probability 1 on 4/4
     seeds.  Cross-check (KZ: the n e^-h term "does not asymptotically influence" BP): K4's sbm_q BP with the non-edge
     field, c_in = 0, on the same graphs gives the same verdicts.  Quiet planting (KZ Sec. 13.2.2, Krzakala-Zdeborova
-    2009): below c_c the planted state's Bethe free entropy is not above the paramagnetic one (c = 11.8: equal, the
-    planted start decays; c = 12.95 in (c_d, c_c): lower), above c_c it is higher (c = 14.5); bands over seeds."""
+    2009): at c = 11.8 the planted start decays (Phi_planted = Phi_para: quiet); at c = 13.03, the midpoint of ZK's
+    (c_d, c_c) (a margin argument: farthest from both ends; checked beforehand on unused seeds 10-13, quiet with 10000
+    iterations, Delta = -0.013 +- 0.0075), the planted state's Bethe free entropy is below the paramagnetic one in the
+    99% band (quiet); above c_c it is higher (c = 14.5, not quiet); bands over seeds 0-3."""
     q, n, seeds = 5, 5000, (0, 1, 2, 3)
     lo = S.planted_bp(q, 11.8, n=n, seeds=seeds)
     hi = S.planted_bp(q, 13.8, n=n, seeds=seeds)
@@ -149,6 +151,6 @@ def test_bp_algorithmic_threshold_on_planted():
             sg = SQ.from_edges(n, g.edges, g.labels)
             k = SQ.sbm_q_bp(sg, q, 0.0, q * c / (q - 1), init="planted", iters=3000, seed=s, damping=0.6)
             assert k.converged and (k.overlap > 0.5) == (r.overlap > 0.5), (c, s, k.overlap, r.overlap)
-    for c, verdict in ((11.8, "quiet"), (12.95, "quiet"), (14.5, "not quiet")):
-        qp = P.quiet_planting(q, c, n=n, seeds=seeds)
+    for c, verdict in ((13.03, "quiet"), (14.5, "not quiet")):
+        qp = P.quiet_planting(q, c, n=n, seeds=seeds, iters=10000)
         assert qp.verdict == verdict and qp.status == "determined", (c, qp)

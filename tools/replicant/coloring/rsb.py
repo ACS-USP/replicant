@@ -24,16 +24,16 @@ graph.  The populations are in coloring/rsb_pop.py.
   rigidity_corrections(q) -> {"leading": q ln q (the notes' stated form), "zk_eq44": q (ln q + ln ln q + 1) (ZK
       Eq. (44), the next terms, labelled)}.
   clustering_threshold(q, graph, seeds, ...) / condensation_threshold(q, graph, seeds, ...) -> Threshold:
-      regular: the smallest integer d whose m = 1 population from the frozen start is nontrivial on every seed
-      (c_d), and the smallest nontrivial d with Sigma(m = 1) < 0 in the 99% band over seeds (c_c) -- ZK's integer
-      definitions (Table I).  ER: the growth factor per sweep of the trivial m = 1 solution from a small tilt (two
-      degrees 0.9 and 1.1 (q - 1)^2, linear interpolation to 1 per seed) gives the instability point c_inst; if the
-      frozen start decays at 0.95 c_inst on every seed the transition is continuous (c_d = c_inst); otherwise
-      first-order, c_d by `steps` bisections of (0.5 c_inst, 0.95 c_inst).  c_c: continuous -> c_d when the frozen
-      start at 1.15 c_inst is nontrivial with Sigma(1) < 0 in the band (ZK: "c_RS = c_d = c_c = 4" at q = 3);
-      first-order -> the zero of Sigma(1) by bisection on (c_d, c_inst).  A decision that is not resolved (seeds
-      disagree, a band straddles 0, a population drifts) gives status "undetermined" with the reason, never a
-      refusal (the ruling for clustering / condensation points).
+      every decision uses converged runs only (rsb_pop phases: trivial / nontrivial / undetermined; an undetermined
+      or disagreeing decisive run makes the threshold undetermined, never refused).  regular: scanning down from the
+      first uncolorable degree, c_d = the smallest d whose m = 1 frozen start is nontrivial on every seed with d - 1
+      trivial on every seed, c_c = the smallest nontrivial d with Sigma(m = 1) < 0 in the 99% band over seeds, every
+      smaller nontrivial d resolved > 0 -- ZK's integer definitions (Table I).  ER: the growth factor per sweep of the
+      trivial m = 1 solution from a small tilt (degrees 0.8 and 1.2 (q - 1)^2, interpolated to 1 per seed) gives
+      c_inst; if the frozen start is trivial at 0.95 c_inst on every seed the transition is continuous, c_d = c_inst;
+      c_c is not located (Sigma(1) -> 0 at c_inst): only the bound c_c <= 1.15 c_inst when Sigma(1) < 0 is resolved
+      there (kind "upper-bound", status undetermined).  A frozen start nontrivial at 0.95 c_inst (first-order) is
+      refused, unsupported:er-first-order (not implemented; the sbm entry at c_in = 0 covers it).
 _HOOKS["children"] (1: d - 1 incoming messages; planted error 0 uses d) and _HOOKS["er_rate"] (1.0: the factor on
 the Poisson mean; planted error 0.8 = (q - 1)/q at q = 5 reads the mean degree c as c_out = q c/(q - 1)).
 """
@@ -208,13 +208,22 @@ def _m1(q, x, graph, seed, pop, sweeps, measure, init="frozen"):
     return RP.coloring_1rsb(q, x, 1, graph=graph, pop=pop, sweeps=sweeps, measure=measure, seed=seed, init=init)
 
 
+def _verdict(runs):
+    """'trivial' / 'nontrivial' when every run is converged and agrees, else 'undetermined' with the phases."""
+    ph = {r.phase for r in runs}
+    return (ph.pop(), "") if len(ph) == 1 and "undetermined" not in ph else \
+        ("undetermined", "phases " + ", ".join(r.phase + (f" ({r.note})" if r.note else "") for r in runs))
+
+
 def _regular_scan(q, seeds, pop, sweeps, measure):
-    """{d: [runs]} at m = 1 from the frozen start, downward from the first uncolorable degree until trivial."""
+    """{d: (verdict, why, runs)} at m = 1 from the frozen start, downward from the first uncolorable degree until a
+    degree that is not nontrivial."""
     d = colorability_threshold(q, "regular").d_uncol
     out = {}
     while d >= 3:
-        out[d] = [_m1(q, d, "regular", s, pop, sweeps, measure) for s in seeds]
-        if not any(r.nontrivial for r in out[d]):
+        runs = [_m1(q, d, "regular", s, pop, sweeps, measure) for s in seeds]
+        out[d] = _verdict(runs) + (runs,)
+        if out[d][0] != "nontrivial":
             break
         d -= 1
     return out
@@ -237,50 +246,29 @@ def _er_instability(q, seeds):
     return est
 
 
-def _er_cd(q, seeds, pop, sweeps, measure, steps):
-    est = _er_instability(q, seeds)
-    if not all(math.isfinite(e) for e in est):
-        return Threshold(q, "er", math.nan, "continuous", "undetermined", "the tilt did not grow or decay cleanly"), est
-    ci = float(np.mean(est))
-    probe = [_m1(q, 0.95 * ci, "er", s, pop, sweeps, measure) for s in seeds]
-    if not any(r.nontrivial for r in probe):
-        b = student_band(est)
-        return Threshold(q, "er", b.mean, "continuous", "determined", f"the frozen start decays at 0.95 c_inst = "
-                         f"{0.95 * ci:.4g} on every seed; c_d = c_inst (growth factor 1), 99% half-width "
-                         f"{b.half_width:.3g} over seeds {tuple(seeds)} (statistical)", tuple(est)), est
-    if not all(r.nontrivial for r in probe):
-        return Threshold(q, "er", math.nan, "first-order", "undetermined", "the seeds disagree at 0.95 c_inst"), est
-    vals = []
-    for s in seeds:
-        lo, hi = 0.5 * ci, 0.95 * ci
-        for _ in range(steps):
-            mid = (lo + hi) / 2
-            lo, hi = (lo, mid) if _m1(q, mid, "er", s, pop, sweeps, measure).nontrivial else (mid, hi)
-        vals.append((lo + hi) / 2)
-    b = student_band(vals)
-    return Threshold(q, "er", b.mean, "first-order", "determined", f"bisection of the frozen start, 99% "
-                     f"half-width {b.half_width:.3g} (finite sweeps bias c_d low near the spinodal)", tuple(vals)), est
-
-
 def _sigma_band(runs):
+    """The 99% band of Sigma(1) over the runs; (nan, nan) -- never resolved -- unless every run is converged."""
+    if any(r.status != "converged" for r in runs):
+        return math.nan, math.nan
     b = student_band([r.sigma for r in runs])
     return b.mean - b.half_width, b.mean + b.half_width
 
 
 def _regular(q, seeds, pop, sweeps, measure):
     scan = _regular_scan(q, seeds, pop, sweeps, measure)
-    nontriv = [d for d, rs in scan.items() if all(r.nontrivial for r in rs)]
-    mixed = [d for d, rs in scan.items() if any(r.nontrivial for r in rs) and not all(r.nontrivial for r in rs)]
     und = lambda why: Threshold(q, "regular", math.nan, "integer", "undetermined", why)
-    if mixed or not nontriv:
-        why = f"seeds disagree at d = {mixed}" if mixed else "no nontrivial m = 1 solution up to d_uncol"
+    low = min(scan)
+    if scan[low][0] != "trivial":
+        why = f"d = {low}: {scan[low][1] or scan[low][0]} (no trivial degree below the nontrivial ones)"
         return und(why), und(f"c_d undetermined: {why}")
-    dd = min(nontriv)
-    cd = Threshold(q, "regular", dd, "integer", "determined", f"m = 1 frozen start trivial at d = {dd - 1}, "
-                   f"nontrivial at d = {dd} on seeds {tuple(seeds)}")
+    dd = low + 1
+    if dd not in scan:
+        return und("the first uncolorable degree is already trivial"), und("c_d undetermined")
+    cd = Threshold(q, "regular", dd, "integer", "determined", f"m = 1 frozen start trivial at d = {low}, nontrivial "
+                   f"(stationary) at d = {dd} on seeds {tuple(seeds)}")
     for d in sorted(x for x in scan if x >= dd):
-        lo, hi = _sigma_band(scan[d])
-        if any(r.status != "converged" for r in scan[d]) or lo <= 0 <= hi:
+        lo, hi = _sigma_band(scan[d][2])
+        if not lo <= hi or lo <= 0 <= hi:
             return cd, und(f"Sigma(m = 1) at d = {d}: 99% band ({lo:.3g}, {hi:.3g}) not resolved")
         if hi < 0:
             return cd, Threshold(q, "regular", d, "integer", "determined", f"Sigma(m = 1) < 0 first at d = {d}: "
@@ -288,37 +276,46 @@ def _regular(q, seeds, pop, sweeps, measure):
     return cd, und("Sigma(m = 1) >= 0 up to d_uncol")
 
 
-def _er(q, seeds, pop, sweeps, measure, steps):
-    cd, est = _er_cd(q, seeds, pop, sweeps, measure, steps)
-    if cd.status != "determined":
-        return cd, Threshold(q, "er", math.nan, cd.kind, "undetermined", f"c_d undetermined: {cd.note}")
+def _er(q, seeds, pop, sweeps, measure):
+    """ER: the continuous case only.  c_d = c_inst when the frozen start is trivial at 0.95 c_inst on every seed; c_c
+    is NOT located (Sigma(m = 1) vanishes at c_inst, so its sign just above cannot be resolved): only the upper
+    bound c_c <= 1.15 c_inst when Sigma(1) < 0 is resolved there.  A nontrivial probe (first-order) is refused."""
+    est = _er_instability(q, seeds)
+    und = lambda why, kind="continuous": Threshold(q, "er", math.nan, kind, "undetermined", why)
+    if not all(math.isfinite(e) for e in est):
+        why = "the tilt did not grow or decay cleanly"
+        return und(why), und(why)
     ci = float(np.mean(est))
-    if cd.kind == "continuous":
-        runs = [_m1(q, 1.15 * ci, "er", s, pop, sweeps, measure) for s in seeds]
-        lo, hi = _sigma_band(runs)
-        ok = all(r.nontrivial and r.status == "converged" for r in runs) and hi < 0
-        return cd, Threshold(q, "er", cd.value if ok else math.nan, "continuous", "determined" if ok else
-                             "undetermined", f"Sigma(m = 1) at 1.15 c_inst = {1.15 * ci:.4g}: 99% band ({lo:.3g}, "
-                             f"{hi:.3g}); c_c = c_d " + ("(resolved)" if ok else "NOT resolved"), cd.estimates)
-    vals = []
-    for s in seeds:
-        lo, hi = cd.value, ci
-        for _ in range(steps):
-            mid = (lo + hi) / 2
-            r = _m1(q, mid, "er", s, pop, sweeps, measure)
-            lo, hi = (mid, hi) if r.nontrivial and r.sigma > 0 else (lo, mid)
-        vals.append((lo + hi) / 2)
-    b = student_band(vals)
-    return cd, Threshold(q, "er", b.mean, "first-order", "determined", f"zero of Sigma(m = 1) by bisection, 99% "
-                         f"half-width {b.half_width:.3g}", tuple(vals))
+    # below c_d the trivial solution attracts by 0.95 per sweep at 0.95 c_inst: a decade between the first and last
+    # fifths of the window (0.8 measure sweeps apart) needs measure >= ln 10 / (0.8 ln(1/0.95)) = 56; take 2 x measure
+    probe_pop = pop if pop is not None else (200, 200)
+    verdict, why = _verdict([_m1(q, 0.95 * ci, "er", s, probe_pop, 2 * sweeps, 2 * measure) for s in seeds])
+    if verdict == "nontrivial":
+        raise Refusal("unsupported:er-first-order", f"q = {q}: the frozen start stays nontrivial at 0.95 c_inst = "
+                      f"{0.95 * ci:.4g} (a first-order clustering transition); the ER first-order 1RSB path is not "
+                      "implemented here (the sbm entry at c_in = 0 locates c_d, c_c by K4's planted population)")
+    if verdict == "undetermined":
+        return und(f"probe at 0.95 c_inst: {why}"), und("c_d undetermined")
+    b = student_band(est)
+    cd = Threshold(q, "er", b.mean, "continuous", "determined", f"the frozen start decays to the trivial solution at "
+                   f"0.95 c_inst = {0.95 * ci:.4g} on every seed; c_d = c_inst (growth factor 1), 99% half-width "
+                   f"{b.half_width:.3g} over seeds {tuple(seeds)} (statistical)", tuple(est))
+    runs = [_m1(q, 1.15 * ci, "er", s, pop, sweeps, measure) for s in seeds]
+    lo, hi = _sigma_band(runs)
+    verdict, why = _verdict(runs)
+    ok = verdict == "nontrivial" and hi < 0
+    return cd, Threshold(q, "er", 1.15 * ci if ok else math.nan, "upper-bound", "undetermined",
+                         f"c_c NOT located: Sigma(m = 1) at 1.15 c_inst = {1.15 * ci:.4g}: 99% band ({lo:.3g}, "
+                         f"{hi:.3g}) {'< 0, so c_d <= c_c <= ' + format(1.15 * ci, '.4g') if ok else why or 'unresolved'}",
+                         tuple(r.sigma for r in runs))
 
 
-def cluster_thresholds(q, graph="regular", *, seeds=(0, 1, 2, 3), pop=None, sweeps=150, measure=60, steps=6):
+def cluster_thresholds(q, graph="regular", *, seeds=(0, 1, 2, 3), pop=None, sweeps=150, measure=60):
     """(c_d, c_c) as Thresholds, from one set of population runs."""
     q, graph = _q3(q), _graph(graph)
     if graph == "regular":
         return _regular(q, tuple(seeds), pop, sweeps, measure)
-    return _er(q, tuple(seeds), pop, sweeps, measure, steps)
+    return _er(q, tuple(seeds), pop, sweeps, measure)
 
 
 def clustering_threshold(q, graph="regular", **kw):

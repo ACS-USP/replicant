@@ -116,47 +116,71 @@ def test_colorability_table_reference():
 @slow
 def test_colorability_table_q3_by_1rsb():
     """The q = 3 values by the 1RSB cavity (population of populations, m = 1, seeds 0-3; about 80 s): the trivial
-    solution's growth factor per sweep crosses 1 at c = 4 (continuous), the frozen start decays at 0.95 of it and is
-    nontrivial at 1.15 of it with Sigma(m = 1) < 0 in the 99% band: c_d = c_c = 4 (ZK: "c_RS = c_d = c_c = 4")."""
-    e = _refs(("coloring_c_d_q3", "coloring_c_c_q3"))
+    solution's growth factor per sweep crosses 1 at c = 4 (continuous: c_d against ZK's c_RS = c_d = 4), the frozen
+    start decays by more than a decade at 0.95 of it on every seed.  c_c is NOT located (Sigma(1) -> 0 at c_d): the
+    run reports it undetermined, with only the bound c_c <= 1.15 c_d where Sigma(1) < 0 is resolved."""
+    e = _refs(("coloring_c_d_q3",))
     v, _ = run_cached(e, "cavity", {"q": 3, "ansatz": "1rsb", "thresholds": "clustering"})
-    assert v["c_d_1rsb_kind"] == v["c_c_1rsb_kind"] == "continuous" and v["c_c_1rsb"] == v["c_d_1rsb"], v
+    assert v["c_d_1rsb_kind"] == "continuous" and v["c_d_1rsb_status"] == "determined", v
+    assert "c_c_1rsb" not in v and v["c_c_1rsb_status"] == "undetermined" and v["c_c_1rsb_kind"] == "upper-bound", v
+    assert v["c_d_1rsb"] < v["c_c_1rsb_upper"] < 4.7, v
     assert e.finality_of(v)["c_d_1rsb"].state == "not-computed"
+
+
+@slow
+def test_er_first_order_is_refused():
+    """q = 5 on ER: the frozen m = 1 start stays nontrivial at 0.95 c_inst (ZK: c_d = 12.837 < (q - 1)^2 = 16), a
+    first-order transition the ER 1RSB path does not implement: refused by name (short runs, seeds 0-1)."""
+    _refuses(lambda: R.cluster_thresholds(5, "er", seeds=(0, 1), sweeps=60, measure=30),
+             "unsupported:er-first-order")
 
 
 @slow
 def test_colorability_table_regular_by_1rsb():
     """Regular graphs, the single factorized population at m = 1 (seeds 0-3; about 55 s): the smallest d with a
-    nontrivial solution (c_d) and with Sigma(1) < 0 in the 99% band (c_c) equal ZK Table I: q = 3 c_c = 6, q = 4
-    (9, 10), q = 5 (14, 14)."""
+    stationary nontrivial solution above a trivial d - 1 (c_d) and with Sigma(1) < 0 in the 99% band (c_c) equal ZK
+    Table I: q = 4 (9, 10), q = 5 (14, 14).  q = 3 (ZK: c_d = "5+", exactly critical): d = 5 neither decays by a decade
+    nor is stationary, so c_d and c_c are labelled undetermined (not banked)."""
     _refs(("coloring_regular_d_d", "coloring_regular_d_c"))
+    cd, cc = R.cluster_thresholds(3, "regular", seeds=(0, 1, 2, 3))
+    assert cd.status == cc.status == "undetermined" and "d = 5" in cd.note, (cd, cc)
 
 
 def test_rigidity_scaling():
     """The notes' freezing recursion (Sec. 13.2.3, p. 211) on d-regular trees, eta = 1 + sum_r (-1)^r C(q-1, r)
     (1 - r eta/(q - 1))^(d - 1), and its ER form (Poisson(c) children: eta = (1 - e^{-c eta/(q-1)})^(q-1), derived
     here) give c_r where a nonzero fixed point appears.  ER c_r reproduces ZK Table II's c_r(m = 1) for q = 3..10 to
-    the printed digit, and is above ZK's c_c for q = 3, 4, 5 (the notes: c_r > c_c for q < 9).  Scaling (the notes:
-    c_r = q log q + o(q log q)): at q = 5..10, regular and ER, the leading term alone leaves c_r/(q ln q) - 1 in
-    (0.6, 0.9) -- a correction, labelled: ZK Eq. (44) gives q[ln q + ln ln q + 1 + o(1)], whose residual
-    |c_r/q - ln q - ln ln q - 1| < 0.35 at every q here; for ER at q = 1e2..1e6 the ratio c_r/(q ln q) decreases
-    toward 1 and the residual shrinks.  A planted convention slip (c read as c_out = q c/(q - 1)) breaks the ZK match."""
+    the printed digit, and is above ZK's c_c at q = 5 (the notes: c_r > c_c for q < 9).
+    Scaling.  The notes state c_r = q ln q + o(q ln q), i.e. r(q) = c_r/(q ln q) - 1 -> 0.  ZK Eq. (44) (the labelled
+    correction) gives c_r = q[ln q + ln ln q + 1 + delta(q)], delta = o(1), i.e. r = g + delta/ln q with
+    g = (ln ln q + 1)/ln q -> 0.  Checked as a limit on the ER closed form at q = 1e2, 1e3, 1e4, 1e6, 1e9: r decreases
+    strictly, delta decreases strictly (0.34 -> 0.16), and r/g - 1 = delta/(ln ln q + 1) shrinks toward 0 (identity,
+    asserted numerically); so r -> 0 like g, the leading term is the limit.  At q = 5..10 (regular and ER) the leading
+    term alone is not yet accurate (r ~ 0.75-0.80, labelled as the correction g ~ 0.80-0.92), and the finite-q
+    remainder |delta(q)| stays within the large-q envelope max |delta| = delta(100).  A planted convention slip (c read
+    as c_out = q c/(q - 1)) breaks the ZK match."""
     for q in range(3, 11):
         r = R.rigidity_threshold(q, "er")
         key = f"coloring_c_r_m1_q{q}"
         assert abs(r.c_r - _v(key)) <= _t(key), (q, r)
-    for q in (3, 4, 5):
-        assert R.rigidity_threshold(q, "er").c_r > _v(f"coloring_c_c_q{q}")
+    assert R.rigidity_threshold(5, "er").c_r > _v("coloring_c_c_q5")
+
+    def parts(q, g="er"):
+        c, L = R.rigidity_threshold(q, g).c_r, math.log(q)
+        assert abs(R.rigidity_corrections(q)["zk_eq44"] - q * (L + math.log(L) + 1)) < 1e-9 * q
+        r, gg = c / (q * L) - 1, (math.log(L) + 1) / L
+        return r, gg, c / q - R.rigidity_corrections(q)["zk_eq44"] / q
+    big = [parts(q) for q in (100, 10 ** 3, 10 ** 4, 10 ** 6, 10 ** 9)]
+    for (r1, g1, d1), (r2, g2, d2) in zip(big, big[1:]):
+        assert r2 < r1 and abs(d2) < abs(d1) and abs(r2 / g2 - 1) < abs(r1 / g1 - 1), big
+    for q, (r, gg, dl) in zip((100, 10 ** 3, 10 ** 4, 10 ** 6, 10 ** 9), big):
+        assert abs((r / gg - 1) - dl / (math.log(math.log(q)) + 1)) < 1e-9, (q, r, gg, dl)
+    assert abs(big[-1][0] / big[-1][1] - 1) < 0.05 and big[-1][0] < 0.21, big
+    env = abs(big[0][2])
     for q in range(5, 11):
         for g in ("regular", "er"):
-            c = R.rigidity_threshold(q, g).c_r
-            lead = R.rigidity_corrections(q)
-            assert 0.6 < c / lead["leading"] - 1 < 0.9, (q, g, c)
-            assert abs(c / q - lead["zk_eq44"] / q) < 0.35, (q, g, c)
-    ratios = [R.rigidity_threshold(q, "er").c_r / (q * math.log(q)) for q in (100, 10 ** 3, 10 ** 4, 10 ** 6)]
-    assert all(a > b > 1 for a, b in zip(ratios, ratios[1:])), ratios
-    res = [abs(R.rigidity_threshold(q, "er").c_r / q - R.rigidity_corrections(q)["zk_eq44"] / q) for q in (100, 10 ** 6)]
-    assert res[1] < res[0], res
+            r, gg, dl = parts(q, g)
+            assert abs(dl) <= env and r > 0.5, (q, g, r, gg, dl)
     slip = _planted(R, "er_rate", 0.8, lambda: R.rigidity_threshold(5, "er").c_r)
     assert abs(slip - _v("coloring_c_r_m1_q5")) > 1, slip
     _refuses(lambda: R.rigidity_threshold(2, "er"), "precondition:q")

@@ -8,7 +8,8 @@ labelled "_regular".  Run parameters added to `coloring` (cavity):
               the notes' regular SP: d_sp, d_uncol, the real root d_col), and with
   m, pop      the ER 1RSB population of populations at Parisi m (pop = N1 = N2, default 300), over `seeds`
   pop alone   the colour-symmetric frozen-SP population at (q, c) over `seeds` (pop members, default 10000)
-  thresholds  "colorability" (ER c_col: the frozen-SP root), "clustering" (ER c_d, c_c by the 1RSB cavity),
+  thresholds  "colorability" (ER c_col: the frozen-SP root), "clustering" (ER c_d by the 1RSB cavity, continuous case;
+              only an upper bound c_c_1rsb_upper on c_c; a first-order case is refused),
               "regular" (integer c_d, c_c of d-regular graphs by the m = 1 population); over `seeds`
   planted     true: the SBM affinities (c_in = 0 at beta = oo, Eq. (13.3)) and c_l of Eq. (13.9); with N, BP from
               the planted start on planted graphs (overlap, Phi_planted - Phi_para, the quiet-planting verdict)
@@ -19,7 +20,7 @@ physics-level floats.
 import math
 
 from .amp._stats import student_band
-from .catalog import UNCLAIMED, Out, RefCheck, Stability, fstep
+from .catalog import Out, RefCheck, Stability, fstep
 from .coloring import planted as PL
 from .coloring import rsb as R
 from .coloring import rsb_pop as RP
@@ -109,6 +110,8 @@ def thresholds(p):
             vals[key + sfx] = th.value
             if t == "clustering":
                 errs[key + sfx] = student_band(th.estimates).stderr
+        elif th.kind == "upper-bound" and math.isfinite(th.value):
+            vals[key + sfx + "_upper"] = th.value             # c_c <= this (Sigma(1) < 0 resolved there)
     return Out(vals, f"{t}: c_d {cd.value} ({cd.status}), c_c {cc.value} ({cc.status})", errors=errs,
                statistical=tuple(errs))
 
@@ -166,10 +169,9 @@ def refs():
                          params={**R1, "q": q, "thresholds": "colorability"}, route="cavity",
                          error=lambda e: e["c_col_sp"], runs=len(SEEDS))]
     cl = {**R1, "thresholds": "clustering"}
-    out += [RefCheck("factor", f"coloring_{k}_q3", (lambda key: lambda v: v[key])(f"{k}_1rsb"), statistical=True,
-                     slow=True, params=cl, route="cavity", error=(lambda key: lambda e: e[key])(f"{k}_1rsb"),
-                     runs=len(SEEDS)) for k in ("c_d", "c_c")]
-    for q, keys in ((3, ("c",)), (4, ("d", "c")), (5, ("d", "c"))):
+    out += [RefCheck("factor", "coloring_c_d_q3", lambda v: v["c_d_1rsb"], statistical=True, slow=True, params=cl,
+                     route="cavity", error=lambda e: e["c_d_1rsb"], runs=len(SEEDS))]
+    for q, keys in ((4, ("d", "c")), (5, ("d", "c"))):
         out += [RefCheck("factor", f"coloring_regular_d_{k}_q{q}", (lambda key: lambda v: v[key])(f"c_{k}_regular"),
                          slow=True, params={**R1, "q": q, "thresholds": "regular"}, route="cavity") for k in keys]
     return out
@@ -208,6 +210,7 @@ def finality():
     for k in ("c_d", "c_c"):
         fin[f"{k}_1rsb"] = _stat(f"{k}_1rsb_status", "Secs. 13.2.2, 14.1 (1RSB population of populations)")
         fin[f"{k}_regular"] = _stat(f"{k}_regular_status", "Sec. 14.2 (m = 1 population, integer degrees)")
+    fin["c_c_1rsb_upper"] = _stat("c_c_1rsb_status", "Sec. 14.1 (an upper bound on c_c only: Sigma(1) < 0 there)")
     return fin
 
 
@@ -217,10 +220,5 @@ META = ("ansatz", "planted", "seeds", "pop_status", "pop_status_note", "c_col_st
     + tuple(f"{k}_halfwidth99" for k in ("psi_1rsb", "phi_1rsb", "sigma_1rsb", "q1_1rsb", "sigma_sp", "eta_sp",
                                          "c_col_sp", "overlap_planted_bp", "delta_phi_planted_bp"))
 
-UNCLAIMED.update({("factor", f"coloring_{k}_q4"): (
-    "ZK Table II, q = 4 ER; the K4 planted-measure route (sbm entry, q = 4, c_in = 0, seeds 0-3) brackets c_d in "
-    "[8.350, 8.367] on seed 0 but labels the pair undetermined: c_c = 8.46 lies 0.1 above c_d and Delta Phi is already "
-    "positive at the first grid point (8.367), so its zero is not resolved; the K7 1RSB ER first-order path is not "
-    "run at reference size.  Banked for the table, checked by no route in this build") for k in ("c_d", "c_c")})
 
 __all__ = ["META", "PARAMS", "finality", "refs", "steps"]

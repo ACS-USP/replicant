@@ -139,6 +139,25 @@ def _measure(fl, law, rng, chi):
     return phi, _norm(lz_i).mean(0)
 
 
+def relaxation(series, tol, name):
+    """'' for a stationary measured series, else the reason (the module's drift diagnostic, shared with
+    coloring/rsb_pop.py): the halves differ by more than 5 standard errors and more than tol, or the series moves
+    strictly monotonically through every measured sweep by more than tol (a deterministic relaxation; for i.i.d.
+    noise the chance is 2/n!), or a value is non-finite."""
+    x = np.asarray(series, dtype=float)
+    if not np.all(np.isfinite(x)):
+        return f"{name}: a non-finite measurement"
+    h = len(x) // 2
+    a, b = x[:h], x[h:]
+    se = np.sqrt(a.var(ddof=1) / len(a) + b.var(ddof=1) / len(b)) + 1e-12
+    steps = np.diff(x)
+    if abs(a.mean() - b.mean()) > max(5 * se, tol):
+        return f"{name} drifts {a.mean():.4g} -> {b.mean():.4g} ({abs(a.mean() - b.mean()) / se:.1f} se)"
+    if (np.all(steps > 0) or np.all(steps < 0)) and abs(x[-1] - x[0]) > tol:
+        return f"{name} moves monotonically {x[0]:.6g} -> {x[-1]:.6g} over every measured sweep (still relaxing)"
+    return ""
+
+
 def _start(init, pop, q, rng):
     if init == "uniform":
         return np.full((pop, q), 1.0 / q)
@@ -185,15 +204,9 @@ def population_dynamics(factor_law, degree_law, *, pop, sweeps, seeds, burn_in=N
             drift.append(f"seed {s}: non-finite population")
             continue
         phis, margs = out
-        h = len(phis) // 2
-        a, b = margs[:h, 0], margs[h:, 0]
-        se = np.sqrt(a.var(ddof=1) / len(a) + b.var(ddof=1) / len(b)) + 1e-12
-        steps = np.diff(margs[:, 0])
-        if abs(a.mean() - b.mean()) > max(5 * se, tol):
-            drift.append(f"seed {s}: E b(0) drifts {a.mean():.4g} -> {b.mean():.4g} ({abs(a.mean() - b.mean()) / se:.1f} se)")
-        elif (np.all(steps > 0) or np.all(steps < 0)) and abs(margs[-1, 0] - margs[0, 0]) > tol:
-            drift.append(f"seed {s}: E b(0) moves monotonically {margs[0, 0]:.6g} -> {margs[-1, 0]:.6g} over every "
-                         "measured sweep (still relaxing)")
+        why = relaxation(margs[:, 0], tol, "E b(0)")
+        if why:
+            drift.append(f"seed {s}: {why}")
         runs.append((phis.mean(), margs.mean(0)))
     if len(runs) < 2:
         raise Refusal("no-solution:audit", "; ".join(drift))
@@ -207,4 +220,4 @@ def population_dynamics(factor_law, degree_law, *, pop, sweeps, seeds, burn_in=N
                     note)
 
 
-__all__ = ["FactorLaw", "PDResult", "population_dynamics", "potts_law", "rfim_law"]
+__all__ = ["FactorLaw", "PDResult", "population_dynamics", "potts_law", "relaxation", "rfim_law"]

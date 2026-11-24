@@ -81,25 +81,7 @@
     "value": "4",
     "tol": "1e-6",
     "cite": "L. Zdeborova & F. Krzakala, 'Phase transitions in the coloring of random graphs', Phys. Rev. E 76, 031131 (2007), arXiv:0704.1269v2 (PDF fetched and read during K7), Table II (p. 19: 'Critical connectivities c_d (dynamical, clustering), c_r (rigidity, rearrangments), c_c (condensation, Kauzmann) and c_s (COL/UNCOL) for the phase transitions in the coloring problem on Erdos-Renyi graphs'; error bars = the numerical precision of population dynamics, App. D): c_d (clustering / dynamical)(q = 3) = 4 (printed without error bar) and Sec. IV C 2 (p. 18): 'c_RS = c_d = c_c = 4' -- for 3-coloring of Erdos-Renyi graphs the clustering transition is continuous and coincides with condensation at the RS (Kesten-Stigum) instability (q - 1)^2 = 4 (KZ Eq. (13.9) at beta = oo; the notes' table prints c_l = (q - 1)^2 = 4 for q = 3).  An exact value: tol 1e-6.",
-    "independent_route": "the 1RSB cavity at m = 1 by a population of populations on ER graphs (coloring/rsb_pop.coloring_1rsb, coloring/rsb.clustering_threshold / condensation_threshold(3, 'er')): the growth factor per sweep of the trivial solution from a small tilt, interpolated to 1 at two degrees per named seed 0-3 (99% Student-t band); the frozen start decays below it (continuous) and at 1.15 times it is nontrivial with Sigma(m = 1) < 0 in the band"
-  },
-  "coloring_c_c_q3": {
-    "value": "4",
-    "tol": "1e-6",
-    "cite": "L. Zdeborova & F. Krzakala, 'Phase transitions in the coloring of random graphs', Phys. Rev. E 76, 031131 (2007), arXiv:0704.1269v2 (PDF fetched and read during K7), Table II (p. 19: 'Critical connectivities c_d (dynamical, clustering), c_r (rigidity, rearrangments), c_c (condensation, Kauzmann) and c_s (COL/UNCOL) for the phase transitions in the coloring problem on Erdos-Renyi graphs'; error bars = the numerical precision of population dynamics, App. D): c_c (condensation)(q = 3) = 4 (printed without error bar) and Sec. IV C 2 (p. 18): 'c_RS = c_d = c_c = 4' -- for 3-coloring of Erdos-Renyi graphs the clustering transition is continuous and coincides with condensation at the RS (Kesten-Stigum) instability (q - 1)^2 = 4 (KZ Eq. (13.9) at beta = oo; the notes' table prints c_l = (q - 1)^2 = 4 for q = 3).  An exact value: tol 1e-6.",
-    "independent_route": "the 1RSB cavity at m = 1 by a population of populations on ER graphs (coloring/rsb_pop.coloring_1rsb, coloring/rsb.clustering_threshold / condensation_threshold(3, 'er')): the growth factor per sweep of the trivial solution from a small tilt, interpolated to 1 at two degrees per named seed 0-3 (99% Student-t band); the frozen start decays below it (continuous) and at 1.15 times it is nontrivial with Sigma(m = 1) < 0 in the band"
-  },
-  "coloring_c_d_q4": {
-    "value": "8.353",
-    "tol": "3e-3",
-    "cite": "L. Zdeborova & F. Krzakala, 'Phase transitions in the coloring of random graphs', Phys. Rev. E 76, 031131 (2007), arXiv:0704.1269v2 (PDF fetched and read during K7), Table II (p. 19: 'Critical connectivities c_d (dynamical, clustering), c_r (rigidity, rearrangments), c_c (condensation, Kauzmann) and c_s (COL/UNCOL) for the phase transitions in the coloring problem on Erdos-Renyi graphs'; error bars = the numerical precision of population dynamics, App. D): c_d(q = 4) = 8.353(3), Erdos-Renyi graphs (c the mean degree): the smallest connectivity with a nontrivial 1RSB solution at m = 1 (the planted / reconstruction start).  tol = the printed error bar.",
-    "independent_route": "NOT reproduced in this build (unclaimed): K4's planted-measure population dynamics at q = 4, c_in = 0 (inference/sbm_q_pd.sbm_q_transitions) gives a c_d bracket [8.350, 8.367] on seed 0, consistent with 8.353, but labels the pair undetermined because the c_c grid starts above the zero of Delta Phi; ZK's own value comes from population dynamics (App. D)"
-  },
-  "coloring_c_c_q4": {
-    "value": "8.46",
-    "tol": "1e-2",
-    "cite": "L. Zdeborova & F. Krzakala, 'Phase transitions in the coloring of random graphs', Phys. Rev. E 76, 031131 (2007), arXiv:0704.1269v2 (PDF fetched and read during K7), Table II (p. 19: 'Critical connectivities c_d (dynamical, clustering), c_r (rigidity, rearrangments), c_c (condensation, Kauzmann) and c_s (COL/UNCOL) for the phase transitions in the coloring problem on Erdos-Renyi graphs'; error bars = the numerical precision of population dynamics, App. D): c_c(q = 4) = 8.46(1), Erdos-Renyi graphs: where the complexity of the m = 1 clusters vanishes (condensation, Kauzmann).  tol = the printed error bar.",
-    "independent_route": "NOT reproduced in this build (unclaimed): K4's planted-measure population dynamics at q = 4, c_in = 0 (inference/sbm_q_pd.sbm_q_transitions) gives a c_d bracket [8.350, 8.367] on seed 0, consistent with 8.353, but labels the pair undetermined because the c_c grid starts above the zero of Delta Phi; ZK's own value comes from population dynamics (App. D)"
+    "independent_route": "the 1RSB cavity at m = 1 by a population of populations on ER graphs (coloring/rsb_pop.coloring_1rsb, coloring/rsb.clustering_threshold(3, 'er')): the growth factor per sweep of the trivial solution from a small tilt, interpolated to 1 at two degrees per named seed 0-3 (99% Student-t band), and the frozen start trivial (decaying by more than a decade over the measured sweeps) at 0.95 of it on every seed: a continuous transition.  c_c is NOT banked: Sigma(m = 1) -> 0 at c_d, so its sign just above cannot be resolved by population dynamics (the run reports only c_c <= 1.15 c_d)"
   },
   "coloring_c_d_q5": {
     "value": "12.837",
@@ -208,12 +190,6 @@
     "tol": "0",
     "cite": "L. Zdeborova & F. Krzakala, 'Phase transitions in the coloring of random graphs', Phys. Rev. E 76, 031131 (2007), arXiv:0704.1269v2 (PDF fetched and read during K7), Table I (left; p. 16: transition thresholds for random regular graphs, integer connectivities: c_SP the smallest connectivity with a nontrivial solution at m = 0, c_d the smallest with a nontrivial solution at m = 1, c_c the smallest for which the complexity at m = 1 is negative, c_s the smallest UNCOL connectivity): c_d(q = 5) = 14 (citing ref. [53]), random regular graphs; integer: tol 0.  (For q = 3 ZK print '5+', the exactly critical case; not banked.)",
     "independent_route": "the 1RSB cavity at m = 1, one factorized population of BP messages reweighted by Z (KZ Eqs. (14.10)-(14.11); coloring/rsb_pop.coloring_1rsb, coloring/rsb.clustering_threshold(q, 'regular')): trivial from the frozen start at d - 1 and nontrivial at d on named seeds"
-  },
-  "coloring_regular_d_c_q3": {
-    "value": "6",
-    "tol": "0",
-    "cite": "L. Zdeborova & F. Krzakala, 'Phase transitions in the coloring of random graphs', Phys. Rev. E 76, 031131 (2007), arXiv:0704.1269v2 (PDF fetched and read during K7), Table I (left; p. 16: transition thresholds for random regular graphs, integer connectivities: c_SP the smallest connectivity with a nontrivial solution at m = 0, c_d the smallest with a nontrivial solution at m = 1, c_c the smallest for which the complexity at m = 1 is negative, c_s the smallest UNCOL connectivity): c_c(q = 3) = 6, random regular graphs: the smallest connectivity with a negative complexity at m = 1; integer: tol 0.",
-    "independent_route": "Sigma(m = 1) = Psi(1) - Phi(1) of the m = 1 factorized population (KZ Eqs. (14.12)-(14.15); coloring/rsb.condensation_threshold(q, 'regular')), 99% Student-t band over named seeds below 0 at d and the clustering point from the same population"
   },
   "coloring_regular_d_c_q4": {
     "value": "10",

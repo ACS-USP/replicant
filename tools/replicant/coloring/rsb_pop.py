@@ -18,7 +18,9 @@ excess degree of a Poisson law is Poisson).  Every update is synchronous (a whol
     (d, or Poisson(c)), Z_ij = 1 - psi_a . psi_b.  At m = 1 Psi equals the annealed (paramagnetic) free entropy
     ln q + (c/2) ln(1 - 1/q) (the planted / reconstruction identity; returned as psi_annealed for the check); at
     m = 0 Sigma = Psi(0) = ln P(Z_i > 0) - (c/2) ln P(Z_ij > 0), the frozen-cluster complexity of SP.
-    q1 = E <sum_s psi_s^2> (1/q at the trivial solution); nontrivial: q1 - 1/q > NONTRIVIAL after the sweeps.
+    q1 = E <sum_s psi_s^2> (1/q at the trivial solution); phase trivial / nontrivial / undetermined from the measured
+    series of q1 - 1/q and Sigma (_phase: a decay is trivial only when it reaches the rounding floor TRIVIAL or falls
+    by a decade over the measured sweeps; a stationary series is nontrivial; anything else is undetermined).
     init: "frozen" (every message one-hot on a random color: the informative / planted-like start) or ("tilt", eps)
     (1/q + eps (e_s - 1/q), s random: a small perturbation of the trivial solution; q1 - 1/q then grows by the
     factor c lambda^2 = c/(q - 1)^2 per sweep at m = 1, the linear stability of KZ (13.9) at beta = oo).
@@ -28,9 +30,8 @@ excess degree of a Poisson law is Poisson).  Every update is synchronous (a whol
         eta = sum_l (-1)^(l-1) C(q-1, l-1) prod_k (1 - l eta_k) / sum_l (-1)^(l-1) C(q, l) prod_k (1 - l eta_k),
         Sigma = E ln sum_l (-1)^(l-1) C(q, l) prod_{k in full degree} (1 - l eta_k) - (c/2) E ln(1 - q eta_a eta_b).
     Start eta = (1 - 1e-3)/q (almost every survey frozen).  nontrivial: E eta > 1e-6.
-Diagnostic (both): a run is "drifting" when the per-sweep Sigma differs between the first and second halves of the
-measured sweeps by more than 5 standard errors and by more than `tol`, or a value is non-finite; then status is
-"undetermined" with the reason (never refused).  Statistical: one seed gives one estimate; bands come from named
+Diagnostic (both): factor/population.relaxation, the shared drift / monotone-relaxation test, on the measured Sigma
+(and E eta, q1 - 1/q); a run that fails it is "undetermined" with the reason (never refused).  Statistical: one seed gives one estimate; bands come from named
 seeds (coloring/rsb.py).
 _HOOKS["symmetrize"] (True: the color permutation of new messages; planted error False lets the population collapse
 on one color, and Psi(1) leaves the annealed value).
@@ -42,10 +43,12 @@ from math import comb
 import numpy as np
 
 from ..core import Refusal
+from ..factor.population import relaxation
 from .potts_bp import _q
 
 _HOOKS = {"symmetrize": True}
-NONTRIVIAL = 0.05
+TRIVIAL = 1e-8          # q1 - 1/q below this: the trivial solution to rounding (the run starts at O(1))
+DECADE = 0.1            # a decay by at least this factor (last fifth / first fifth of the window): decaying
 
 
 def _int(name, v, lo=1):
@@ -104,16 +107,23 @@ def _permute(x, rng):
     return np.take_along_axis(x, np.argsort(rng.random(x.shape), axis=-1), -1)
 
 
-def _drift(series, tol):
-    s = np.asarray(series)
-    if not np.all(np.isfinite(s)):
-        return "a non-finite measurement"
-    h = len(s) // 2
-    a, b = s[:h], s[h:]
-    se = math.sqrt(np.var(a, ddof=1) / len(a) + np.var(b, ddof=1) / len(b)) if h > 1 else 0.0
-    gap = abs(float(a.mean() - b.mean()))
-    return f"Sigma drifts between the halves of the measured sweeps by {gap:.3g} (> 5 se = {5 * se:.3g})" \
-        if gap > max(5 * se, tol) else ""
+def _phase(dev, sig, tol):
+    """('trivial' | 'nontrivial' | 'undetermined', reason) of an m = 1 / frozen-start run from its measured series of
+    q1 - 1/q and Sigma.  trivial: q1 - 1/q < TRIVIAL (the trivial point to rounding), or its mean over the last fifth
+    of the measured sweeps is at most DECADE times its mean over the first fifth (below c_d the trivial solution
+    attracts linearly, by c/(q - 1)^2 < 1 per sweep at m = 1, so the decay is geometric: a decade over the window);
+    nontrivial: q1 - 1/q stationary by the shared diagnostic factor.population.relaxation (at 1% of its mean);
+    otherwise undetermined (a population still relaxing, e.g. the power-law decay at a continuous point, is never
+    counted trivial).  The phase uses the q1 series alone; the run's status (which gates every Sigma decision) also
+    needs Sigma finite and stationary."""
+    dev = np.asarray(dev)
+    k = max(1, len(dev) // 5)
+    if dev[-1] < TRIVIAL:
+        return "trivial", ""
+    if dev[-k:].mean() <= DECADE * dev[:k].mean():
+        return "trivial", f"q1 - 1/q decays {dev[:k].mean():.3g} -> {dev[-k:].mean():.3g} over the measured sweeps"
+    why = relaxation(dev, 0.01 * float(np.mean(dev)), "q1 - 1/q")
+    return ("undetermined", why) if why else ("nontrivial", "")
 
 
 @dataclass(frozen=True)
@@ -132,6 +142,7 @@ class RSB:
     note: str
     sigma_series: tuple = ()
     q1_series: tuple = ()
+    phase: str = "undetermined"   # "trivial" | "nontrivial" | "undetermined" (see _phase)
 
 
 def _resample(w, rng):
@@ -209,11 +220,13 @@ def coloring_1rsb(q, d_or_c, m, *, graph="regular", pop=None, sweeps=200, measur
     a = np.array(meas)
     psi, phi, sig, q1 = (float(x) for x in a.mean(0))
     psi_ann = math.log(q) + deg / 2 * math.log1p(-1.0 / q)
-    drift = _drift(a[:, 2], tol)
-    note = "; ".join(x for x in (drift, f"{bad} new laws with every message contradictory (kept an old law)"
+    phase, why = _phase(a[:, 3] - 1.0 / q, a[:, 2], tol)
+    sig_why = "" if phase == "trivial" else relaxation(a[:, 2], tol, "Sigma")
+    note = "; ".join(x for x in (why, sig_why, f"{bad} new laws with every message contradictory (kept an old law)"
                                  if bad else "") if x)
-    return RSB(q, graph, deg, m, psi, phi, sig, q1, psi_ann, q1 - 1.0 / q > NONTRIVIAL,
-               "undetermined" if drift else "converged", note, tuple(a[:, 2]), tuple(a[:, 3]))
+    return RSB(q, graph, deg, m, psi, phi, sig, q1, psi_ann, phase == "nontrivial",
+               "undetermined" if phase == "undetermined" or sig_why else "converged", note, tuple(a[:, 2]),
+               tuple(a[:, 3]), phase)
 
 
 def _undetermined(q, graph, deg, m, why):
@@ -297,10 +310,10 @@ def frozen_sp(q, d_or_c, *, graph="er", pop=20000, sweeps=200, measure=100, seed
             with np.errstate(divide="ignore"):
                 sig.append(float(np.mean(np.log(zi)) - deg / 2 * np.mean(np.log(zij))))
             etas.append(float(eta.mean()))
-    note = _drift(sig, tol)
+    note = relaxation(sig, tol, "Sigma") or relaxation(etas, tol, "E eta")
     e = float(np.mean(etas))
     return SP(q, graph, deg, e, float(np.mean(sig)), e > 1e-6, "undetermined" if note else "converged", note,
               tuple(sig))
 
 
-__all__ = ["NONTRIVIAL", "RSB", "SP", "coloring_1rsb", "frozen_sp"]
+__all__ = ["DECADE", "TRIVIAL", "RSB", "SP", "coloring_1rsb", "frozen_sp"]
