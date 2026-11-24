@@ -179,9 +179,14 @@ sample`), and `--pdf` (with `--latex`) to compile the derivation.
   block that does, the longitudinal mode), `pinned_check.py` (integer-n Hessian, an independent check),
   `pinned_report.py` (the table of `docs/replicant/pinned_joint_replicon.md`).
 - `catalog*.py`, `compose.py` (+ `compose_result.py`: `Result` and the finality rule), `cli.py`,
-  `__main__.py`: the 38-entry catalog (`catalog_ts.py` holds the teacher-student entry,
-  `catalog_pspin.py` the two p-spin entries; LaTeX in `latex_pspin.py`), the composer,
-  the command line.
+  `__main__.py`: the 41-entry catalog (registered in `catalog_index.py`; `catalog_ts.py` holds the
+  teacher-student entry, `catalog_pspin.py` the two p-spin entries; LaTeX in `latex_pspin.py`), the
+  composer, the command line.
+- `meanfield/`, `rmt/` (K1, Krzakala & Zdeborova's lecture notes, Ch. 1-3): `curie_weiss.py` (Theorem 1 in arb,
+  the cavity and field-theoretic toolboxes as separate code, the spinodal), `cw_exact.py` (Z_N by the binomial
+  sum in arb, the rate functions), `rfim.py` (the fully connected RFIM: RS, exact sorted ground states,
+  Guerra's bounds), `rmt/stieltjes.py` (Wigner and Wishart spectra by replica and cavity routes); catalog
+  entries `curie_weiss`, `rfim`, `random_matrix` (`catalog_meanfield.py`, `latex_meanfield.py`).
 - `latex*.py`, `tex*.py`, `derive_tex.py`: the LaTeX derivation writer.
 - `tests/`, `selftest.py`: the battery.
 

@@ -26,7 +26,7 @@ Each entry also exposes derivation(route): the equations a LaTeX document displa
 (latex.py), kept next to the family code in latex_entries.py / latex_cavity.py.
 
 Matching to model specifications (which entry a spec is, which is nearest) lives in
-compose.py; the entries themselves in catalog_entries.py, catalog_sparse.py and
+compose.py; the registry (the entry order) in catalog_index.py; the entries themselves in catalog_entries.py, catalog_sparse.py and
 catalog_csp.py (constraint satisfaction) and catalog_inference.py (codes, inference; the
 spiked Wigner and block-model entries in catalog_spiked_sbm.py) and catalog_learning.py
 (high-dimensional learning: ridge) and catalog_series.py (exact series: series_ising2d, route
@@ -377,24 +377,8 @@ _CATALOG = {}
 
 def catalog() -> dict:
     if not _CATALOG:
-        from .catalog_bounds import bounds_entries
-        from .catalog_csp import csp_entries
-        from .catalog_dense_memory import dense_memory_entries
-        from .catalog_entries import dense_entries
-        from .catalog_inference import inference_entries
-        from .catalog_lattice import lattice_entries
-        from .catalog_mc import mc_entries
-        from .catalog_learning import learning_entries
-        from .catalog_online import online_entries
-        from .catalog_percolation import percolation_entries
-        from .catalog_percolation_kcore import kcore_entries
-        from .catalog_percolation_lattice import percolation_lattice
-        from .catalog_series import series_entries
-        from .catalog_sparse import sparse_entries
-        for e in (dense_entries() + sparse_entries() + csp_entries() + inference_entries()
-                  + learning_entries() + series_entries() + lattice_entries() + bounds_entries()
-                  + online_entries() + percolation_entries() + [percolation_lattice()] + kcore_entries()
-                  + mc_entries() + dense_memory_entries()):
+        from .catalog_index import entries          # the registry (catalog_index.py)
+        for e in entries():
             _CATALOG[e.name] = e
     return dict(_CATALOG)
 

@@ -33,7 +33,8 @@ ROUTES = {"rem": {"replica"}, "sk": {"replica", "cavity", "amp"}, "pspin": {"rep
           "percolation_lattice": {"exact", "sample"}, "percolation_kcore": {"cavity", "sample"},
           "percolation_bootstrap": {"cavity", "sample"}, "cluster_mc": {"sample"},
           "wang_landau_mc": {"sample"}, "histogram_reweighting_mc": {"sample"},
-          "population_annealing_mc": {"sample"}, "dense_memory": {"replica"}, "dense_memory_ising": {"replica"}}
+          "population_annealing_mc": {"sample"}, "dense_memory": {"replica"}, "dense_memory_ising": {"replica"},
+          "curie_weiss": {"replica", "cavity", "exact"}, "rfim": {"replica"}, "random_matrix": {"replica", "cavity"}}
 
 
 def _bank_keys():
@@ -105,6 +106,26 @@ def test_every_ref_key_exists_in_the_bank():
             assert ref.route in e.routes, (name, ref.key, ref.route)
             if ref.statistical:
                 assert ref.slow and ref.error is not None, (name, ref.key)
+
+
+# the 38 names catalog() listed, in order, before K1 moved the registry into catalog_index.py (HEAD 9db72fa)
+_PRE_K1 = ("rem", "sk", "pspin", "ising_pspin", "perceptron", "teacher_student", "hopfield", "viana_bray", "xorsat",
+           "ksat", "ldpc_bec", "spiked_wigner", "sbm", "ridge", "series_ising2d", "ising2d", "ising1d", "bethe_ising",
+           "ising2d_anisotropic", "ising_triangular", "ising_honeycomb", "sk_bounds", "online_perceptron",
+           "online_linear", "online_drift", "online_tcm", "online_scm", "percolation_bethe", "percolation_graph",
+           "percolation_lattice", "percolation_kcore", "percolation_bootstrap", "cluster_mc", "wang_landau_mc",
+           "histogram_reweighting_mc", "population_annealing_mc", "dense_memory", "dense_memory_ising")
+
+
+def test_registry_move_is_identity():
+    """K1 moved the import-and-concatenate block of catalog() into catalog_index.entries(): the 38 entries keep
+    their order (later tasks append after them), and catalog() is exactly the registry, keyed by name."""
+    from replicant import catalog_index
+    names = list(catalog())
+    assert tuple(names[:len(_PRE_K1)]) == _PRE_K1, names
+    reg = catalog_index.entries()
+    assert [e.name for e in reg] == names and len(set(names)) == len(names)
+    assert all(catalog()[e.name].name == e.name for e in reg)
 
 
 def test_unclaimed_bank_keys_are_listed():

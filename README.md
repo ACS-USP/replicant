@@ -5,7 +5,7 @@ BootLoops 1.0. It keeps the whole BootLoops toolkit and adds `replicant`
 ([`tools/replicant/`](tools/replicant/README.md)), a package that runs published replica-method
 and cavity-method calculations of disordered systems as typed, recorded steps.
 
-The package's catalog has 38 entries. They cover spin glasses, perceptron capacity and
+The package's catalog has 41 entries. They cover mean-field ferromagnets and random matrices, spin glasses, perceptron capacity and
 teacher-student learning, Hopfield and dense associative memories, online learning, random
 constraint satisfaction, inference on sparse graphs, solvable Ising lattices, percolation and
 Monte Carlo. The entries run through eight routes: replica, cavity, AMP, exact, series, bound,

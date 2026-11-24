@@ -323,6 +323,12 @@ _DOCUMENTED = {
     ("viana_bray", "cavity"): {"graph", "k", "c", "J", "beta", "ansatz", "m", "ys", "pop",
                                "inner", "sweeps", "burn_in", "runs", "seed",
                                "require_equilibrated"},
+    ("curie_weiss", "replica"): {"beta", "h", "branch", "m"},
+    ("curie_weiss", "cavity"): {"beta", "h", "N"},
+    ("curie_weiss", "exact"): {"N", "beta", "h", "m"},
+    ("rfim", "replica"): {"J", "law", "Delta", "h0", "beta", "N", "seeds"},
+    ("random_matrix", "replica"): {"kind", "alpha", "x", "y"},
+    ("random_matrix", "cavity"): {"kind", "alpha", "x", "y"},
 }
 
 
