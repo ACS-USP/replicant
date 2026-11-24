@@ -224,7 +224,8 @@ def refs():
             RefCheck("sbm", "c_l_q5_cin0", lambda v: v["c_l"], params=line, route="cavity", slow=True),
             stat("c_d"), stat("c_c")] + [
         # K7: the planted q-coloring is this model at c_in = 0 (KZ Sec. 13.1): ZK's Table II c_d, c_c at q = 5
-        # (factor.json; q = 4 is unclaimed: catalog_coloring.py says why)
+        # (factor.json; the q = 4 keys were removed in K7's fix round, no route resolves them).  Two keys per quantity
+        # on purpose: KZ's print (sbm.json c_d_q5_cin0, c_c_q5_cin0) and ZK's (factor.json), each with its own tol
         RefCheck("factor", f"coloring_{key}_q{q}", (lambda k: lambda v: v[k])(key), statistical=True,
                  params={"q": q, "c_in": 0}, route="cavity", slow=True, error=(lambda k: lambda e: e[k])(key),
                  runs=len(_SEEDS)) for key in ("c_d", "c_c") for q in (5,)]

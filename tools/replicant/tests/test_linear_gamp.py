@@ -5,7 +5,6 @@ Convention (the notes' Ch. 16): A is M x N with i.i.d. N(0, 1/N) entries, alpha 
 priors are bayes/channels.py priors (K2), channels `awgn` (y = z + sqrt(Delta) xi) and `sign` (y = sign z).
 amp/gamp.py (E-series) runs the sign channel on Phi with N(0, 1) entries and z = Phi w/sqrt(N): the same A = Phi/sqrt N.
 """
-import ast
 import math
 import os
 import sys
@@ -20,7 +19,7 @@ from replicant.bayes.channels import Prior
 from replicant.core import Refusal
 from replicant.linear import gamp as G
 from replicant.linear import se as SE
-from replicant.testing import slow
+from replicant.testing import imports, slow
 
 PKG = Path(__file__).resolve().parent.parent
 
@@ -34,14 +33,7 @@ def _refuses(fn, reason):
     raise AssertionError(f"expected Refusal {reason}")
 
 
-def _imports(src):
-    out = set()
-    for node in ast.walk(ast.parse(src)):
-        if isinstance(node, ast.ImportFrom):
-            out.add(("." * node.level) + (node.module or "") + "".join(f":{a.name}" for a in node.names))
-        elif isinstance(node, ast.Import):
-            out.update(a.name for a in node.names)
-    return out
+_imports = imports      # testing.imports: modules and the imported names
 
 
 def _uses_amp(mods):

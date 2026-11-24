@@ -92,13 +92,48 @@ def test_statistical_detail_names_a_systematic_only_when_there_is_one():
     assert "+ systematic 0.002" in compare(lat, pc, v, {"p_c_crossing": 1e-3}).detail
 
 
-@slow
-def test_catalog_entry_reproduces_its_slow_and_statistical_numbers():
+# The slow / statistical RefChecks, one @slow test per entry (final review: the former aggregate test took about 7.5
+# min, over the ~2 min per-test budget).  An entry whose slow refs alone exceed the budget is split by the run
+# parameter named here (coloring: colorability ~86 s, clustering ~70 s, regular ~34 s, measured in the fix wave).
+_SPLIT = {"coloring": "thresholds"}
+
+
+def _slow_groups():
+    """{test suffix: (entry name, [refs])} covering every slow or statistical RefCheck exactly once."""
+    groups = {}
     for name, e in catalog().items():
         for ref in e.refs:
             if ref.slow or ref.statistical:
+                part = (ref.params or {}).get(_SPLIT[name]) if name in _SPLIT else None
+                key = name + (f"_{part}" if part is not None else "")
+                groups.setdefault(key, (name, []))[1].append(ref)
+    return groups
+
+
+def _slow_test(name, keys):
+    def test():
+        e = catalog()[name]
+        for ref in e.refs:
+            if (ref.slow or ref.statistical) and (ref.file, ref.key, ref.route, repr(ref.params)) in keys:
                 out = check_ref(e, ref)
                 assert out.ok, (name, ref.key, out)
+    return slow(test)
+
+
+for _suffix, (_name, _refs) in _slow_groups().items():
+    globals()[f"test_slow_refs_{_suffix}"] = _slow_test(
+        _name, {(r.file, r.key, r.route, repr(r.params)) for r in _refs})
+
+
+def test_slow_ref_tests_cover_every_slow_ref_once():
+    """Default tier: the generated per-entry slow tests cover each slow / statistical RefCheck exactly once."""
+    groups = _slow_groups()
+    covered = [(n, r.key, r.route, repr(r.params)) for n, rs in groups.values() for r in rs]
+    want = [(n, r.key, r.route, repr(r.params)) for n, e in catalog().items() for r in e.refs if r.slow or r.statistical]
+    assert sorted(covered) == sorted(want) and len(set(want)) == len(want)
+    assert all(getattr(globals()[f"test_slow_refs_{k}"], "slow", False) for k in groups)
+    assert {"test_slow_refs_coloring_colorability", "test_slow_refs_coloring_clustering",
+            "test_slow_refs_coloring_regular", "test_slow_refs_sbm"} <= set(globals()), sorted(groups)
 
 
 def test_every_ref_key_exists_in_the_bank():

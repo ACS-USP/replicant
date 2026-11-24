@@ -135,3 +135,16 @@ def test_bayes_gamp_recovers_above_the_spinodal():
             A, y, x0 = G.linear_instance(2000, alpha, ch, pr, s)
             r = G.gamp(A, y, ch, pr, iters=150, seed=s, teacher=x0)
             assert (r.mse_trace[-1] < 1e-6) == good and (good or r.mse_trace[-1] > 1e-3), (alpha, s, r.mse_trace[-1])
+
+
+def test_lp_success_fraction_error_is_clopper_pearson():
+    """Final review (ledger K6 l.130): at fraction 1 (alpha = 0.8 far above the l1 line at rho = 0.2, N = 60, seeds
+    0-4) the binomial stderr would be 0; the entry reports the exact 99% Clopper-Pearson interval and its larger
+    half-width as the error (5/5: [0.3466, 1], the closed form 0.005^(1/5) for the lower end)."""
+    from replicant.catalog import catalog
+    from replicant.compose import compose
+    r = compose(catalog()["compressed_sensing"].spec, "amp").run(rho="0.2", alpha="0.8", N=60, seeds=[0, 1, 2, 3, 4])
+    v = r.values
+    assert v["l1_success_fraction"] == 1.0 and v["l1_success_ci99_hi"] == 1.0, v
+    assert abs(v["l1_success_ci99_lo"] - 0.005 ** (1 / 5)) < 1e-9, v
+    assert abs(r.errors["l1_success_fraction"] - (1 - 0.005 ** (1 / 5))) < 1e-9, r.errors

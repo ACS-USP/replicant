@@ -4,7 +4,6 @@ Convention (inference/sbm_q.py): edge probability c_ab / N, c_aa = c_in, c_ab = 
 mean degree c = (c_in + (q - 1) c_out)/q; epsilon = c_out / c_in.  The q = 2 entry (inference/sbm.py) has a/N
 inside and b/N across: c_in = a, c_out = b, c = (a + b)/2.  Bank: reference/sbm.json.
 """
-import ast
 import math
 import os
 import sys
@@ -22,7 +21,7 @@ from replicant.inference import sbm as B
 from replicant.inference import sbm_q as SQ
 from replicant.inference import sbm_q_pd as PD
 from replicant.refdata import check, load
-from replicant.testing import slow
+from replicant.testing import imports, slow
 
 BANK = load("sbm")
 PKG = Path(__file__).resolve().parents[1]
@@ -38,14 +37,7 @@ def _refuses(fn, reason):
     raise AssertionError(f"expected Refusal {reason}")
 
 
-def _imports(src):
-    out = set()
-    for node in ast.walk(ast.parse(src)):
-        if isinstance(node, ast.ImportFrom):
-            out.add(("." * node.level) + (node.module or "") + "".join(f":{a.name}" for a in node.names))
-        elif isinstance(node, ast.Import):
-            out.update(a.name for a in node.names)
-    return out
+_imports = imports      # testing.imports: modules and the imported names
 
 
 def _uses_sbm(mods):

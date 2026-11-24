@@ -32,8 +32,10 @@ graph.  The populations are in coloring/rsb_pop.py.
       trivial m = 1 solution from a small tilt (degrees 0.8 and 1.2 (q - 1)^2, interpolated to 1 per seed) gives
       c_inst; if the frozen start is trivial at 0.95 c_inst on every seed the transition is continuous, c_d = c_inst;
       c_c is not located (Sigma(1) -> 0 at c_inst): only the bound c_c <= 1.15 c_inst when Sigma(1) < 0 is resolved
-      there (kind "upper-bound", status undetermined).  A frozen start nontrivial at 0.95 c_inst (first-order) is
-      refused, unsupported:er-first-order (not implemented; the sbm entry at c_in = 0 covers it).
+      there (kind "upper-bound", status undetermined).  ER q >= 4 is refused up front, before any population runs,
+      unsupported:er-first-order (ZK 2007: the ER clustering transition is discontinuous for q >= 4, continuous for
+      q = 3; the first-order ER path is not implemented, the sbm entry at c_in = 0 covers q = 5).  At q = 3 a frozen
+      start that stays nontrivial at 0.95 c_inst labels c_d, c_c undetermined (kind "first-order"), never refused.
 _HOOKS["children"] (1: d - 1 incoming messages; planted error 0 uses d) and _HOOKS["er_rate"] (1.0: the factor on
 the Poisson mean; planted error 0.8 = (q - 1)/q at q = 5 reads the mean degree c as c_out = q c/(q - 1)).
 """
@@ -279,7 +281,8 @@ def _regular(q, seeds, pop, sweeps, measure):
 def _er(q, seeds, pop, sweeps, measure):
     """ER: the continuous case only.  c_d = c_inst when the frozen start is trivial at 0.95 c_inst on every seed; c_c
     is NOT located (Sigma(m = 1) vanishes at c_inst, so its sign just above cannot be resolved): only the upper
-    bound c_c <= 1.15 c_inst when Sigma(1) < 0 is resolved there.  A nontrivial probe (first-order) is refused."""
+    bound c_c <= 1.15 c_inst when Sigma(1) < 0 is resolved there.  Called for q = 3 only (q >= 4 is refused up
+    front by cluster_thresholds); a nontrivial probe (unexpectedly first-order) labels both undetermined."""
     est = _er_instability(q, seeds)
     und = lambda why, kind="continuous": Threshold(q, "er", math.nan, kind, "undetermined", why)
     if not all(math.isfinite(e) for e in est):
@@ -291,9 +294,9 @@ def _er(q, seeds, pop, sweeps, measure):
     probe_pop = pop if pop is not None else (200, 200)
     verdict, why = _verdict([_m1(q, 0.95 * ci, "er", s, probe_pop, 2 * sweeps, 2 * measure) for s in seeds])
     if verdict == "nontrivial":
-        raise Refusal("unsupported:er-first-order", f"q = {q}: the frozen start stays nontrivial at 0.95 c_inst = "
-                      f"{0.95 * ci:.4g} (a first-order clustering transition); the ER first-order 1RSB path is not "
-                      "implemented here (the sbm entry at c_in = 0 locates c_d, c_c by K4's planted population)")
+        why = (f"the frozen start stays nontrivial at 0.95 c_inst = {0.95 * ci:.4g} (a first-order signature; the ER "
+               "first-order 1RSB path is not implemented)")
+        return und(why, "first-order"), und(why, "first-order")
     if verdict == "undetermined":
         return und(f"probe at 0.95 c_inst: {why}"), und("c_d undetermined")
     b = student_band(est)
@@ -313,6 +316,10 @@ def _er(q, seeds, pop, sweeps, measure):
 def cluster_thresholds(q, graph="regular", *, seeds=(0, 1, 2, 3), pop=None, sweeps=150, measure=60):
     """(c_d, c_c) as Thresholds, from one set of population runs."""
     q, graph = _q3(q), _graph(graph)
+    if graph == "er" and q >= 4:
+        raise Refusal("unsupported:er-first-order", f"q = {q} on ER: the clustering transition is first-order for "
+                      "q >= 4 (ZK 2007, arXiv:0704.1269); the ER 1RSB path here does the continuous case q = 3 only "
+                      "(the sbm entry at c_in = 0 locates the q = 5 c_d, c_c by K4's planted population)")
     if graph == "regular":
         return _regular(q, tuple(seeds), pop, sweeps, measure)
     return _er(q, tuple(seeds), pop, sweeps, measure)

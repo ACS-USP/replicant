@@ -110,7 +110,7 @@ def rem():
         "microcanonical entropy s(e)); Derrida & Mottishaw, arXiv:1410.1432 (m = T/T_c)")
     fin = {k: exact for k in ("beta_c", "T_c", "f", "q", "q0", "q1", "m", "e")}
     return entry("rem", ModelSpec("rem", "ising", "gaussian"), REM_CITE, {"replica": steps + [c_step]},
-                 refs, {"replica": CAVEAT}, "random energy model: T_c, frozen 1RSB phase",
+                 refs, {"replica": CAVEAT}, "random energy model: T_c, frozen 1RSB phase; condensation / overlap P(q = 0) with condensation=true",
                  finality={**fin, **c_fin}, meta=("N_scale", "beta"),
                  parameters={"replica": ("beta", "N_scale", "condensation")})
 
@@ -213,7 +213,7 @@ def sk():
     return entry("sk", default_spec("sk"), SK_CITE, {"replica": steps, "cavity": cav,
                                                      "amp": amp.steps}, refs,
                  {"replica": CAVEAT, "cavity": CAVITY_CAVEAT, "amp": amp.caveat},
-                 "Sherrington-Kirkpatrick: RS, AT stability, 1RSB, full RSB (flag); AMP / SE",
+                 "Sherrington-Kirkpatrick: RS, AT stability, 1RSB, full RSB (flag); AMP / SE, ASP / 1RSB SE (amp ansatz=1rsb)",
                  finality={**fin, **amp.finality}, meta=("rs_replicon_T0p5", *amp.meta),
                  parameters={"replica": ("beta", "h", "ansatz", "fullrsb"),
                              "cavity": ("beta", "h", "require_stable"), "amp": amp.params})

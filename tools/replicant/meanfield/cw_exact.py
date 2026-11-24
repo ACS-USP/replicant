@@ -7,7 +7,9 @@ evaluated in arb (every term positive: no cancellation), with
     (Eq. (1.11): (1/beta) d^2 Phi_N / dh^2 = N beta Var(Sbar)),
     the finite-N rate  I_N(m_k) = -(1/N) ln P_N(Sbar = m_k)              (Lemma 1, Eq. (1.4)).
 Lemma 2 (Eq. (1.6)) bounds phi_N - Phi to [-ln(N(N+1))/N, ln(N+1)/N]; cw_exact refuses no-solution:audit when
-the certified phi_N leaves that window (not audited at beta = 1, h = 0, where the roots are not certified).
+the certified phi_N leaves that window.  The audit runs wherever cw_solution certifies Phi, beta = 1, h = 0
+included (the unique root m = 0 is certified there, phi = ln 2); it is skipped only where cw_solution refuses
+undetermined:spinodal (a root count undecided at 4096 bits, at a spinodal |h| = h_sp(beta)).
 Away from a transition the Laplace sum gives (derived here, not in KZ)
     ln Z_N = N Phi - (1/2) ln(1 - beta (1 - m*^2)) + ln(number of global maxima) + o(1),
 so N (phi_N - Phi) converges to finite_size_term(beta, h) (cw_finite_size_term).
@@ -87,7 +89,7 @@ def cw_exact(N, beta, h=0) -> CWExact:
                                                  N * (m2 - m1 * m1))))
     try:
         phi = cw_solution(beta, h).phi
-    except Refusal as r:                     # beta = 1, h = 0: Phi is not certified there; no window to audit
+    except Refusal as r:                     # at a spinodal: Phi's root count is not certified; no window to audit
         if r.reason != "undetermined:spinodal":
             raise
         return out

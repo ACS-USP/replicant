@@ -79,6 +79,26 @@ def test_spectra_vs_eigvalsh():
     assert int(np.sum(np.abs(ev2) < 1e-9)) == 300 - 150 and RM.atom_at_zero("wishart", alpha="2") == 0.5
 
 
+def test_cavity_edges_are_located_on_the_moebius_matrix():
+    """The cavity edges come from certified root isolation of trace^2 - 4 det on the recursion's Moebius matrix,
+    not from a closed form: they enclose the bank values to their tolerance, and a planted variance factor 1.21 in
+    the matrix (hook cavity_scale) moves them to the planted law's edges (Wigner +-2.2; Wishart alpha = 1/4 read as
+    0.3025: (1 -+ 0.55)^2), far outside the bank tolerance, while the replica edges do not move."""
+    with mp.workdps(40):
+        for key, kind, a, side in (("semicircle_edge", "wigner", None, 1), ("mp_edge_lower_a0p25", "wishart", "1/4", 0),
+                                   ("mp_edge_upper_a0p25", "wishart", "1/4", 1),
+                                   ("mp_edge_lower_a0p5", "wishart", "1/2", 0),
+                                   ("mp_edge_upper_a0p5", "wishart", "1/2", 1)):
+            b = RM.edges(kind, "cavity", alpha=a)[side]
+            assert abs(b.mid() - mp.mpf(BANK[key].value)) <= mp.mpf(BANK[key].tol) and b.digits >= 30, (key, b)
+        bad = _planted(RM, "cavity_scale", mp.mpf("1.21"), lambda: (RM.edges("wigner", "cavity"),
+                                                                    RM.edges("wishart", "cavity", alpha="1/4")))
+        assert abs(bad[0][1].mid() - mp.mpf("2.2")) < mp.mpf("1e-25"), bad
+        assert abs(bad[1][0].mid() - mp.mpf("0.2025")) < mp.mpf("1e-25"), bad
+        assert abs(bad[1][1].mid() - mp.mpf("2.4025")) < mp.mpf("1e-25"), bad
+        assert abs(RM.edges("wigner")[1].mid() - 2) == 0
+
+
 def test_replica_and_cavity_routes_agree():
     """S(z) off the axis and the density on it by the two routes (no shared code); the cavity edge (parabolic
     Moebius map) equals the replica edge (discriminant root)."""

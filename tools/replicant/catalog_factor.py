@@ -240,7 +240,8 @@ def coloring():
              fstep("coloring-thresholds", f"{KZ}, Sec. 6.6, Eqs. (6.17), (6.24)", _col_thr),
              fstep("coloring-bp-graphs", f"{KZ}, Sec. 6.6 (BP on large random graphs)", _col_bp,
                    when=lambda p: p.get("N") is not None and p.get("planted", False) is not True,
-                   skip="no N given")] + K7.steps(_mean_degree, KZ)
+                   skip="no N given, or planted=true (BP from the planted start on planted graphs runs in "
+                        "coloring-planted-graphs instead of this random-start step)")] + K7.steps(_mean_degree, KZ)
     refs = [RefCheck("factor", "coloring_c_ks_q3", lambda v: v["c_ks"], params={"q": 3}, route="cavity"),
             RefCheck("factor", "coloring_c_ann_q3", lambda v: v["c_ann"], params={"q": 3}, route="cavity")] + K7.refs()
     ann = _phys("Sec. 6.6, Eq. (6.17)", "closed form of the exact first moment (an upper bound on the quenched entropy "

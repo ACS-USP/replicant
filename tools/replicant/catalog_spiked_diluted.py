@@ -56,6 +56,11 @@ def _tri(p):
 def _thresholds(p):
     rho = SD._rho(p["rho"])
     vals = {"rho": rho, "lambda_c": 1 / SD.diluted_overlap_slope(rho, 0.0) ** 0.5}
+    kind = SD.diluted_first_order(rho)
+    if kind == "undetermined":
+        return Out({**vals, "first_order_status": "undetermined", "first_order_status_note": "within numerical "
+                    "resolution of rho_tri (|max s| < 1e-10): the sign of D' is not resolved"},
+                   f"rho = {rho}: first-order or continuous not resolved (at the tricritical point)")
     sp = SD.diluted_spinodals(rho)
     if sp is None:
         return Out({**vals, "first_order": False}, f"rho = {rho}: D(gamma) is monotone, no first-order transition")
@@ -124,7 +129,7 @@ def finality():
                             "final") for k in ("overlap_se", "mmse_se")}}
 
 
-META = ("rho", "first_order", "se_fixed_points", "se_stable", "se_phase", "se_metastable", "se_uninformative_gamma",
+META = ("rho", "first_order", "first_order_status", "first_order_status_note", "se_fixed_points", "se_stable", "se_phase", "se_metastable", "se_uninformative_gamma",
         "se_informative_gamma", "se_status", "se_status_note")
 
 

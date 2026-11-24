@@ -181,3 +181,19 @@ def test_cli_module_entry_point_in_subprocess():
     p = subprocess.run([sys.executable, "-m", "replicant", "run", "pspin", "--route", "cavity"],
                        cwd=TOOLS, capture_output=True, text=True, timeout=60)
     assert p.returncode == 2 and p.stderr.startswith("REFUSED: missing-step:route:cavity"), p
+
+
+def test_cli_json_spec_names_the_prior_that_ran():
+    """Final review minor 7: a spiked_wigner run at prior=diluted_rademacher reported the catalog spec's default
+    prior "gaussian"; the JSON spec now names the prior of the run (the matched default kept as catalog_prior),
+    and a default run is unchanged (no catalog_prior key)."""
+    with tempfile.TemporaryDirectory() as d:
+        out = {}
+        for tag, extra in (("dil", ["--param", "prior=diluted_rademacher", "--param", "rho=0.08"]), ("plain", [])):
+            path = os.path.join(d, tag + ".json")
+            code, _, err = _main(["run", "spiked_wigner", "--route", "amp", *extra, "--out", path])
+            assert code == 0, err
+            with open(path) as f:
+                out[tag] = json.load(f)["spec"]
+    assert out["dil"]["prior"] == "diluted_rademacher" and out["dil"]["catalog_prior"] == "gaussian", out
+    assert out["plain"]["prior"] == "gaussian" and "catalog_prior" not in out["plain"], out

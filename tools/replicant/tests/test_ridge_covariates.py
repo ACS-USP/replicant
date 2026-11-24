@@ -15,6 +15,7 @@ import mpmath as mp
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 from dataclasses import replace
 
+from replicant.compose import compose
 from replicant.catalog import catalog, check_ref
 from replicant.core import Refusal
 from replicant.learning import ridge as R
@@ -217,6 +218,14 @@ def test_catalog_ridge_covariance_parameter():
     assert abs(two["risk"] - R.ridge_test_error("2", "0.1", "0.5", "2", covariance=TWO)) < 1e-25
     assert "risk_rs" not in two and two["covariance"] == TWO
     assert abs(two["risk_opt"] - R.ridge_test_error("2", two["lambda_opt"], "0.5", "2", covariance=TWO)) < 1e-25
+    # labels do not depend on how the identity is spelled (final review): "1:1" carries the isotropic run's finality
+    # for every key both runs report; a genuine spectrum keeps the covariance labels (lam* not-computed there)
+    iso, one, sp = (compose(e.spec, "replica").run(gamma="2", lam="0.1", sigma2="0.5", signal="2", **c).finality
+                    for c in ({}, {"covariance": "1:1"}, {"covariance": TWO}))
+    for k in ("lambda_opt", "risk_opt", "test_mse_opt", "risk", "risk_ridgeless"):
+        assert one[k].state == iso[k].state == "exact-by-literature" and one[k].cite == iso[k].cite, (k, one[k])
+        assert sp[k].cite != iso[k].cite, (k, sp[k])                         # a spectrum: its own label
+    assert all(sp[k].state == "not-computed" for k in ("lambda_opt", "risk_opt", "test_mse_opt")), sp
 
 
 # ---- the notes' ridge errata -------------------------------------------------------------------------------------

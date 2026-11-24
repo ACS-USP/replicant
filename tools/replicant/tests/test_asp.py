@@ -61,6 +61,13 @@ def test_asp_q0_zero_branch_and_refusals():
             assert e.reason == reason, (bad, e.reason)
         else:
             raise AssertionError(bad)
+    for start in ("ab", (0.1,), (0.1, 0.5, 0.9), ("x", 0.5), 0.3, (0.6, 0.5)):   # malformed or out of order
+        try:
+            A.asp_fixed_point(2, 0.3, start=start)
+        except Refusal as e:
+            assert e.reason == "precondition:start", (start, e.reason)
+        else:
+            raise AssertionError(start)
 
 
 def test_asp_imports_nothing_from_families():

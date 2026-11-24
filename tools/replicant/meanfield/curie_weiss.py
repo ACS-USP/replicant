@@ -238,7 +238,10 @@ def cw_spinodal(beta) -> Ball:
 # ---- cavity route (Sec. 1.4, App. 1.C) ----------------------------------------------------------------
 def cw_free_entropy_cavity(beta, h=0, dps=30):
     """(m, Phi): the stable fixed points of m <- tanh beta (m + h) reached from m0 = +1 and -1, then
-    Phi = max phi~(m), phi~ = -beta m^2/2 + ln 2 cosh beta (m + h) (Eq. (1.23))."""
+    Phi = max phi~(m), phi~ = -beta m^2/2 + ln 2 cosh beta (m + h) (Eq. (1.23)).  An iteration not converged in
+    20000 steps is polished by findroot (mnewton: the root is triple at beta = 1, h = 0)
+    and its residual audited (< 10^-dps, |m| <= 1); a failure is refused by
+    name (no-solution:solver / no-solution:audit), never returned."""
     with mp.workdps(dps + 10):
         bq, hq = rational(beta, "beta"), rational(h, "h", positive=False)
         b, hh = mp.mpf(bq.numerator) / bq.denominator, mp.mpf(hq.numerator) / hq.denominator
@@ -251,8 +254,16 @@ def cw_free_entropy_cavity(beta, h=0, dps=30):
                     m = new
                     break
                 m = new
-            else:
-                m = mp.findroot(lambda x: x - mp.tanh(b * (x + hh)), m)
+            else:                   # slow (critical) convergence: polish by findroot, then audit the residual
+                f = lambda x: x - mp.tanh(b * (x + hh))
+                try:
+                    m = mp.findroot(f, m, solver="mnewton", verify=False)    # multiple-root safe (beta = 1, h = 0)
+                except (ValueError, ZeroDivisionError) as exc:
+                    raise Refusal("no-solution:solver", f"cavity iteration at beta = {beta}, h = {h} from m0 = {m0}: "
+                                  f"not converged in 20000 steps and findroot failed ({exc})")
+                if not (abs(m) <= 1 and abs(f(m)) < mp.mpf(10) ** (-dps)):
+                    raise Refusal("no-solution:audit", f"cavity fixed point at beta = {beta}, h = {h}: findroot "
+                                  f"residual {mp.nstr(abs(f(m)), 3)} (m = {mp.nstr(m, 8)}) above 1e-{dps}")
             val = -b * m * m / 2 + mp.log(2 * mp.cosh(b * (m + hh)))
             if best is None or val > best[1]:
                 best = (m, val)

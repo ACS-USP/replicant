@@ -172,6 +172,43 @@ def test_cw_exact_z_converges():
     assert _refusal(lambda: CX.cw_rate_function(0.1, "3/2", 0, "saddle")).reason == "unsupported:route"
 
 
+def test_cw_lemma2_audit_and_cavity_polish_at_the_critical_point():
+    """beta = 1, h = 0 (final review): cw_solution certifies the unique root m = 0 (phi = ln 2), so cw_exact audits
+    Lemma 2's window there too -- a planted Phi shifted by 1/2 is refused no-solution:audit at that point.  The
+    cavity iteration converges only like t^(-1/2) there; its findroot polish (mnewton, a triple root) gives ln 2 and
+    m ~ 0, and a planted findroot that returns a non-root is refused by name (no-solution:audit), never returned."""
+    sol = CW.cw_solution(1, 0)
+    assert sol.phi.rad() < mp.mpf("1e-50") and [f.branch for f in sol.fixed_points] == ["unique"], sol
+    x = CX.cw_exact(40, 1, 0)                                         # the audit runs (no refusal at the true Phi)
+    with mp.workdps(30):
+        assert abs(x.phi.mid() - sol.phi.mid()) <= mp.log(40 * 41) / 40
+    real = CX.cw_solution
+
+    def shifted(beta, h):                                              # planted: Phi + 1/2
+        s = real(beta, h)
+        from flint import arb
+        from replicant.lattice.ball import ball_of
+        out = type("S", (), {})()
+        out.phi = ball_of(arb(str(s.phi.mid())) + arb("0.5"))
+        return out
+    CX.cw_solution = shifted
+    try:
+        assert _refusal(lambda: CX.cw_exact(40, 1, 0)).reason == "no-solution:audit"
+    finally:
+        CX.cw_solution = real
+    assert CX.cw_solution is real
+    with mp.workdps(30):
+        m, phi = CW.cw_free_entropy_cavity(1, 0)
+        assert abs(m) < mp.mpf("1e-20") and abs(phi - mp.log(2)) < mp.mpf("1e-28"), (m, phi)
+    real_fr = CW.mp.findroot
+    CW.mp.findroot = lambda f, x0, **k: x0 + mp.mpf("0.01")          # planted: a polish that misses the root
+    try:
+        assert _refusal(lambda: CW.cw_free_entropy_cavity(1, 0)).reason == "no-solution:audit"
+    finally:
+        CW.mp.findroot = real_fr
+    assert CW.mp.findroot is real_fr
+
+
 def test_curie_weiss_entry_routes_and_refusals():
     from replicant.catalog import catalog
     from replicant.compose import compose

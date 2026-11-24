@@ -159,31 +159,40 @@ def test_lasso_calibration_and_least_squares_limit():
 
 
 def test_lasso_amp_is_the_lasso_at_small_n():
-    """N = 250, alpha = 0.5, Gauss-Bernoulli rho = 0.1, Delta = 0.01, lam = 0.1, seed 2 (a point picked from a
-    convergence survey of 6 seeds: undamped Alg. 4 can diverge at small N, e.g. N = 200, alpha = 0.6; acceptable
-    for a fixed-point-equality test, which is deterministic): KZ Alg. 4 converges, its
+    """N = 250, alpha = 0.5, Gauss-Bernoulli rho = 0.1, Delta = 0.01, lam = 0.1, named seeds 0-3 (no seed picked
+    from a survey: every seed whose undamped Alg. 4 converges is checked -- it can diverge at small N, e.g. N = 200,
+    alpha = 0.6, and a non-converged seed is reported converged False and skipped, at least one must converge; the
+    checks are deterministic fixed-point equalities): KZ Alg. 4 converges, its
     fixed point satisfies the calibration lam = threshold (alpha - b) with the empirical b = <1{|R| > threshold}>
     (derived: Sigma = (1 + V)/alpha and V = Sigma b give Sigma (alpha - b) = 1), is a fixed point of the proximal-
     gradient map with eta = 1/(alpha - b) (KZ (12.154)), and equals the coordinate-descent LASSO (KKT residual
     < 1e-9) to 1e-7; plain proximal gradient (eta = 1/|A|^2) reaches it too.  Control: the slope scaled by 0.8 in
-    the Onsager term (_HOOKS["slope"]) leaves the fixed point a LASSO solution (any consistent Onsager coefficient c
+    the Onsager term (_HOOKS["slope"]) leaves the fixed point, where Alg. 4 still converges, a LASSO solution (any consistent Onsager coefficient c
     gives a = ST(a + A^T (y - A a)/(alpha - c b); lam/(alpha - c b)): measured 2e-11 from the LASSO) but breaks the
     calibration lam = threshold (alpha - b) by > 1e-3: the calibration, not the fixed point, carries the slope."""
     ch, pr = G.Channel("awgn", Delta="0.01"), Prior("gauss_bernoulli", rho="0.1")
-    A, y, x0 = G.linear_instance(250, 0.5, ch, pr, 2)
-    amp = L.lasso_amp(A, y, 0.1)
-    ex = L.lasso_exact(A, y, 0.1)
-    assert amp.converged and ex.converged and ex.kkt_residual < 1e-9
-    assert abs(amp.threshold * (0.5 - amp.b) - 0.1) < 1e-10
-    eta = 1 / (0.5 - amp.b)
-    pg = L.soft_threshold(amp.x + eta * A.T @ (y - A @ amp.x), eta * 0.1)
-    assert np.max(np.abs(pg - amp.x)) < 1e-8
-    assert np.max(np.abs(amp.x - ex.x)) < 1e-7
-    ista = L.proximal_gradient(A, y, 0.1, iters=20000, tol=1e-13)
-    assert ista.converged and np.max(np.abs(ista.x - ex.x)) < 1e-7
-    bad = _planted("slope", 0.8, lambda: L.lasso_amp(A, y, 0.1))
-    assert bad.converged and np.max(np.abs(bad.x - ex.x)) < 1e-7
-    assert abs(bad.threshold * (0.5 - bad.b) - 0.1) > 1e-3
+    checked, planted = [], []
+    for seed in (0, 1, 2, 3):
+        A, y, x0 = G.linear_instance(250, 0.5, ch, pr, seed)
+        amp = L.lasso_amp(A, y, 0.1)
+        if not amp.converged:
+            continue
+        checked.append(seed)
+        ex = L.lasso_exact(A, y, 0.1)
+        assert ex.converged and ex.kkt_residual < 1e-9, seed
+        assert abs(amp.threshold * (0.5 - amp.b) - 0.1) < 1e-10, seed
+        eta = 1 / (0.5 - amp.b)
+        pg = L.soft_threshold(amp.x + eta * A.T @ (y - A @ amp.x), eta * 0.1)
+        assert np.max(np.abs(pg - amp.x)) < 1e-8, seed
+        assert np.max(np.abs(amp.x - ex.x)) < 1e-7, seed
+        ista = L.proximal_gradient(A, y, 0.1, iters=20000, tol=1e-13)
+        assert ista.converged and np.max(np.abs(ista.x - ex.x)) < 1e-7, seed
+        bad = _planted("slope", 0.8, lambda: L.lasso_amp(A, y, 0.1))
+        if bad.converged:              # the planted slope may also stop Alg. 4 converging (seed 3): caught there
+            assert np.max(np.abs(bad.x - ex.x)) < 1e-7, seed
+            assert abs(bad.threshold * (0.5 - bad.b) - 0.1) > 1e-3, seed
+            planted.append(seed)
+    assert checked and planted, ("no seed converged", checked, planted)
 
 
 @slow

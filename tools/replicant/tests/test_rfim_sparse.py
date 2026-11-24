@@ -65,6 +65,14 @@ def test_rfim_population_homogeneous_limits():
     assert "approximation" in res.finality["phi_bp"].note, res.finality["phi_bp"]       # loopy sampled graphs
     assert _refusal(lambda: e.run("cavity", graph="lattice")).reason == "unsupported:graph"
     assert _refusal(lambda: e.run("cavity", c=4, J=-1)).reason == "precondition:J"
+    # the regular degree is d (as potts_bethe / coloring); c on a regular graph is its older spelling, same values
+    new = e.run("cavity", d=4, beta="1/2", Delta="1/10", pop=100, sweeps=8, seeds=[0, 1])
+    old = e.run("cavity", c=4, beta="1/2", Delta="1/10", pop=100, sweeps=8, seeds=[0, 1])
+    assert new == old and new["d"] == new["c"] == 4, (new, old)
+    assert e.run("cavity", d=3)["beta_c_zero_field"] == math.atanh(1 / 2)
+    assert _refusal(lambda: e.run("cavity", d=4, c=4)).reason == "precondition:known-parameter"
+    assert _refusal(lambda: e.run("cavity", graph="poisson", d=4)).reason == "precondition:known-parameter"
+    assert _refusal(lambda: e.run("cavity", d=2.5)).reason == "precondition:d"
     assert _refusal(lambda: POP.population_dynamics(POP.potts_law(3, 1), ("regular", 3), pop=10, sweeps=8,
                                                     seeds=(0, 1))).reason == "precondition:population"
     assert _refusal(lambda: POP.population_dynamics(POP.FactorLaw(2, 2, lambda rng, n: np.broadcast_to(
@@ -116,6 +124,12 @@ def test_rfim_population_dynamics():
             assert c * gaps[-1][0] < 0.6, (beta, c, gaps)
         assert all(gaps[i + 1][1] < gaps[i][1] or gaps[i + 1][1] < 0.002 for i in range(3)), (beta, gaps)
         assert gaps[-1][0] < 0.004 and gaps[-1][1] < 0.01, (beta, gaps)
+        # positive control: the same c = 80 run against a planted wrong limit (ordered: coupling J = 21/20, a 5%
+        # slip; disordered, where the RS Phi does not depend on J at m = 0: the field variance read as 1/2) fails
+        # the 0.004 bound on Phi by a factor > 4
+        wrong = RF.rfim_rs(beta, "21/20", RF.field_law("gaussian", "1/4")) if beta == "3" else \
+            RF.rfim_rs(beta, 1, RF.field_law("gaussian", "1/2"))
+        assert abs(v["phi_cavity"] - wrong.phi) > 4 * 0.004, (beta, v["phi_cavity"], wrong.phi)
         if beta == "1/2":                             # clean 1/c: c dPhi stays in [0.04, 0.08] (about 0.06)
             assert gaps[0][0] > gaps[1][0] > gaps[2][0] > gaps[3][0], gaps
             assert all(0.04 < c * g[0] < 0.08 for c, g in zip((10, 20, 40, 80), gaps)), gaps

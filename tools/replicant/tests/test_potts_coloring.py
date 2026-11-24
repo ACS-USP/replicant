@@ -6,7 +6,6 @@ ferromagnet (lattice/bethe.py, no shared code: an import audit), generic BP (fac
 first moments of G(N, M) by brute force.  Planted errors go through coloring.potts_bp._HOOKS, restored with
 identity asserts.
 """
-import ast
 import math
 import os
 import sys
@@ -26,7 +25,7 @@ from replicant.factor import bp as BP
 from replicant.factor import graph as FG
 from replicant.lattice.bethe import bethe_critical_beta, bethe_ising_fixed_points
 from replicant.refdata import check, load
-from replicant.testing import slow
+from replicant.testing import import_parts, imports, slow
 
 BANK = load("factor")
 PKG = Path(PB.__file__).resolve().parent.parent
@@ -62,18 +61,11 @@ def _refusal(fn):
     raise AssertionError("expected a Refusal")
 
 
-def _imports(src):
-    out = set()
-    for node in ast.walk(ast.parse(src)):
-        if isinstance(node, ast.ImportFrom):
-            out.add(("." * node.level) + (node.module or ""))
-        elif isinstance(node, ast.Import):
-            out.update(a.name for a in node.names)
-    return out
+_imports = imports      # testing.imports: modules and the imported names
 
 
 def _forbidden(mods):
-    return {m for m in mods if any(x in m.split(".") for x in ("lattice", "cavity", "inference"))}
+    return {m for m in mods if any(x in import_parts(m) for x in ("lattice", "cavity", "inference"))}
 
 
 def test_q2_potts_reproduces_bethe_ising():
@@ -84,7 +76,9 @@ def test_q2_potts_reproduces_bethe_ising():
     beta map breaks the agreement."""
     files = sorted((PKG / "factor").glob("*.py")) + sorted((PKG / "coloring").glob("*.py"))
     assert len(files) >= 8 and all(not _forbidden(_imports(f.read_text())) for f in files), files
-    assert _forbidden(_imports("from ..lattice.bethe import bethe_ising_fixed_points\n")) == {"..lattice.bethe"}
+    assert _forbidden(_imports("from ..lattice.bethe import bethe_ising_fixed_points\n")) == \
+        {"..lattice.bethe:bethe_ising_fixed_points"}
+    assert _forbidden(_imports("from .. import inference\n")) == {"..:inference"}     # the imported name is seen
     rng = np.random.default_rng(5)
     for d, bi in ((3, "4/5"), (5, "2/5"), (5, "1/5")):
         b_i = float(Fraction(bi))
@@ -214,16 +208,31 @@ def test_potts_population_on_er_graphs():
     planted and the random population order ("same" fixed point) with Phi above the paramagnetic closed form; at
     beta = -0.3 the planted population falls back to chi = 1/q and reproduces the closed form within its band.  BP on
     sampled ER graphs (N = 3000, 4 seeds) agrees with the population within 0.01 (finite-N allowance; the joint 99%
-    bands are about 1e-3)."""
+    bands are about 1e-3).  Positive controls: a planted mean degree in the closed form and a planted BP edge
+    term both fail these comparisons."""
     e = catalog()["potts_bethe"]
     kw = dict(graph="poisson", c=5, q=3, pop=3000, sweeps=20, N=3000, seeds=[0, 1, 2, 3])
-    v = e.run("cavity", beta="-0.9", **kw)
+    v = ordered = e.run("cavity", beta="-0.9", **kw)
     assert v["pd_status"] == "converged" and v["pd_phase"] == "same" and v["b0_pd_planted"] > 0.8, v
     assert v["phi_pd_planted"] > v["phi_para"] + 0.1 and v["bp_status"] == "converged", v
     assert abs(v["phi_planted_bp"] - v["phi_pd_planted"]) < 0.01, v
     v = e.run("cavity", beta="-0.3", **kw)
     assert v["pd_status"] == "converged" and abs(v["b0_pd_planted"] - 1 / 3) < 1e-3, v
     assert abs(v["phi_pd_planted"] - v["phi_para"]) < 0.01 and abs(v["phi_random_bp"] - v["phi_para"]) < 0.01, v
+    # positive controls: the paramagnetic closed form at a planted mean degree c = 6 (off by 0.055) fails the 0.01
+    # agreement, and BP with a planted edge term (factor.bp._HOOKS edge_term = 0.5, shifting Phi by about
+    # (c/2) E ln Z_ij) leaves the population's ordered Phi at beta = -0.9 by far more than 0.01
+    para6 = e.run("cavity", beta="-0.3", graph="poisson", c=6, q=3)["phi_para"]
+    assert abs(v["phi_pd_planted"] - para6) > 0.03, (v["phi_pd_planted"], para6)
+    from replicant.factor import bp as BP
+    old = BP._HOOKS["edge_term"]
+    BP._HOOKS["edge_term"] = 0.5
+    try:
+        bad = e.run("cavity", beta="-0.9", graph="poisson", c=5, q=3, N=3000, seeds=[0, 1, 2, 3])
+    finally:
+        BP._HOOKS["edge_term"] = old
+        assert BP._HOOKS["edge_term"] is old
+    assert abs(bad["phi_planted_bp"] - ordered["phi_pd_planted"]) > 0.05, (bad["phi_planted_bp"], ordered)
 
 
 def test_potts_coloring_fix_round_1():

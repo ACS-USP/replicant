@@ -105,14 +105,25 @@ def test_bp_messages_and_refusals():
 
 def test_graph_samplers():
     """Degrees of the samplers (d-regular exactly, simple; ER mean degree c within its sampling error); Pruefer
-    trees are trees."""
+    trees are trees.  Positive controls: the same predicates reject planted wrong samples -- a regular sample with
+    one edge doubled (not simple), the ER sampler run at c/2 (the mean-degree check, 13 sd away), and a tree with
+    one extra edge (not a forest)."""
     rng = np.random.default_rng(11)
+    regular_ok = lambda e, n, d: bool(np.all(np.bincount(e.ravel(), minlength=n) == d)
+                                      and len(np.unique(e[:, 0] * n + e[:, 1])) == len(e) and np.all(e[:, 0] < e[:, 1]))
+    simple = lambda e, n: len(np.unique(e[:, 0] * n + e[:, 1])) == len(e) and bool(np.all(e[:, 0] != e[:, 1]))
+    mean_ok = lambda e, n, c: abs(2 * len(e) / n - c) < 4 * np.sqrt(2 * c / n)      # 2M/N ~ c, sd sqrt(2c/N)
     e = FG.random_regular_edges(2000, 5, rng)
-    deg = np.bincount(e.ravel(), minlength=2000)
-    assert np.all(deg == 5) and len(np.unique(e[:, 0] * 2000 + e[:, 1])) == len(e) and np.all(e[:, 0] < e[:, 1])
+    assert regular_ok(e, 2000, 5)
+    assert not regular_ok(np.vstack([e[1:], e[:1], e[:1]]), 2000, 5)               # planted: one edge doubled
     e = FG.erdos_renyi_edges(4000, 3.0, rng)
-    assert len(np.unique(e[:, 0] * 4000 + e[:, 1])) == len(e) and np.all(e[:, 0] != e[:, 1])
-    assert abs(2 * len(e) / 4000 - 3.0) < 4 * np.sqrt(2 * 3.0 / 4000)            # 2M/N ~ c, sd sqrt(2c/N)
+    assert simple(e, 4000) and mean_ok(e, 4000, 3.0)
+    assert not mean_ok(FG.erdos_renyi_edges(4000, 1.5, rng), 4000, 3.0)              # planted: c read as c/2
+    assert not simple(np.vstack([e, e[:1]]), 4000)
     for n in (1, 2, 17):
         t = FG.random_tree_edges(n, rng)
         assert len(t) == n - 1 and FG.pairwise(n, 2, t, np.ones((2, 2))).is_forest() if n > 1 else len(t) == 0
+    t = np.asarray(FG.random_tree_edges(17, rng))
+    far = next(x for x in range(1, 17) if not any({0, x} == set(map(int, ed)) for ed in t))    # not adjacent to 0
+    extra = np.vstack([t, [[0, far]]])
+    assert not FG.pairwise(17, 2, extra, np.ones((2, 2))).is_forest()               # planted: a cycle

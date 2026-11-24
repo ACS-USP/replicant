@@ -108,7 +108,13 @@ def test_rfim_entry_and_refusals():
     from replicant.catalog import catalog
     e = catalog()["rfim"]
     v = e.run(Delta="0.36", beta="2", N=300, seeds=[0, 1, 2])
-    assert v["e_ground_plus"] < v["e_ground_plus"] + v["e_ground_plus_halfwidth99"]
+    # the exact finite-N ground energy (Sbar >= 0 state, O(1/N) from the limit) contains the RS T = 0 energy e_min in
+    # its 99% band widened by 1/N; a planted e_min of another law (Delta = 1, e_min -0.798, 0.27 away against a
+    # band of about 0.14) falls outside it
+    band = v["e_ground_plus_halfwidth99"] + 1 / 300
+    assert abs(v["e_ground_plus"] - v["e_min"]) <= band, (v["e_ground_plus"], v["e_min"], band)
+    wrong = RF.rfim_ground_energy(1, RF.field_law(Delta="1")).e
+    assert abs(v["e_ground_plus"] - wrong) > band, (v["e_ground_plus"], wrong, band)
     assert v["phi_guerra_lower"] <= v["phi_exact"] <= v["phi_guerra_upper"]
     assert abs(v["phi"] - v["phi_exact"]) < 0.05
     for bad, reason in (({"law": "cauchy"}, "unsupported:field-law"), ({"Delta": "-1"}, "precondition:Delta"),

@@ -1,4 +1,5 @@
-"""Ridge and ridgeless (min-norm) least squares on isotropic Gaussian design: the asymptotic risk.
+"""Ridge and ridgeless (min-norm) least squares on Gaussian design (isotropic; K6: a covariance spectrum): the
+asymptotic risk.
 
 Model (Hastie, Montanari, Rosset & Tibshirani, "Surprises in high-dimensional ridgeless least
 squares interpolation", Ann. Statist. 50, 949 (2022), arXiv:1903.08560 -- HMRT -- Eqs. (1), (2),

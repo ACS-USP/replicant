@@ -31,7 +31,10 @@ Numerics.  RS quantities use solve.gauss_expect/fixed_point at dps=15 (q to
 stationarity equations from several seeds (RS-derived and, at h = 0, the
 q0 = 0 subspace); among converged stationary points the one with the LARGEST
 f is returned, since for n -> 0 the replica free energy is maximised over the
-order parameters (at h = 0 this is a q0 > 0 point, above the q0 = 0 one).
+order parameters (at h = 0 this is a q0 > 0 point, above the q0 = 0 one).  Equivalently, every 1RSB trial
+bounds the pressure -beta f from above (Guerra), so the best one minimises it: at beta = 2, h = 0 the q0 = 0
+stationary point (q0 = 0 solves its equation by symmetry) is a saddle with -beta f higher by 1.9e-4, a worse
+bound, and the selected q0 = 0.2146 point is the minimum (tests/test_sk.py, an independent Nelder-Mead check).
 The grid is checked against 160 x 160 nodes: at beta = 2 everything agrees to
 ~1e-11, at beta = 3 f to ~2e-10 and (q0, q1, m) to ~1e-6; beta > 3 is refused
 (the y-integrand gets too sharp).  The T = 0 1RSB uses 200 Hermite nodes.

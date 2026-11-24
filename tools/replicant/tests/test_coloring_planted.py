@@ -79,6 +79,19 @@ def test_planted_coloring_and_the_sbm_link():
     _refuses(lambda: P.sbm_affinities(3, 4.0, "-1"), "precondition:beta")
 
 
+def test_planted_run_trace_says_why_random_start_bp_is_skipped():
+    """Final review (ledger K7 l.149): with planted=true the K3 random-start step is skipped because planted=true, not
+    for want of N; its trace note says so, and a run with N and no planted flag still runs it."""
+    from replicant.catalog import catalog
+    from replicant.compose import compose
+    spec = catalog()["coloring"].spec
+    note = {e.step: e.summary for e in compose(spec, "cavity").run(q=5, c=13, planted=True, N=40,
+                                                                     seeds=[0, 1]).trace.entries}
+    assert "planted=true" in note["coloring-bp-graphs"] and "skipped" in note["coloring-bp-graphs"], note
+    note = {e.step: e.summary for e in compose(spec, "cavity").run(q=3, c=3, N=40, seeds=[0, 1]).trace.entries}
+    assert "skipped" not in note["coloring-bp-graphs"], note
+
+
 def test_small_n_counts():
     """Exhaustive counts of proper q-colorings (sample.count_colorings, every configuration) at small N:
     (1) on cycles C_n the count is (q - 1)^n + (-1)^n (q - 1) exactly, while the paramagnetic BP (Bethe) value is

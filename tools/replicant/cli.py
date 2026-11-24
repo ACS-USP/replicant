@@ -168,7 +168,12 @@ def result_json(target, spec, res):
             refs = [{"refused": f"{r.reason}: {r.detail}"}]
         skipped = [f"{r.file}/{r.key}" for r in res.entry.refs
                    if r.route == res.route and (r.slow or r.statistical)]
-    return jsonable({"target": target, "spec": vars(spec), "route": res.route,
+    spec_out = dict(vars(spec))
+    run_prior = (res.params or {}).get("prior") if res.entry is not None else None
+    if isinstance(run_prior, str) and run_prior != spec_out.get("prior"):
+        # the prior of the model that ran, not the catalog spec's default it was matched by
+        spec_out.update(prior=run_prior, catalog_prior=spec_out.get("prior"))
+    return jsonable({"target": target, "spec": spec_out, "route": res.route,
                      "rigor": res.rigor, "values": res.values, "errors": res.errors,
                      "statistical": res.statistical, "stable": res.stable, "final": res.final,
                      "finality": {k: {**vars(st), "final": st.final}

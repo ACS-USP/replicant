@@ -9,7 +9,7 @@ labelled "_regular".  Run parameters added to `coloring` (cavity):
   m, pop      the ER 1RSB population of populations at Parisi m (pop = N1 = N2, default 300), over `seeds`
   pop alone   the colour-symmetric frozen-SP population at (q, c) over `seeds` (pop members, default 10000)
   thresholds  "colorability" (ER c_col: the frozen-SP root), "clustering" (ER c_d by the 1RSB cavity, continuous case;
-              only an upper bound c_c_1rsb_upper on c_c; a first-order case is refused),
+              only an upper bound c_c_1rsb_upper on c_c; ER q >= 4, first-order, is refused up front),
               "regular" (integer c_d, c_c of d-regular graphs by the m = 1 population); over `seeds`
   planted     true: the SBM affinities (c_in = 0 at beta = oo, Eq. (13.3)) and c_l of Eq. (13.9); with N, BP from
               the planted start on planted graphs (overlap, Phi_planted - Phi_para, the quiet-planting verdict)

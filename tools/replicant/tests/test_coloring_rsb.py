@@ -73,6 +73,8 @@ def test_colorability_table():
         ca = PB.coloring_annealed_threshold(q)
         assert abs(ca - _v(key)) <= _t(key), (q, ca)
         assert ca - _v(f"coloring_c_col_q{q}") > 0.7, (q, ca)                   # the print is not ZK's c_col
+        bad = _planted(PB, "ann_numerator", 1, lambda: PB.coloring_annealed_threshold(q))   # planted: ln q, not 2 ln q
+        assert abs(bad - _v(key)) > _t(key), (q, bad)
     for q in (3, 4, 5):
         col = R.colorability_threshold(q, "regular")
         assert col.d_sp == _v(f"coloring_regular_d_sp_q{q}") and col.d_uncol == _v(f"coloring_regular_d_uncol_q{q}"), col
@@ -127,12 +129,34 @@ def test_colorability_table_q3_by_1rsb():
     assert e.finality_of(v)["c_d_1rsb"].state == "not-computed"
 
 
-@slow
-def test_er_first_order_is_refused():
-    """q = 5 on ER: the frozen m = 1 start stays nontrivial at 0.95 c_inst (ZK: c_d = 12.837 < (q - 1)^2 = 16), a
-    first-order transition the ER 1RSB path does not implement: refused by name (short runs, seeds 0-1)."""
-    _refuses(lambda: R.cluster_thresholds(5, "er", seeds=(0, 1), sweeps=60, measure=30),
-             "unsupported:er-first-order")
+def test_er_first_order_is_refused_up_front():
+    """ER q >= 4 (ZK 2007: a first-order clustering transition, c_d < (q - 1)^2) is refused by name on the input,
+    before any population runs: no seed-dependent refusal after paid runs.  The population engine is replaced by a
+    stub that fails if called, so a refusal reached after a run would show as that failure; q = 3 on ER and q = 4 on
+    regular graphs do reach the engine (the control that the stub is live)."""
+    def boom(*a, **k):
+        raise AssertionError("a population ran before the refusal")
+    old = RP.coloring_1rsb
+    RP.coloring_1rsb = boom
+    try:
+        for q in (4, 5, 7):
+            _refuses(lambda: R.cluster_thresholds(q, "er", seeds=(0, 1)), "unsupported:er-first-order")
+            _refuses(lambda: R.clustering_threshold(q, "er"), "unsupported:er-first-order")
+        for q, graph in ((3, "er"), (4, "regular")):
+            try:
+                R.cluster_thresholds(q, graph, seeds=(0,))
+                raise RuntimeError("the stub was not reached")
+            except AssertionError:
+                pass
+    finally:
+        RP.coloring_1rsb = old
+    assert RP.coloring_1rsb is old
+    e = catalog()["coloring"]
+    try:
+        run_cached(e, "cavity", {"q": 4, "ansatz": "1rsb", "thresholds": "clustering"})
+        raise AssertionError("not refused")
+    except Refusal as err:
+        assert err.reason == "unsupported:er-first-order", err
 
 
 @slow

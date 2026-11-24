@@ -1,6 +1,7 @@
 """High-dimensional learning (E7).
 
-  ridge.py      ridge / ridgeless least squares on isotropic Gaussian design: the limiting excess
+  ridge.py      ridge / ridgeless least squares on Gaussian design (isotropic, or K6's covariance
+                spectrum): the limiting excess
                 risk from the Marchenko-Pastur Stieltjes transform (HMRT 2022 Cor. 5, Eq. (8)),
                 the optimal penalty lam* = sigma^2 gamma / r^2, a numerical argmin; planted-error
                 hook _SCALE

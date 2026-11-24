@@ -131,6 +131,23 @@ def test_diluted_tricritical_point():
     assert _ok("diluted_delta_tri", tri.rho**2 / tri.snr**2), tri
 
 
+def test_diluted_spinodals_next_to_the_tricritical_point():
+    """Within ~1e-7 below rho_tri the 361-point grid misses the two zeros of s = gamma m' - m; they are now bracketed
+    on either side of the maximum of s, so the spinodals exist (gamma_alg < gamma_dyn, snr_alg > snr_dyn) instead of a
+    silent None.  At rho_tri itself (|max s| < 1e-10) first-order vs continuous is labelled undetermined by the
+    entry, never reported first_order False; just above rho_tri it is continuous."""
+    rt = SD.diluted_tricritical().rho
+    for d in (1e-7, 1e-9):
+        sp = SD.diluted_spinodals(rt - d)
+        assert sp is not None and sp.gamma_alg < sp.gamma_dyn and sp.snr_alg > sp.snr_dyn, (d, sp)
+        assert SD.diluted_first_order(rt - d) == "first-order"
+    assert SD.diluted_first_order(rt) == "undetermined" and SD.diluted_first_order(rt + 1e-7) == "continuous"
+    from replicant.catalog import catalog
+    v = catalog()["spiked_wigner"].run("amp", prior="diluted_rademacher", rho=rt)
+    assert v.get("first_order_status") == "undetermined" and "first_order" not in v, v
+    assert catalog()["spiked_wigner"].run("amp", prior="diluted_rademacher", rho="0.08")["first_order"] is True
+
+
 def test_diluted_undetermined_not_refused():
     """A run whose SE iterations do not converge (iteration cap far below what the spinodal's slowing needs) keeps the
     fixed points but labels the Bayes values undetermined (never a Refusal)."""

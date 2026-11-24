@@ -3,10 +3,13 @@ population dynamics over a factor law (factor/population.py), checked by BP on s
 
 Convention (KZ Ch. 4): H = -J sum_(ij) s_i s_j - sum_i h_i s_i on a random graph, beta the Ising beta, h_i i.i.d.
 from the field law of meanfield/rfim.py (gaussian N(0, Delta), Delta the variance, or bimodal +-h0).  graph:
-regular (every vertex has c neighbours, excess c - 1) or poisson (Erdos-Renyi, mean degree c).  The fully
+regular (every vertex has d neighbours, excess d - 1) or poisson (Erdos-Renyi, mean degree c), the spelling of
+potts_bethe and coloring.  `c` on a regular graph is the older (pre-final-review) spelling of d and keeps that
+meaning (the same degree, identical values); giving both is refused, and d on a poisson graph is refused with a hint.  The fully
 connected entry (route replica, H = -(J N/2) Sbar^2 - sum h_i s_i) is the c -> oo limit with the edge coupling
 J/c.  State 0 is s = +1; the planted start is every message on s = +1.
-Run parameters (route cavity): graph (regular | poisson, default regular), c (default 4), J (default 1), law,
+Run parameters (route cavity): graph (regular | poisson, default regular), d (regular degree, default 4) or c
+(poisson mean degree, default 4; on regular graphs the old spelling of d), J (default 1), law,
 Delta, h0 (as the replica route), beta (required for the population), pop (default 2000), sweeps (default 20),
 seeds (default 0-3), N (BP on one sampled graph per seed), iters.
 Values: beta_c_zero_field, the Delta = 0 ferromagnetic point (KZ Ex. 4.2.1: (c - 1) tanh beta J = 1 regular,
@@ -28,7 +31,7 @@ from .meanfield import rfim as RF
 
 KZ = ("Krzakala & Zdeborova, Statistical Physics Methods in Optimization and Machine Learning, lecture notes "
       "(June 9 2024)")
-PARAMS = ("graph", "c", "J", "law", "Delta", "h0", "beta", "pop", "sweeps", "seeds", "N", "iters")
+PARAMS = ("graph", "c", "d", "J", "law", "Delta", "h0", "beta", "pop", "sweeps", "seeds", "N", "iters")
 
 
 def _law(p):
@@ -37,12 +40,21 @@ def _law(p):
 
 
 def _graph(p):
-    g, c = p.get("graph", "regular"), p.get("c", 4)
+    g = p.get("graph", "regular")
     if g == "regular":
+        if p.get("d") is not None and p.get("c") is not None:
+            raise Refusal("precondition:known-parameter", "a regular graph takes its degree as d (c is the older "
+                          "spelling of the same degree): give one of them")
+        name = "d" if p.get("d") is not None else "c"
+        c = p.get(name, 4)
         if isinstance(c, bool) or not isinstance(c, int) or c < 2:
-            raise Refusal("precondition:c", f"c = {c!r}: a regular graph needs an int degree >= 2")
+            raise Refusal(f"precondition:{name}", f"{name} = {c!r}: a regular graph needs an int degree >= 2")
         return g, c, ("regular", c)
     if g == "poisson":
+        if p.get("d") is not None:
+            raise Refusal("precondition:known-parameter", "d is the regular degree; an Erdos-Renyi (poisson) graph "
+                          "takes its mean degree as c")
+        c = p.get("c", 4)
         cf = float(RF._pos(c, "c"))
         return g, cf, ("poisson", cf)
     raise Refusal("unsupported:graph", f"graph = {g!r}: regular | poisson")
@@ -59,6 +71,8 @@ def _state(p):
     j = float(RF._pos(p.get("J", 1), "J"))
     branching = c - 1 if g == "regular" else c
     v = {"graph": g, "c": c, "J": j, "law": _law(p).kind, "law_scale": _law(p).scale}
+    if g == "regular":
+        v["d"] = c                  # the regular degree; "c" kept with the same number for the older spelling
     if branching > 1:
         v["beta_c_zero_field"] = math.atanh(1 / branching) / j
     return Out(v, f"{g} graph, c = {c}, J = {j}; Delta = 0 ferromagnetic point beta_c = atanh(1/{branching})/J"
@@ -129,6 +143,6 @@ FINALITY = {"beta_c_zero_field": Stability("not-computed", "rs", f"{KZ}, Sec. 4.
                                            "zero-field linear stability of the cavity recursion (physics-level)"),
             "m_cavity": _stat("pd_status", "Sec. 4.3.2"), "phi_cavity": _stat("pd_status", "Sec. 4.3.2"),
             "m_bp": _stat("bp_status", "Sec. 4.2.1"), "phi_bp": _stat("bp_status", "Sec. 4.2.1", "bethe_labels_bp")}
-META = ("graph", "c", "pd_status", "pd_status_note", "bp_status", "bp_status_note", "bethe_labels_bp")
+META = ("graph", "c", "d", "pd_status", "pd_status_note", "bp_status", "bp_status_note", "bethe_labels_bp")
 
 __all__ = ["FINALITY", "META", "PARAMS", "cavity_steps", "rfim_graph"]

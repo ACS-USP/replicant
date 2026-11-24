@@ -85,14 +85,23 @@ def asp_fixed_point(beta, m, h=0, *, start=None, tol=1e-14, max_iter=5000, grid=
     hh = _num(h, "h", "precondition:field", lambda v: True)
     if isinstance(grid, bool) or not isinstance(grid, int) or grid < 1:
         raise Refusal("precondition:grid", f"grid = {grid!r} is not a positive int")
-    q0, q1 = (0.5, 0.95) if start is None else (float(start[0]), float(start[1]))
+    if start is None:
+        q0, q1 = 0.5, 0.95
+    else:
+        try:
+            if isinstance(start, (str, bytes)) or len(start) != 2:
+                raise TypeError("not a pair")
+            q0, q1 = (float(x) for x in start)
+        except (TypeError, ValueError) as exc:
+            raise Refusal("precondition:start", f"start = {start!r}: need a pair (q0, q1) of numbers ({exc})")
     if not 0 <= q0 <= q1 <= 1:
         raise Refusal("precondition:start", f"start = {start!r}: need 0 <= q0 <= q1 <= 1")
+    q0_start = q0
     z, w = _grid(grid)
     ok, it = False, 0
     for it in range(1, max_iter + 1):
         n0, n1 = _map(b, mm, hh, q0, q1, z, w)
-        if start is not None and start[0] == 0 and hh == 0:
+        if start is not None and q0_start == 0 and hh == 0:
             n0 = 0.0                              # the exact q0 = 0 branch (its map value is 0 up to rounding)
         ok = abs(n0 - q0) <= tol and abs(n1 - q1) <= tol
         q0, q1 = n0, n1

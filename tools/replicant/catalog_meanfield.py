@@ -13,7 +13,7 @@ Run parameters:
   rfim (replica)         J (> 0, default 1), law (gaussian | bimodal), Delta (variance, default 1/2) or h0,
                          beta (the RS state point), N (exact sorted ground states, and with beta the
                          Hubbard-Stratonovich free entropy and Guerra's bounds), seeds (default 0-15)
-  rfim (cavity)          catalog_rfim_sparse.PARAMS (graph, c, J, law, Delta, h0, beta, pop, sweeps, seeds, N, iters)
+  rfim (cavity)          catalog_rfim_sparse.PARAMS (graph, d | c, J, law, Delta, h0, beta, pop, sweeps, seeds, N, iters)
   random_matrix          kind (wigner (default) | wishart), alpha (wishart: M/N), x (density point), y (> 0:
                          S(x + i y))
 """
@@ -234,7 +234,7 @@ def rfim():
                    "(Guerra's bounds)", _rf_sample, when=has("N"), skip="no N given")]
     refs = [RefCheck("meanfield", "rfim_fig221_emin_delta0p36", lambda v: v["e_min"], params={"Delta": "0.36"}),
             RefCheck("meanfield", "rfim_fig221_emin_delta0p81", lambda v: v["e_min"], params={"Delta": "0.81"}),
-            RefCheck("factor", "bethe_peierls_beta_dim2", lambda v: v["beta_c_zero_field"], params={"c": 4},
+            RefCheck("factor", "bethe_peierls_beta_dim2", lambda v: v["beta_c_zero_field"], params={"d": 4},
                      route="cavity")]
     rs = lambda k: _phys("rs", "Sec. 2.2", "replica-symmetric saddle; KZ Sec. 2.3 argues it exact by interpolation "
                          "(not a numbered theorem): NOT final")

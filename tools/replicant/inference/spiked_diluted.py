@@ -157,10 +157,44 @@ class Spinodals:
     snr_dyn: float
 
 
-def diluted_spinodals(rho):
-    """Spinodals(...) from the two critical points of D, or None (D monotone: no first-order transition)."""
-    r = _rho(rho)
+_S_RESOLUTION = 1e-10     # |max s| below this: the sign of D' is not resolved (at the tricritical point)
+
+
+def _refined_critical(r):
+    """_critical, plus the pair the 361-point grid misses within ~1e-7 of rho_tri: when the interior maximum of s is
+    positive but no grid sign change was found, the two zeros are bracketed on either side of that maximum."""
     crit = _critical(r)
+    if crit:
+        return crit
+    smax, g = _local_max_s(r)
+    if not smax > 0:
+        return ()
+    k = int(np.searchsorted(_GRID, g))
+    lo, hi = _GRID[max(k - 1, 0)], _GRID[min(k, len(_GRID) - 1)]
+    f = lambda x: _s(r, x)
+    if not (f(lo) < 0 < f(g) and f(hi) < 0):
+        raise Refusal("unsupported:critical-structure", f"rho = {r}: max s = {smax:.3g} at gamma = {g:.6g} not "
+                      "bracketed by the grid neighbours")
+    return ((optimize.brentq(f, lo, g, xtol=1e-15, rtol=1e-14), True),
+            (optimize.brentq(f, g, hi, xtol=1e-15, rtol=1e-14), False))
+
+
+def diluted_first_order(rho):
+    """'first-order' | 'continuous' | 'undetermined': undetermined when |max s| < _S_RESOLUTION (within numerical
+    resolution of the tricritical point, where the sign of D' is not resolved), never a silent False."""
+    r = _rho(rho)
+    smax = _local_max_s(r)[0]
+    if abs(smax) < _S_RESOLUTION:
+        return "undetermined"
+    return "first-order" if _refined_critical(r) else "continuous"
+
+
+def diluted_spinodals(rho):
+    """Spinodals(...) from the two critical points of D (the grid's, or refined on either side of the maximum of s
+    near rho_tri), or None (D monotone: no first-order transition).  diluted_first_order says when the sign is not
+    resolved at all (|max s| < 1e-10)."""
+    r = _rho(rho)
+    crit = _refined_critical(r)
     if not crit:
         return None
     if len(crit) != 2 or not crit[0][1] or crit[1][1]:
@@ -337,5 +371,5 @@ def diluted_tricritical(bracket=(0.085, 0.11)):
 __all__ = ["DilutedSE", "FixedPoint", "PRIOR", "Spinodals", "Start", "Tricritical", "clear_caches",
            "diluted_it_threshold", "diluted_mutual_info", "diluted_overlap", "diluted_overlap_slope",
            "diluted_potential",
-           "diluted_spinodals", "diluted_state_evolution", "diluted_tricritical", "lkz_from_snr", "notes_from_snr",
+           "diluted_first_order", "diluted_spinodals", "diluted_state_evolution", "diluted_tricritical", "lkz_from_snr", "notes_from_snr",
            "snr_from_lkz", "snr_from_notes"]

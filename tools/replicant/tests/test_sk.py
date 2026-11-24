@@ -202,3 +202,35 @@ def test_1rsb_functional_at_q0_zero_matches_an_independent_quadrature():
         ref = _p1rsb_q0_zero_mp(Fraction(b), Fraction(q1), Fraction(m))
         assert abs(sk._rsb_phi_e(b, 0.0, 0.0, q1, m)[0] - ref) < 1e-12, b
     assert abs(sk._rsb_phi_e(3.0, 0.0, 1e-300, q1, m)[0] - ref) > 1e-7
+
+
+def test_sk_1rsb_h0_selection_is_the_best_guerra_bound():
+    """Final review (the pre-existing h = 0 question): every 1RSB trial (q0, q1, m) bounds the pressure from above
+    (Guerra), so the best 1RSB estimate MINIMISES Phi(q0, q1, m) = -beta f, i.e. maximises f: sk_1rsb's largest-f
+    rule.  At beta = 2, h = 0 an unconstrained Nelder-Mead minimisation of Phi (families/sk._rsb_phi_e, three starts,
+    one on q0 = 0) converges to sk_1rsb's point q0 = 0.214631, q1 = 0.619201, m = 0.281843, Phi = 1.5824177
+    (f = -0.791209); the q0 = 0 stationary point (Newton on the q0 = 0 subspace, which q0 = 0 solves exactly by
+    symmetry) has Phi = 1.5826096, 1.919e-4 higher, and Phi decreases when q0 is moved off 0 there: a saddle, not
+    the optimum of the two-atom family.  (The review's P = 2.2755649 / 2.2757568 is Phi + ln 2 in its own
+    convention; the gap 1.919e-4 is the same.)"""
+    import math
+
+    import numpy as np
+    from scipy.optimize import minimize
+
+    from replicant.families import sk as S
+    b = 2.0
+    phi = lambda v: S._rsb_phi_e(b, 0.0, *v)[0] if (0 <= v[0] < v[1] < 1 and 0 < v[2] <= 1) else 1e9
+    sel = sk_1rsb(2)
+    pick = np.array([float(sel.q0), float(sel.q1), float(sel.m)])
+    for start in ((0.0, 0.6, 0.3), (0.3, 0.7, 0.4), (0.1, 0.5, 0.2)):
+        r = minimize(phi, start, method="Nelder-Mead", options={"xatol": 1e-9, "fatol": 1e-12, "maxiter": 4000})
+        assert np.max(np.abs(r.x - pick)) < 1e-6 and abs(r.fun - 1.5824177) < 1e-6, (start, r.x, r.fun)
+    assert abs(-b * float(sel.f) - phi(pick)) < 1e-12 and abs(float(sel.f) + 0.791209) < 1e-6
+    q = float(S._rs_q(S._key(b), S._key(0.0)))
+    q1, m = S._newton(lambda v: S._rsb_eqs(b, 0.0, 0.0, *v)[1:], (min(1.15 * q, 0.99), 0.5),
+                      lambda v: 1e-7 < v[0] < 1 - 1e-7 and 1e-7 < v[1] < 1)
+    p0 = phi((0.0, q1, m))
+    assert abs(p0 - 1.5826096) < 1e-6 and abs((p0 - phi(pick)) - 1.919e-4) < 2e-7, (q1, m, p0)
+    assert phi((0.02, q1, m)) < p0                       # moving q0 off 0 lowers Phi: not a minimum
+    assert abs(p0 + math.log(2) - 2.2757568) < 1e-6      # the review's convention

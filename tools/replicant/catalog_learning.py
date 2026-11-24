@@ -150,11 +150,15 @@ def _cov_label(v):
 
 
 def _plain(v):
-    return v.get("covariance") is None or R.covariance_spectrum(v["covariance"]) is None
+    """Isotropic for labelling: no covariance, "isotropic", or a spectrum whose eigenvalues are all 1 (e.g. "1:1",
+    the identity spelled as a spectrum: the same model, so the same theorem covers it and the label does not depend
+    on the spelling; final review)."""
+    spec = R.covariance_spectrum(v["covariance"]) if v.get("covariance") is not None else None
+    return spec is None or all(e == 1 for e, _ in spec)
 
 
 def _ridgeless_label(v):
-    if v.get("covariance") is not None and R.covariance_spectrum(v["covariance"]) is not None:
+    if not _plain(v):
         return _cov_label(v)
     if v["gamma"] < 1:
         return Stability("exact-by-literature", "rs", f"{HMRT}, Prop. 2, Eq. (8)",
@@ -167,7 +171,7 @@ def _ridgeless_label(v):
 
 
 def _ridge_label(v):
-    if v.get("lam") == 0 or (v.get("covariance") is not None and R.covariance_spectrum(v["covariance"]) is not None):
+    if v.get("lam") == 0 or not _plain(v):
         return _ridgeless_label(v)
     return Stability("exact-by-literature", "rs", f"{HMRT}, Cor. 5, Eq. (43); Thm 6, Eqs. (38)-(39)",
                      "lam > 0: R -> r^2 lam^2 m'(-lam) + sigma^2 gamma (m - lam m') (HMRT Cor. 5); the "
@@ -243,7 +247,7 @@ def ridge():
             "gamma_n", "seeds")
     spec = ModelSpec("ridge", "real", "gaussian", constraint="linear teacher, ridge / min-norm student")
     return entry("ridge", spec, HMRT, {"replica": steps}, refs, {"replica": CAVEAT},
-                 "ridge / ridgeless least squares on isotropic Gaussian design: double descent at "
+                 "ridge / ridgeless least squares on Gaussian design (isotropic, or a covariance spectrum): double descent at "
                  "gamma = 1, optimal ridge, RS saddle point", default_route="replica", finality=fin,
                  meta=meta, parameters={"replica": ("gamma", "lam", "sigma2", "signal", "n", "seeds",
                                                             "covariance")})

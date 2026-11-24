@@ -22,6 +22,7 @@ from .bayes.channels import Prior
 from .catalog import Out, RefCheck, Stability, entry, fstep, has
 from .core import Refusal
 from .csp import _checks
+from .csp.xorsat_finite import clopper_pearson
 from .linear import cs as CS
 from .linear import gamp as G
 from .linear import lasso as L
@@ -147,8 +148,10 @@ def _cs_finite(p):
         r = G.gamp(A, y, ch, pr, iters=200, seed=s, teacher=x0)
         mses.append(r.mse_trace[-1])
         finite.append(r.finite)
-    vals = {"alpha": a, "N": N, "seeds": list(seeds), "l1_success_fraction": frac.fraction}
-    errs = {"l1_success_fraction": (frac.fraction * (1 - frac.fraction) / frac.trials) ** 0.5}   # binomial stderr
+    lo, hi = clopper_pearson(frac.successes, frac.trials)          # exact 99%: never a zero width at 0 or 1
+    vals = {"alpha": a, "N": N, "seeds": list(seeds), "l1_success_fraction": frac.fraction,
+            "l1_success_ci99_lo": lo, "l1_success_ci99_hi": hi}
+    errs = {"l1_success_fraction": max(frac.fraction - lo, hi - frac.fraction)}   # the larger CP half-width
     if all(finite):
         _band(vals, errs, "gamp_mse", mses)
         gm = f"Bayes GAMP MSE {vals['gamp_mse']:.3g} (200 steps)"
@@ -216,7 +219,8 @@ def compressed_sensing():
     it = Stability("not-computed", "rs", KMSSZ, "the replica (information-theoretic) boundary alpha = rho: NOT final")
     fin = {"alpha_l1": l1, "alpha_l1_se": l1, "alpha_bayes": bp, "alpha_it": it, "gamp_mse": _stat_label,
            "l1_success_fraction": _stat_label}
-    meta = ("rho", "bayes_status", "alpha", "N", "seeds", "gamp_mse_halfwidth99")
+    meta = ("rho", "bayes_status", "alpha", "N", "seeds", "gamp_mse_halfwidth99", "l1_success_ci99_lo",
+            "l1_success_ci99_hi")
     spec = ModelSpec("compressed_sensing", "real", "gaussian", constraint="noiseless linear measurements, "
                      "Gauss-Bernoulli signal")
     return entry("compressed_sensing", spec, KMSSZ, {"amp": steps}, refs, {"amp": CAVEAT_CS},

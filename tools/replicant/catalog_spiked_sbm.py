@@ -179,7 +179,8 @@ def spiked_wigner():
     spec = ModelSpec("spiked_wigner", "real", "gaussian", constraint="rank-one spike, Bayes-optimal",
                      prior="gaussian")
     return entry("spiked_wigner", spec, LM, {"amp": steps}, refs, {"amp": SW_CAVEAT},
-                 "rank-one spiked Wigner: Bayes-optimal SE, threshold lambda_c = 1, finite-N Bayes AMP",
+                 "rank-one spiked Wigner: Bayes-optimal SE, threshold lambda_c = 1 for the plain priors (prior=diluted_rademacher: "
+                 "SE fixed points, spinodals, IT threshold, hard phase), finite-N Bayes AMP",
                  default_route="amp", finality=fin, meta=meta,
                  parameters={"amp": ("snr", "prior", "N", "seeds", "iters") + D.PARAMS})
 
@@ -268,9 +269,10 @@ def sbm():
            "bp_overlap": stat, **Q.finality()}
     meta = Q.META + ("a", "b", "ks_detectable", "mean_degree", "ks_impossibility_proved", "c", "N", "seeds", "iters",
             "bp_overlap_halfwidth99", "bp_converged_fraction", "bp_factorized_fraction")
-    spec = ModelSpec("sbm", "ising", "none", constraint="two planted groups, sparse random graph")
+    spec = ModelSpec("sbm", "ising", "none", constraint="planted groups (two in a, b; q with q, c_in, c_out), sparse random graph")
     return entry("sbm", spec, DKMZ, {"cavity": steps}, refs, {"cavity": SBM_CAVEAT},
-                 "two-group stochastic block model: Kesten-Stigum line, BP with the external field",
+                 "stochastic block model, two groups (a, b) or q groups (q, c_in, c_out): Kesten-Stigum line, BP with the "
+                 "external field; q groups: first-order c_d, c_c, EM learning",
                  default_route="cavity", finality=fin, meta=meta,
                  parameters={"cavity": ("a", "b", "c", "N", "seeds", "iters") + Q.Q_PARAMS})
 
