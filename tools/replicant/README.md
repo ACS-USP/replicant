@@ -77,7 +77,10 @@ sample`), and `--pdf` (with `--latex`) to compile the derivation.
   E6b: the rank-one spiked Wigner model (`inference/spiked.py`: Bayes-optimal state evolution, the
   threshold, Bayes AMP with spectral start) and the two-group stochastic block model
   (`inference/sbm.py`: Kesten-Stigum line, sampler, BP with the external field); catalog entries
-  `spiked_wigner` (amp) and `sbm` (cavity) (`catalog_spiked_sbm.py`, `latex_spiked_sbm.py`).
+  `spiked_wigner` (amp) and `sbm` (cavity) (`catalog_spiked_sbm.py`, `latex_spiked_sbm.py`). K4 (the notes'
+  Ch. 10): the q-group path of `sbm` (`catalog_sbm_q.py`; `inference/sbm_q.py` BP with planted / random starts and
+  the Bethe free entropy, `sbm_q_pd.py` population dynamics and the first-order thresholds, `sbm_learn.py` EM,
+  `nonbacktracking.py` the non-backtracking spectrum).
 - `learning/` (E7): ridge and ridgeless least squares on isotropic Gaussian design (`ridge.py`: the
   Marchenko-Pastur closed forms of Hastie-Montanari-Rosset-Tibshirani, the optimal penalty;
   `ridge_rs.py`: the RS saddle point of the linear student, a cited closed form solved here;
@@ -206,7 +209,7 @@ sample`), and `--pdf` (with `--latex`) to compile the derivation.
 
 ## Test tiers
 
-- Default: `python3 tools/replicant/selftest.py` (781 tests after K2; the 662 before the margin law and the pinned
+- Default: `python3 tools/replicant/selftest.py` (781 tests after K2, 802 after K4; the 662 before the margin law and the pinned
   directions took about 30 s, measured 30.2 s cold on a clean export after the final fix wave). Also `python3 run_selftests.py replicant` from the repository root, with the venv activated (it runs
   the `python3` on PATH; without python-flint the certified lattice, bounds and percolation tests and the Monte
   Carlo exact targets fail, by design).

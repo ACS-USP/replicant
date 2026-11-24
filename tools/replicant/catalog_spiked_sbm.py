@@ -16,6 +16,7 @@ factorized fixed point (DKMZ Sec. IV.A).  Run parameters:
   c             the KS point at mean degree c: a_ks, b_ks, inverse_eps_ks = a_ks / b_ks
   a, b, N       BP over named seeds (default 0-9, iters 2000): bp_overlap (statistical)
 """
+from . import catalog_sbm_q as Q
 from .catalog import Out, RefCheck, Stability, entry, fstep, has
 from .core import Refusal
 from .csp import _checks
@@ -168,7 +169,12 @@ def spiked_wigner():
 
 
 # ---- stochastic block model ----------------------------------------------------------------------
+def _two(cond):
+    return lambda p: p.get("q") is None and cond(p)
+
+
 def _sbm_check(p):
+    Q.stray_q(p)
     has_ab = [k for k in ("a", "b") if p.get(k) is not None]
     if len(has_ab) == 1 or (not has_ab and p.get("c") is None):
         raise Refusal("precondition:state-point", "the sbm entry needs a and b (the KS margin, and "
@@ -179,6 +185,8 @@ def _sbm_check(p):
 
 
 def _sbm_ks(p):
+    if p.get("q") is not None:
+        return Out({}, "q given: the q-group path (catalog_sbm_q.py)")
     _sbm_check(p)
     if p.get("a") is None:
         return Out({}, "no a, b given")
@@ -227,12 +235,12 @@ def _ks_label(v):
 
 def sbm():
     steps = [fstep("sbm-kesten-stigum", f"{DKMZ}; {MNS15}; {MAS}; {MNS18}", _sbm_ks),
-             fstep("sbm-ks-line", f"{DKMZ}, Fig. 1 caption", _sbm_line, when=has("c"),
+             fstep("sbm-ks-line", f"{DKMZ}, Fig. 1 caption", _sbm_line, when=_two(has("c")),
                    skip="no c given"),
              fstep("sbm-bp-finite-n", f"{DKMZ} (BP on sampled graphs: statistical)", _sbm_finite,
-                   when=has("a", "b", "N"), skip="needs a, b and N")]
+                   when=_two(has("a", "b", "N")), skip="needs a, b and N")] + Q.steps()
     refs = [RefCheck("sbm", "inverse_eps_c_q2_c3", lambda v: v["inverse_eps_ks"], params={"c": 3},
-                     route="cavity")]
+                     route="cavity")] + Q.refs()
     line = Stability("exact-by-literature", "rs", f"{MNS15}; {MAS}; {MNS18}",
                      "the KS point on a + b = 2c (c > 1, so a + b > 2): detection impossible at and "
                      "below it (MNS 2015), possible above it (Massoulie 2014, MNS 2018)")
@@ -241,14 +249,14 @@ def sbm():
                      "bp_overlap_halfwidth99); BP from random messages is not proved to reach the "
                      "KS line (MNS 2018 Sec. 2.1): NOT final")
     fin = {"ks_margin": _ks_label, "a_ks": line, "b_ks": line, "inverse_eps_ks": line,
-           "bp_overlap": stat}
-    meta = ("a", "b", "ks_detectable", "mean_degree", "ks_impossibility_proved", "c", "N", "seeds", "iters",
+           "bp_overlap": stat, **Q.finality()}
+    meta = Q.META + ("a", "b", "ks_detectable", "mean_degree", "ks_impossibility_proved", "c", "N", "seeds", "iters",
             "bp_overlap_halfwidth99", "bp_converged_fraction", "bp_factorized_fraction")
     spec = ModelSpec("sbm", "ising", "none", constraint="two planted groups, sparse random graph")
     return entry("sbm", spec, DKMZ, {"cavity": steps}, refs, {"cavity": SBM_CAVEAT},
                  "two-group stochastic block model: Kesten-Stigum line, BP with the external field",
                  default_route="cavity", finality=fin, meta=meta,
-                 parameters={"cavity": ("a", "b", "c", "N", "seeds", "iters")})
+                 parameters={"cavity": ("a", "b", "c", "N", "seeds", "iters") + Q.Q_PARAMS})
 
 
 __all__ = ["sbm", "spiked_wigner"]

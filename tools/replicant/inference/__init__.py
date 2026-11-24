@@ -11,6 +11,11 @@
                    threshold lambda_c, and finite-N Bayes AMP with spectral start (Student-t bands)
   sbm.py           two-group stochastic block model: the Kesten-Stigum line, an exact sampler, BP
                    with the external field (DKMZ), the BP overlap over named seeds
+  sbm_q.py         q-group block model (K4, KZ Ch. 10): sampler, BP with the non-edge field from
+                   planted / random starts, the Bethe free entropy, the KS point (no code shared
+                   with sbm.py); sbm_q_pd.py: planted-measure population dynamics and the
+                   first-order thresholds c_d, c_c; sbm_learn.py: EM (BP-learning) and the group
+                   count; nonbacktracking.py: the non-backtracking spectrum and spectral clustering
 """
 from .ldpc import (DEGREE_PAIRS, BecThresholds, DEResult, RegularPair, bec_bp_threshold,
                    bec_density_evolution, bec_map_threshold, bec_map_threshold_area,

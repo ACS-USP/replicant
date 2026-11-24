@@ -285,9 +285,10 @@ UNCLAIMED[("ksat", "alpha_d_k3")] = (
 UNCLAIMED[("ksat", "alpha_sp_onset_k3")] = (
     "bracketed in tests/test_ksat.py (SP population trivial at 3.6, non-trivial at 4.2), not "
     "located: near the onset the population relaxes slowly (labelled undetermined)")
-UNCLAIMED[("sbm", "inverse_eps_c_q4_c16")] = (
-    "DKMZ's q = 4, c = 16 ratio: inference/sbm.py implements q = 2 only (q = 4 is refused "
-    "unsupported:q), so no pipeline outputs it")
+UNCLAIMED.update({("sbm", k): (
+    "KMMNSZZ's non-backtracking spectrum (N -> oo statements): inference/nonbacktracking.py is a module, not a "
+    "catalog route; tests/test_nonbacktracking.py asserts the finite-N bands") for k in (
+    "nb_leading_cin5_cout1", "nb_second_cin5_cout1")})
 UNCLAIMED.update({("perceptron", k): (
     "a rigorous UPPER BOUND on the negative-margin capacity (Stojnic 2013, Table 2, partially lifted): an inequality, "
     "not a value any pipeline output equals; checked as 1RSB / 2RSB <= bound < RS in tests/test_perceptron_rsb.py")

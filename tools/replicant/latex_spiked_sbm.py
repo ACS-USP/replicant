@@ -1,7 +1,7 @@
-"""Displayed equations of the `spiked_wigner` (amp route) and `sbm` (cavity route) catalog entries
-(E6b).  Same rule as latex_entries.py: each sympy block carries a tex.Check against
-inference/spiked.py or inference/sbm.py at three points (tests/test_latex.py); the algorithm and
-theorem statements are cited strings.
+"""Displayed equations of the `spiked_wigner` (amp route) and `sbm` (cavity route) catalog entries (E6b; the q-group
+blocks of K4 in _sbm_q, checked against inference/sbm_q.py). Same rule as latex_entries.py: each sympy block
+carries a tex.Check against inference/spiked.py or inference/sbm.py at three points (tests/test_latex.py); the
+algorithm and theorem statements are cited strings.
 """
 import mpmath as mp
 import numpy as np
@@ -11,10 +11,15 @@ from .tex import Check, cited, sym, text
 
 LAM, G, P = sp.symbols("lambda gamma p", positive=True)
 A, B_, C = sp.symbols("a b c", positive=True)
+CI, CO = sp.symbols("c_in c_out", nonnegative=True)
+Qs = sp.Symbol("q", positive=True, integer=True)
 _MV = "Montanari & Venkataramanan, Ann. Statist. 49, 321 (2021), arXiv:1711.01682"
 _LM = "Lelarge & Miolane, Probab. Theory Relat. Fields 173, 859 (2019), arXiv:1611.03888"
 _DAM = "Deshpande, Abbe & Montanari, arXiv:1507.08685 (2015)"
 _DKMZ = "Decelle, Krzakala, Moore & Zdeborova, Phys. Rev. E 84, 066106 (2011), arXiv:1109.3041"
+_KZ = ("Krzakala & Zdeborova, Statistical Physics Methods in Optimization and Machine Learning, lecture notes "
+       "(June 9 2024), Ch. 10")
+_KMM = ("Krzakala, Moore, Mossel, Neeman, Sly, Zdeborova & Zhang, PNAS 110, 20935 (2013), arXiv:1306.5550")
 _MNS = ("Mossel, Neeman & Sly, arXiv:1202.1499 (2015) and arXiv:1311.4115 (2018); Massoulie, "
         "arXiv:1311.3085 (2014)")
 
@@ -98,6 +103,44 @@ def sbm(route):
               r"(a-b)^2 > 2(a+b):\ \text{an efficient correlated estimator exists}", _MNS),
         text("Finite-N checks", "BP from i.i.d. uniform messages on sampled graphs over named seeds: "
              "overlap |(1/N) sum sigma_i sigmahat_i| with a 99% Student-t band (statistical)"),
+    ] + _sbm_q()
+
+
+def _sbm_q():
+    """The q-group path (K4, inference/sbm_q.py; KZ Ch. 10)."""
+    from .inference import sbm_q as SQ
+    cq = (CI + (Qs - 1) * CO) / Qs
+    return [
+        text("q groups (K4)", "with q: groups of expected size 1/q, edge probability c_in/N inside and c_out/N "
+             "across (c_in = a, c_out = b at q = 2), mean degree c = (c_in + (q - 1) c_out)/q, epsilon = c_out/c_in "
+             "(inference/sbm_q.py; c_in < c_out accepted)", source=_KZ),
+        cited("BP with the non-edge field (KZ Eqs. (10.15)-(10.17))",
+              r"\chi^{i\to j}_t \propto n_t e^{-h_t}\prod_{k\in\partial i\setminus j}\sum_s c_{ts}\chi^{k\to i}_s,"
+              r"\quad h_t = \frac1N\sum_k\sum_s c_{st}\psi^k_s", _KZ),
+        sym("Kesten-Stigum margin, q groups (KZ Eqs. (10.36)-(10.37))",
+            sp.Eq(sp.Symbol("tau_q"), (CI - CO)**2 / (Qs**2 * cq)), source=_KZ,
+            check=Check((Qs, CI, CO), lambda q, a, b: SQ.sbm_q_kesten_stigum(int(q), a, b).margin,
+                        (("2", "5.5", "0.5"), ("4", "1", "6"), ("5", "0", "20")), "rhs")),
+        sym("KS point at mean degree c: c_in/c_out = 1/eps_c (KZ caption of Fig. 10.4.1)",
+            sp.Eq(sp.Symbol("1/eps_c"), (C + (Qs - 1) * sp.sqrt(C)) / (C - sp.sqrt(C))), source=_KZ,
+            check=Check((Qs, C), lambda q, c: SQ.sbm_q_ks_line(int(q), c).ratio,
+                        (("2", "3"), ("4", "16"), ("3", "5")), "rhs")),
+        sym("KS degree on the line c_in = 0 (KZ Sec. 10.4.3: c_l = (q - 1)^2)",
+            sp.Eq(sp.Symbol("c_l"), (Qs - 1)**2), source=_KZ,
+            check=Check((Qs,), lambda q: SQ.sbm_q_ks_degree(int(q), 0), (("3",), ("5",), ("10",)), "rhs")),
+        cited("Bethe free entropy (KZ Eq. (10.23)) and its factorized value (Eq. (10.31))",
+              r"\Phi = \frac1N\sum_i\ln Z^i - \frac1N\sum_{(ij)\in E}\ln Z^{ij} + \frac c2,\quad "
+              r"\Phi_{\rm para} = -\frac c2\,(1 - \ln c)", _KZ),
+        cited("EM for the parameters (KZ Eqs. (10.27)-(10.28))",
+              r"n_a = \frac1N\sum_i\psi^i_a,\quad c_{ab} = \frac{1}{N n_a n_b}\sum_{(ij)\in E}"
+              r"\frac{c_{ab}(\chi^{i\to j}_a\chi^{j\to i}_b + \chi^{i\to j}_b\chi^{j\to i}_a)}{Z^{ij}}", _KZ),
+        cited("Non-backtracking matrix and its 2N x 2N reduction (KZ Eq. (10.40); KMMNSZZ Eqs. (8)-(9))",
+              r"B_{(u\to v),(w\to x)} = \delta_{vw}(1 - \delta_{ux}),\quad "
+              r"B' = \begin{pmatrix}0 & D - 1\\ -1 & A\end{pmatrix}", _KMM),
+        text("Thresholds and finite-N checks", "c_d, c_c from planted-measure population dynamics (planted and "
+             "random starts, the zero of Delta Phi), c_l from the KS condition; BP on sampled graphs from planted "
+             "and random starts, EM from a spectral start: 99% Student-t bands over named seeds (statistical); "
+             "the Bethe free entropy on sampled graphs is an approximation"),
     ]
 
 

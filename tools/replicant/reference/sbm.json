@@ -9,6 +9,36 @@
     "value": "2.33",
     "tol": "5e-3",
     "cite": "Decelle, Krzakala, Moore & Zdeborova, 'Asymptotic analysis of the stochastic block model for modular networks and its algorithmic applications', Phys. Rev. E 84, 066106 (2011), arXiv:1109.3041 (PDF read; journal version not checked), caption of Fig. 1: for the Newman-Girvan benchmark (q = 4 groups, c = 16) 'this ratio must exceed 2.33' (eps_c^-1 at q = 4, c = 16 from the same formula). tol = half a unit in the last stated digit",
-    "independent_route": "the closed form of the caption, (c + 3 sqrt(c))/(c - sqrt(c)) = 28/12 = 2.333 at c = 16 (not a replicant route: inference/sbm.py implements q = 2 only and refuses q = 4 unsupported:q, so the key is UNCLAIMED)"
+    "independent_route": "replicant's own bisection of c lambda_2^2 - 1 along c_in + 3 c_out = 4c at c = 16 (inference/sbm_q.sbm_q_ks_line, 30 digits; KZ Eq. (10.37)): ratio 2.3333333 = 28/12, the caption's closed form (c + 3 sqrt(c))/(c - sqrt(c)); claimed by the sbm entry at q = 4, c = 16 (K4)"
+  },
+  "c_d_q5_cin0": {
+    "value": "12.84",
+    "tol": "5e-3",
+    "cite": "Krzakala & Zdeborova, 'Statistical Physics Methods in Optimization and Machine Learning', lecture notes (June 9 2024; notes.txt read, PDF p. 170), caption of Fig. 10.4.3 ('We observe three important points where the behavior changes qualitatively: c_d = 12.84, c_c = 13.23, and c_l = 16'), q = 5, c_in = 0, c_out = q c/(q - 1), c the mean degree; the same sentence in Decelle, Krzakala, Moore & Zdeborova, Phys. Rev. E 84, 066106 (2011), arXiv:1109.3041 (arXiv PDF fetched and read during K4), caption of Fig. 3 (p. 16). c_d: the planted (informed) BP start converges to a fixed point with positive overlap above it (phase II begins; KZ Sec. 10.4.3 / DKMZ Sec. IV.B, phases I-II). tol = half a unit in the last printed digit (both sources print 12.84; the figure is BP on N = 1e5 graphs, the printed value is not stated as N -> oo)",
+    "independent_route": "planted-measure population dynamics of the q-state BP messages (inference/sbm_q_pd.py, Poisson degrees, N -> oo): bisection in c of 'the planted start stays informative after 400 sweeps', 3000 members, over named seeds 0-3 (99% Student-t band); the random start decays to the paramagnet on [c_d, c_l). Build: 12.875 +- 0.053 (99% half-width; compare() band 0.060). The slow test asserts the band"
+  },
+  "c_c_q5_cin0": {
+    "value": "13.23",
+    "tol": "5e-3",
+    "cite": "Krzakala & Zdeborova, 'Statistical Physics Methods in Optimization and Machine Learning', lecture notes (June 9 2024; notes.txt read, PDF p. 170), caption of Fig. 10.4.3 (c_c = 13.23, q = 5, c_in = 0); Decelle, Krzakala, Moore & Zdeborova, Phys. Rev. E 84, 066106 (2011), arXiv:1109.3041 (arXiv PDF fetched and read during K4), caption of Fig. 3 (p. 16). c_c: the Bethe free entropy of the planted fixed point exceeds the paramagnetic one -(c/2)(1 - log c) (KZ Eq. (10.31); DKMZ Eq. (38), f = -Phi). tol = half a unit in the last printed digit",
+    "independent_route": "the zero of Delta Phi = Phi_planted - Phi_para (KZ Eq. (10.23) averaged over the planted measure by population dynamics, inference/sbm_q_pd.py) on the planted branch: a grid of 9 points of [c_d, c_l], then a least-squares line through 5 points across the sign change, over named seeds 0-3. Build: 13.225 +- 0.138 (99% half-width; compare() band 0.141)"
+  },
+  "c_l_q5_cin0": {
+    "value": "16",
+    "tol": "1e-20",
+    "cite": "Krzakala & Zdeborova, 'Statistical Physics Methods in Optimization and Machine Learning', lecture notes (June 9 2024; notes.txt read, PDF p. 170), Sec. 10.4.3 (notes.txt l. 10743: 'the condition for stability (10.37) leads to a threshold value c_l = (q - 1)^2') and the caption of Fig. 10.4.3 (c_l = 16 at q = 5, c_in = 0); Decelle, Krzakala, Moore & Zdeborova, Phys. Rev. E 84, 066106 (2011), arXiv:1109.3041 (arXiv PDF fetched and read during K4), Sec. IV.B p. 15-16 and caption of Fig. 3. An integer, (q - 1)^2 at q = 5: exact",
+    "independent_route": "replicant's bisection of c lambda_2^2 - 1 in the mean degree c along c_in = 0, c_out = q c/(q - 1) (inference/sbm_q.sbm_q_ks_degree, 120 halvings at 30 digits): 16.000000000000000000 (build); it is computed, not typed"
+  },
+  "nb_leading_cin5_cout1": {
+    "value": "3",
+    "tol": "1e-20",
+    "cite": "Krzakala, Moore, Mossel, Neeman, Sly, Zdeborova & Zhang, 'Spectral redemption in clustering sparse networks', PNAS 110, 20935 (2013), arXiv:1306.5550 (arXiv PDF fetched and read during K4), caption of Fig. 2: 'The leading eigenvalue is at c = 3' for the non-backtracking matrix B of a two-group block model with n = 4000, c_in = 5, c_out = 1 (the parameters of Fig. 1); Sec. II: the leading eigenvalue of B is the average degree c = (c_in + c_out)/2 as n -> oo (argued, not proved there). tol: an exact N -> oo statement",
+    "independent_route": "the leading eigenvalue of B' = [[0, D - 1], [-1, A]] (Eq. (9), ARPACK) on sampled graphs (inference/nonbacktracking.py) over named seeds: a 99% Student-t band at N = 20000 (slow test); B' against the full 2M x 2M matrix B on a small graph (Ihara-Bass, default tier)"
+  },
+  "nb_second_cin5_cout1": {
+    "value": "2",
+    "tol": "1e-20",
+    "cite": "Krzakala, Moore, Mossel, Neeman, Sly, Zdeborova & Zhang, 'Spectral redemption in clustering sparse networks', PNAS 110, 20935 (2013), arXiv:1306.5550 (arXiv PDF fetched and read during K4), caption of Fig. 2: 'the second eigenvalue is close to mu_c = (c_in - c_out)/2 = 2' (n = 4000, c_in = 5, c_out = 1), Eq. (3); Sec. IV, Eq. (11)-(12): mu_c = (c_in - c_out)/q in general. tol: an exact N -> oo statement; the finite-N comparison adds a stated systematic",
+    "independent_route": "the first real eigenvalue of B' after the leading one on sampled graphs (inference/nonbacktracking.py) over named seeds at N = 20000 (slow test), 99% Student-t band plus the finite-N systematic stated there"
   }
 }
