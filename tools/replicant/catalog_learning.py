@@ -24,8 +24,9 @@ here, not a level-(a) derivation.  The rigorous statements are random-matrix the
   covariance       (K6, KZ notes Sec. 18.1.2) "isotropic" (default: every value above, unchanged) or a spectrum
                    "e1:w1,e2:w2,..." of Sigma (rows x ~ N(0, Sigma), beta uniform on the sphere): the ridgeless and
                    ridge closed forms in the kappa form of learning/ridge.py (HMRT Thm 3 / Cor. 2, Thm 6) and the
-                   finite-n fits with that Sigma; the RS saddle point and the optimal penalty are isotropic-only
-                   and skipped with a spectrum
+                   finite-n fits with that Sigma, and the optimal penalty lam* = sigma^2 gamma / r^2 (the Bayes
+                   posterior mean for a Gaussian beta, any Sigma; derived, checked by argmin) with its kappa-form
+                   risk; the RS saddle point is isotropic-only and skipped with a spectrum
 """
 import mpmath as mp
 
@@ -91,10 +92,12 @@ def _ridgeless(p):
 
 def _optimal(p):
     g, s2, r2 = _g(p), p.get("sigma2", 1), p.get("signal", 1)
-    lam, risk = R.optimal_lambda(g, s2, r2), R.optimal_test_error(g, s2, r2)
+    lam, risk = R.optimal_lambda(g, s2, r2), R.optimal_test_error(g, s2, r2, _cov(p))
     with mp.workdps(30):
         return Out({"lambda_opt": lam, "risk_opt": risk, "test_mse_opt": risk + R._num(s2, "sigma2")},
-                   "lam* = sigma^2 gamma / r^2, R* = sigma^2 gamma m(-lam*) (HMRT Cor. 5)")
+                   "lam* = sigma^2 gamma / r^2, R* = sigma^2 gamma m(-lam*) (HMRT Cor. 5)" if _iso(p) else
+                   "lam* = sigma^2 gamma / r^2 (the Gaussian-prior posterior mean, any Sigma), R* the kappa-form "
+                   "risk at lam* (HMRT Thm 6)")
 
 
 def _ridge(p):
@@ -146,6 +149,10 @@ def _cov_label(v):
                      "the min-norm limit")
 
 
+def _plain(v):
+    return v.get("covariance") is None or R.covariance_spectrum(v["covariance"]) is None
+
+
 def _ridgeless_label(v):
     if v.get("covariance") is not None and R.covariance_spectrum(v["covariance"]) is not None:
         return _cov_label(v)
@@ -181,10 +188,10 @@ def ridge():
                    "(the interpolation peak)"),
              fstep("ridge-optimal-penalty", f"{HMRT}, Cor. 5; {DW}; {AS}", _optimal,
                    when=lambda p: R._num(p.get("sigma2", 1), "sigma2") > 0
-                   and R._num(p.get("signal", 1), "signal") > 0 and _iso(p),
+                   and R._num(p.get("signal", 1), "signal") > 0,
                    skip="sigma2 = 0: no positive minimiser (the ridgeless limit is the infimum); or "
                    "signal = 0: lam* = sigma^2 gamma / r^2 is infinite (the null estimator "
-                   "beta_hat = 0 is optimal); or a covariance spectrum (HMRT Cor. 5 is isotropic)"),
+                   "beta_hat = 0 is optimal)"),
              fstep("ridge-closed-form", f"{HMRT}, Cor. 5, Eq. (43)", _ridge, when=has("lam"),
                    skip="no lam given"),
              fstep("ridge-replica-rs", LGC, _replica,
@@ -216,6 +223,10 @@ def ridge():
                     "lam* = sigma^2 gamma / r^2 minimises the limiting ridge risk, R* = sigma^2 gamma "
                     "m(-lam*) (HMRT Cor. 5; DW Thm 2.1 part 2 at unit noise, their Eq. (8) for R* + 1; "
                     f"Advani-Saxe Sec. 2.2 state the same optimal strength); {_ASSUME}")
+    opt_cov = Stability("not-computed", "rs", _COV,
+                        "covariance spectrum: lam* = sigma^2 gamma / r^2 is optimal because ridge at this lam is the "
+                        "posterior mean for a Gaussian beta with E beta beta^T = (r^2/p) I whatever Sigma (derived here, "
+                        "not a fetched statement; checked against argmin_lambda), and its risk is HMRT Thm 6's at lam*")
     rs = Stability("exact-by-literature", "rs", LGC,
                    "RS saddle point of ridge (replica derivation App. A, heuristic; proved for Gaussian "
                    "covariates by Gordon's inequality, Thm 1), specialised by replicant to Psi = Phi = "
@@ -225,7 +236,7 @@ def ridge():
     fin = {**{k: _ridgeless_label for k in ("risk_ridgeless", "bias_ridgeless", "variance_ridgeless",
                                             "test_mse_ridgeless")},
            **{k: _ridge_label for k in ("risk", "bias", "variance", "test_mse")},
-           **{k: opt for k in ("lambda_opt", "risk_opt", "test_mse_opt")},
+           **{k: (lambda v: opt if _plain(v) else opt_cov) for k in ("lambda_opt", "risk_opt", "test_mse_opt")},
            **{k: rs for k in ("risk_rs", "rs_V", "rs_q", "rs_m")},
            "risk_sim": lambda v: _sim_label()}
     meta = ("gamma", "sigma2", "signal", "lam", "covariance", "rs_closed_form_gap", "risk_sim_halfwidth99", "n", "p",

@@ -94,6 +94,12 @@ def _num(x, name, lo=0.0, strict=False):
     return v
 
 
+def _iters(iters, name="iters"):
+    if isinstance(iters, bool) or not isinstance(iters, int) or iters < 1:
+        raise Refusal("precondition:positive-iters", f"{name}={iters!r} is not a positive int")
+    return iters
+
+
 def _get_prior(rho, prior):
     if prior is not None:
         if rho is not None:
@@ -194,6 +200,8 @@ def lasso_se_iterate(alpha, rho, lam, sigma2, *, prior=None, iters=None, tol=1e-
     refused."""
     a, D, lm = _num(alpha, "alpha", strict=True), _num(sigma2, "sigma2", strict=True), _num(lam, "lambda")
     pr = _get_prior(rho, prior)
+    if iters is not None:
+        _iters(iters)
     E, V, conv = float(pr.second_moment), 0.0, False
     for t in range(iters or 20000):
         t2 = (E + D) / a
@@ -242,6 +250,7 @@ class LassoRun:
 def lasso_amp(A, y, lam, *, iters=2000, tol=1e-26) -> LassoRun:
     """KZ Alg. 4 (module docstring) until the mean squared increment < tol (at most `iters` steps)."""
     A, y, lm = _check(A, y, lam)
+    _iters(iters)
     M, N = A.shape
     alpha = M / N
     a, v, g = np.zeros(N), np.zeros(N), np.zeros(M)
@@ -279,6 +288,7 @@ def kkt_residual(A, y, x, lam):
 def proximal_gradient(A, y, lam, *, eta=None, iters=10000, tol=1e-14, x0=None) -> LassoRun:
     """KZ Sec. 12.7.2-12.7.3: x <- ST(x + eta A^T (y - A x); eta lam), eta = 1/|A|_2^2 by default (a descent step)."""
     A, y, lm = _check(A, y, lam)
+    _iters(iters)
     if eta is None:
         eta = 1 / float(np.linalg.norm(A, 2)) ** 2
     x = np.zeros(A.shape[1]) if x0 is None else np.array(x0, dtype=float)
@@ -300,6 +310,7 @@ def lasso_exact(A, y, lam, *, tol=1e-11, max_sweeps=20000) -> LassoRun:
     tol and the KKT residual, recomputed from scratch, is < 10 tol.  Exact to the stated residual (a convex problem:
     the KKT conditions certify the minimiser up to that residual)."""
     A, y, lm = _check(A, y, lam)
+    _iters(max_sweeps, "max_sweeps")
     Gm = A.T @ A
     d = np.diag(Gm).copy()
     if np.any(d <= 0):

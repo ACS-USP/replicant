@@ -189,14 +189,6 @@ def wishart_se(snr, alpha, prior_u, prior_v, *, iters=None, init_snr=None, tol=1
 
 
 # ---- finite N --------------------------------------------------------------------------------------------------------
-def _sample(pr, rng, k):
-    w = np.array([float(c[0]) for c in pr.components])
-    idx = rng.choice(len(w), size=k, p=w / w.sum())
-    mu = np.array([float(c[1]) for c in pr.components])[idx]
-    sd = np.sqrt(np.array([float(c[2]) for c in pr.components]))[idx]
-    return mu + sd * rng.normal(size=k)
-
-
 def wishart_matrix(n, alpha, snr, prior_u, prior_v, seed):
     """(Y, u, v): W from default_rng([seed, 1]), u from [seed, 2], v from [seed, 3]; m = alpha n must be an int."""
     a, lam, seed = _alpha(alpha), _snr(snr), _checks.seed(seed)
@@ -207,8 +199,8 @@ def wishart_matrix(n, alpha, snr, prior_u, prior_v, seed):
     m = int(round(m))
     pu, pv = prior(prior_u), prior(prior_v)
     W = np.random.default_rng([seed, 1]).normal(size=(n, m)) / math.sqrt(n)
-    u = _sample(pu, np.random.default_rng([seed, 2]), n)
-    v = _sample(pv, np.random.default_rng([seed, 3]), m)
+    u = CH.sample(pu, np.random.default_rng([seed, 2]), n)
+    v = CH.sample(pv, np.random.default_rng([seed, 3]), m)
     return lam / n * np.outer(u, v) + W, u, v
 
 

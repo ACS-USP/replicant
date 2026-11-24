@@ -210,25 +210,30 @@ def optimal_lambda(gamma, sigma2, signal=1):
         return s2 * g / r2
 
 
-def optimal_test_error(gamma, sigma2, signal=1):
+def optimal_test_error(gamma, sigma2, signal=1, covariance="isotropic"):
     """Limiting excess risk at lam*: R* = sigma^2 gamma m(-lam*) (HMRT Cor. 5); sigma2 = 0 -> the
-    ridgeless limit (refused at gamma = 1)."""
+    ridgeless limit (refused at gamma = 1).  A covariance spectrum (K6): the same lam* = sigma^2 gamma / r^2 (the
+    posterior mean of a Gaussian beta with E beta beta^T = (r^2/p) I is ridge at this lam for any design, so it is
+    the optimal ridge penalty whatever Sigma; derived here, checked by argmin_lambda) and the risk from the kappa
+    form at lam* (HMRT Thm 6)."""
     lam = optimal_lambda(gamma, sigma2, signal)
     if lam == 0:
-        return ridgeless_test_error(gamma, sigma2, signal)
+        return ridgeless_test_error(gamma, sigma2, signal, covariance)
+    if covariance_spectrum(covariance) is not None:
+        return ridge_test_error(gamma, lam, sigma2, signal, covariance)
     g, _, s2, _ = _args(gamma, 0, sigma2, signal)
     with mp.workdps(_DPS):
         return s2 * g * stieltjes_mp(g, lam)[0]      # HMRT's own form: _SCALE does not enter
 
 
-def argmin_lambda(gamma, sigma2, signal=1, lo="1e-6", hi="1e3", tol="1e-14"):
+def argmin_lambda(gamma, sigma2, signal=1, lo="1e-6", hi="1e3", tol="1e-14", covariance="isotropic"):
     """Numerical minimiser of ridge_test_error over lam in [lo, hi] by golden-section search in
     log lam (no formula for lam* used): the check of HMRT's lam* statement.  Refuses a minimiser
     at an end of the bracket (no interior minimum found)."""
     g, _, s2, r2 = _args(gamma, 0, sigma2, signal)
     with mp.workdps(_DPS):
         a, b = mp.log(mp.mpf(lo)), mp.log(mp.mpf(hi))
-        f = lambda t: ridge_test_error(g, mp.exp(t), s2, r2)
+        f = lambda t: ridge_test_error(g, mp.exp(t), s2, r2, covariance)
         k = (mp.sqrt(5) - 1) / 2
         c, d = b - k * (b - a), a + k * (b - a)
         fc, fd = f(c), f(d)

@@ -86,7 +86,7 @@ def _band(vals, errs, key, xs):
 
 
 def _lasso_finite(p):
-    seeds, iters = _checks.seeds(p.get("seeds", _SEEDS)), p.get("iters", 2000)
+    seeds, iters = _checks.seeds(p.get("seeds", _SEEDS)), L._iters(p.get("iters", 2000))
     a, rho, lam, s2 = _args(p)
     ch, pr = G.Channel("awgn", Delta=s2), Prior("gauss_bernoulli", rho=str(rho))
     rex, ramp, th, gaps, kkts, conv, exact_ok = [], [], [], [], [], [], []
@@ -141,16 +141,21 @@ def _cs_finite(p):
     a, rho, N = p["alpha"], p["rho"], p["N"]
     frac = CS.l1_success_fraction(N, a, rho, seeds)
     ch, pr = G.Channel("awgn", Delta=0), Prior("gauss_bernoulli", rho=str(rho))
-    mses = []
+    mses, finite = [], []
     for s in seeds:
         A, y, x0 = G.linear_instance(N, a, ch, pr, s)
         r = G.gamp(A, y, ch, pr, iters=200, seed=s, teacher=x0)
         mses.append(r.mse_trace[-1])
+        finite.append(r.finite)
     vals = {"alpha": a, "N": N, "seeds": list(seeds), "l1_success_fraction": frac.fraction}
     errs = {"l1_success_fraction": (frac.fraction * (1 - frac.fraction) / frac.trials) ** 0.5}   # binomial stderr
-    _band(vals, errs, "gamp_mse", mses)
-    return Out(vals, f"LP success {frac.successes}/{frac.trials}; Bayes GAMP MSE {vals['gamp_mse']:.3g} (200 steps)",
-               errors=errs, statistical=("gamp_mse", "l1_success_fraction"))
+    if all(finite):
+        _band(vals, errs, "gamp_mse", mses)
+        gm = f"Bayes GAMP MSE {vals['gamp_mse']:.3g} (200 steps)"
+    else:
+        gm = f"Bayes GAMP UNDETERMINED: non-finite in {len(seeds) - sum(finite)}/{len(seeds)} runs"
+    return Out(vals, f"LP success {frac.successes}/{frac.trials}; {gm}", errors=errs,
+               statistical=tuple(errs), notes=() if all(finite) else (gm,))
 
 
 def _bm_label(v):
@@ -160,6 +165,12 @@ def _bm_label(v):
     return Stability("exact-by-literature", "rs", BM, "the LASSO risk and the calibrated threshold for Gaussian A with "
                      "i.i.d. N(0, 1/M) entries in BM's scaling (delta = alpha, sigma_BM^2 = Delta/alpha, lam_BM = "
                      "lam/alpha), Delta > 0, lam > 0, P(X0 != 0) > 0; the n, N -> oo almost-sure limit")
+
+
+def _sparsity_label(v):
+    return Stability("not-computed", "rs", BM, "the SE's P(|X0 + tau Z| > theta): the predicted fraction of non-zeros "
+                     "of x_hat; BM Thm 1.5 covers pseudo-Lipschitz test functions and the indicator 1{x_i != 0} is "
+                     "not one, so no fetched theorem covers it: NOT final")
 
 
 def _stat_label(v):
@@ -178,7 +189,8 @@ def lasso():
                      params={"alpha": "2", "rho": "0.2", "lam": "0", "sigma2": "1"}, route="replica"),
             RefCheck("ridge", "ridgeless_g0p5_s1_r1", lambda v: v["risk_se"],
                      params={"alpha": "2", "rho": "0.2", "lam": "0", "sigma2": "1"}, route="amp")]
-    fin = {**{k: _bm_label for k in ("risk", "tau2", "threshold", "kappa", "b", "risk_se", "threshold_se", "b_se")},
+    fin = {**{k: _bm_label for k in ("risk", "tau2", "threshold", "kappa", "risk_se", "threshold_se")},
+           "b": _sparsity_label, "b_se": _sparsity_label,
            **{k: _stat_label for k in ("risk_exact", "risk_amp", "threshold_amp", "amp_lasso_gap")}}
     meta = LASSO_PARAMS + ("se_converged", "N", "seeds", "iters", "kkt_max", "amp_converged_fraction",
                            "risk_exact_halfwidth99", "risk_amp_halfwidth99", "threshold_amp_halfwidth99")
@@ -194,8 +206,7 @@ def compressed_sensing():
              fstep("cs-phase-boundaries", f"{DMM}; {KMSSZ}; linear/cs.py", _cs_boundary),
              fstep("cs-finite-n", "basis pursuit by LP (scipy HiGHS) and Bayes GAMP (finite N: statistical)",
                    _cs_finite, when=has("alpha", "N"), skip="needs alpha and N")]
-    refs = [RefCheck("linear", "cs_alpha_l1_rho0p4", lambda v: v["alpha_l1"], params={"rho": "0.4"}, route="amp"),
-            RefCheck("linear", "cs_alpha_bp_rho0p4", lambda v: v["alpha_bayes"], params={"rho": "0.4"}, route="amp")]
+    refs = [RefCheck("linear", "cs_alpha_bp_rho0p4", lambda v: v["alpha_bayes"], params={"rho": "0.4"}, route="amp")]
     l1 = Stability("not-computed", "amp-se", DMM, "DMM Eq. (5) (the soft-threshold SE boundary, here also from the "
                    "SE's "
                    "local stability); its identity with the l1 phase transition is DMM's Finding 1 (numerical) and "

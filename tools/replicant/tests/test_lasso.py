@@ -87,32 +87,54 @@ def _bm_point(delta, sigma2, a, atoms, gauss):
     return a * t * (1 - on / delta), risk, delta * (t2 - sigma2), t2, a * t
 
 
+_FIG1 = (0.64, 0.2, Prior("sparse", rho="0.128", a=1), [(0.064, 1.0), (0.064, -1.0), (0.872, 0.0)], 0.0)
+_GB = (0.6, 0.1, Prior("gauss_bernoulli", rho="0.3"), [(0.7, 0.0)], 0.3)
+
+
+def _bm_both_ways(delta, s2, prior, atoms, gauss, a, lam_notes):
+    """BM -> notes: BM's lam_BM(a) handed to lasso_se as lam = delta lam_BM, Delta = delta sigma_BM^2; notes -> BM:
+    lasso_se at the notes' lam_notes, its kappa handed to BM's formula, which must return lam_BM = lam_notes/alpha
+    (alpha = delta) at sigma_BM^2 = Delta/alpha.  Risk, tau^2 and threshold agree to 1e-8 both ways; BM's identity
+    risk = delta (tau^2 - sigma^2) to 1e-9.  Control: the slope scaled by 0.8 moves the risk by > 1e-4."""
+    lam_bm, risk, ident, t2, th = _bm_point(delta, s2, a, atoms, gauss)
+    assert abs(risk - ident) < 1e-9 and lam_bm > 0
+    got = L.lasso_se(delta, None, delta * lam_bm, delta * s2, prior=prior)
+    assert abs(got.risk - risk) < 1e-8 and abs(got.tau2 - t2) < 1e-8 and abs(got.threshold - th) < 1e-8, \
+        (delta, a, got, risk, t2, th)
+    bad = _planted("slope", 0.8, lambda: L.lasso_se(delta, None, delta * lam_bm, delta * s2, prior=prior))
+    assert abs(bad.risk - risk) > 1e-4, (delta, a, bad.risk, risk)
+    alpha, Delta = delta, delta * s2                   # the notes' parameters of this BM problem
+    se = L.lasso_se(alpha, None, lam_notes, Delta, prior=prior)
+    lam_back, risk_back, _, t2_back, th_back = _bm_point(alpha, Delta / alpha, se.kappa, atoms, gauss)
+    assert abs(lam_back - lam_notes / alpha) < 1e-8, (lam_back, lam_notes / alpha)
+    assert abs(risk_back - se.risk) < 1e-8 and abs(t2_back - se.tau2) < 1e-8 and abs(th_back - se.threshold) < 1e-8
+
+
 def test_lasso_risk_vs_bayati_montanari():
     """lasso_se (the notes' convention, exact Gaussian partial moments, lam -> kappa by brentq) against BM's formula
-    coded above from the paper (scipy quad, its own convention, threshold multiplier -> lam): BM's Fig. 1 law
-    p(+-1) = 0.064, p(0) = 0.872 at delta = 0.64, sigma_BM^2 = 0.2, multiplier a = 2 (their Fig. 1's point);
-    a Gauss-Bernoulli law (rho = 0.3) at delta = 0.6, sigma_BM^2 = 0.1, a = 1.5.  BM's lam_BM(a) is mapped to the
-    notes' lam = delta lam_BM and handed to lasso_se: the risk, BM's identity risk = delta (tau^2 - sigma^2), tau^2
-    and the threshold agree to 1e-8 under the map of the module docstring.  Control: the soft-threshold slope scaled
-    by 0.8 (_HOOKS["slope"]) moves the risk by > 1e-4 at every point (measured 1e-3 to 1e-2)."""
-    cases = [(0.64, 0.2, a, Prior("sparse", rho="0.128", a=1), [(0.064, 1.0), (0.064, -1.0), (0.872, 0.0)], 0.0)
-             for a in (2.0,)]
-    cases.append((0.6, 0.1, 1.5, Prior("gauss_bernoulli", rho="0.3"), [(0.7, 0.0)], 0.3))
-    for delta, s2, a, prior, atoms, gauss in cases:
-        lam_bm, risk, ident, t2, th = _bm_point(delta, s2, a, atoms, gauss)
-        assert abs(risk - ident) < 1e-9 and lam_bm > 0
-        got = L.lasso_se(delta, None, delta * lam_bm, delta * s2, prior=prior)
-        assert abs(got.risk - risk) < 1e-8 and abs(got.tau2 - t2) < 1e-8 and abs(got.threshold - th) < 1e-8, \
-            (delta, a, got, risk, t2, th)
-        bad = _planted("slope", 0.8, lambda: L.lasso_se(delta, None, delta * lam_bm, delta * s2, prior=prior))
-        assert abs(bad.risk - risk) > 1e-4, (delta, a, bad.risk, risk)
+    coded above from the paper (scipy quad, its own convention, threshold multiplier -> lam) at BM's Fig. 1 law
+    p(+-1) = 0.064, p(0) = 0.872, delta = 0.64, sigma_BM^2 = 0.2: BM -> notes at their multiplier a = 2, and notes ->
+    BM at the notes' lam = 0.1 (_bm_both_ways: the convention map checked in both directions).  The Gauss-Bernoulli
+    case is the slow test below (default-tier time)."""
+    delta, s2, prior, atoms, gauss = _FIG1
+    _bm_both_ways(delta, s2, prior, atoms, gauss, 2.0, 0.1)
+
+
+@slow
+def test_lasso_risk_vs_bayati_montanari_gauss_bernoulli():
+    """As above for a Gauss-Bernoulli law (rho = 0.3) at delta = 0.6, sigma_BM^2 = 0.1: multiplier a = 1.5, and the
+    notes' lam = 0.2."""
+    delta, s2, prior, atoms, gauss = _GB
+    _bm_both_ways(delta, s2, prior, atoms, gauss, 1.5, 0.2)
 
 
 def test_lasso_calibration_and_least_squares_limit():
     """calibrate(kappa) -> lam inverts lasso_se (lam -> kappa) to 1e-10 at three points; the SE fixed point satisfies
     risk = alpha tau^2 - Delta (the notes' tau^2 = (E + Delta)/alpha) and lam = threshold (alpha - b) (the derived
     calibration); at lam = 0 and alpha = 2 the LASSO is least squares and its risk is the ridgeless HMRT value
-    Delta/(alpha - 1) = ridge.ridgeless_test_error(1/alpha, Delta) for two priors (the prior drops out)."""
+    Delta/(alpha - 1) = ridge.ridgeless_test_error(1/alpha, Delta) for two priors (the prior drops out).  Bad iters
+    (0, negative, non-int, bool) are refused by name in AMP, proximal gradient, the SE iteration, coordinate descent
+    and the lasso entry."""
     for alpha, rho, lam, D in ((0.5, 0.1, 0.05, 0.01), (0.8, 0.3, 0.4, 0.2), (1.5, 0.5, 1.0, 0.5)):
         se = L.lasso_se(alpha, rho, lam, D)
         assert abs(L.calibrate(se.kappa, alpha, rho, D) - lam) < 1e-10
@@ -125,10 +147,21 @@ def test_lasso_calibration_and_least_squares_limit():
     _refuses(lambda: L.lasso_se(0.5, 0.1, 0.1, 0), "precondition:sigma2")
     _refuses(lambda: L.lasso_se(0.5, 1.5, 0.1, 0.1), "precondition:rho")
     _refuses(lambda: L.lasso_se(0.5, 0.1, 0.1, 0.1, prior=Prior("rademacher")), "precondition:known-parameter")
+    A, y = np.eye(3)[:2], np.ones(2)
+    for bad in (0, -1, 2.5, True):
+        _refuses(lambda: L.lasso_amp(A, y, 0.1, iters=bad), "precondition:positive-iters")
+        _refuses(lambda: L.proximal_gradient(A, y, 0.1, iters=bad), "precondition:positive-iters")
+        _refuses(lambda: L.lasso_se_iterate(0.5, 0.1, 0.1, 0.1, iters=bad), "precondition:positive-iters")
+    _refuses(lambda: L.lasso_exact(A, y, 0.1, max_sweeps=0), "precondition:positive-iters")
+    from replicant.catalog import catalog
+    _refuses(lambda: catalog()["lasso"].run("amp", alpha="0.5", rho="0.1", lam="0.1", sigma2="0.01", N=50, iters=0),
+             "precondition:positive-iters")
 
 
 def test_lasso_amp_is_the_lasso_at_small_n():
-    """N = 250, alpha = 0.5, Gauss-Bernoulli rho = 0.1, Delta = 0.01, lam = 0.1, seed 2: KZ Alg. 4 converges, its
+    """N = 250, alpha = 0.5, Gauss-Bernoulli rho = 0.1, Delta = 0.01, lam = 0.1, seed 2 (a point picked from a
+    convergence survey of 6 seeds: undamped Alg. 4 can diverge at small N, e.g. N = 200, alpha = 0.6; acceptable
+    for a fixed-point-equality test, which is deterministic): KZ Alg. 4 converges, its
     fixed point satisfies the calibration lam = threshold (alpha - b) with the empirical b = <1{|R| > threshold}>
     (derived: Sigma = (1 + V)/alpha and V = Sigma b give Sigma (alpha - b) = 1), is a fixed point of the proximal-
     gradient map with eta = 1/(alpha - b) (KZ (12.154)), and equals the coordinate-descent LASSO (KKT residual

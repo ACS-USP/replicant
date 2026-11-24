@@ -196,6 +196,16 @@ def denoiser_dy(prior, snr):
     return lambda y: rs * var_fn(y)
 
 
+def sample(prior, rng, k):
+    """k i.i.d. draws from `prior` (a numpy Generator): component j with probability w_j, then mu_j + sqrt(v_j) N(0, 1)
+    (one place for K5's Wishart and K6's linear instances)."""
+    w = np.array([float(c[0]) for c in prior.components])
+    idx = rng.choice(len(w), size=k, p=w / w.sum())
+    mu = np.array([float(c[1]) for c in prior.components])[idx]
+    sd = np.sqrt(np.array([float(c[2]) for c in prior.components]))[idx]
+    return mu + sd * rng.normal(size=k)
+
+
 def map_estimate(prior, y, snr):
     """argmax_x P(x | y).  Atoms only: the atom of largest posterior mass; one Gaussian: its posterior mean.  A
     prior mixing atoms and densities has no mode (a mass and a density do not compare): refused."""
@@ -376,6 +386,7 @@ def posterior_ball(prior, data, Delta):
                 "p_plus": ball_of(plus), "p_nonzero": ball_of(nonzero), "N": n}
 
 
-__all__ = ["DATASETS", "Prior", "Sqrt", "denoiser", "denoiser_dy", "scalar_moments", "information_ball", "map_estimate",
+__all__ = ["DATASETS", "Prior", "Sqrt", "denoiser", "denoiser_dy", "sample", "scalar_moments", "information_ball",
+           "map_estimate",
            "mmse", "mmse_ball",
            "mutual_information", "overlaps", "posterior_ball"]

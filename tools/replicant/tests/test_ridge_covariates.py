@@ -13,7 +13,9 @@ import sys
 import mpmath as mp
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-from replicant.catalog import catalog
+from dataclasses import replace
+
+from replicant.catalog import catalog, check_ref
 from replicant.core import Refusal
 from replicant.learning import ridge as R
 from replicant.learning import ridge_sim as SIM
@@ -54,14 +56,25 @@ def _planted(term, value, fn):
 
 def test_ridge_covariates_reduce_to_isotropic():
     """An identity covariance, written three ways (one atom, two equal atoms, a string), runs the general kappa path
-    and reproduces every banked ridge / ridgeless value (12 keys, tol 1e-12); the default covariance gives results
-    identical (==) to the old call without the argument.  Controls: a missing bias in the general path fails the
+    and reproduces the 8 banked ridge / ridgeless risks (tol 1e-12); through the catalog entry with covariance="1:1",
+    every one of the 14 keys of reference/ridge.json (ridgeless, ridge, the 4 optimal test MSEs and the 2 optimal
+    penalties) is reproduced by the RefChecks' own extractors (the RS-saddle extractor excepted: that step is
+    isotropic-only; its keys are covered by `risk`); the default covariance gives results identical (==) to the old
+    call without the argument.  Controls: a missing bias in the general path fails the
     bank; the two-point spectrum (mean eigenvalue 5/4) does not reproduce the isotropic values."""
     for cov in ([(1, 1)], [(1, "1/2"), (1, "1/2")], "1:1"):
         for key, g, s2, r2 in _RIDGELESS:
             assert _ok(key, R.ridgeless_test_error(g, s2, r2, covariance=cov)), (cov, key)
         for key, g, lam, s2, r2 in _RIDGE:
             assert _ok(key, R.ridge_test_error(g, lam, s2, r2, covariance=cov)), (cov, key)
+    e = catalog()["ridge"]
+    checked = set()
+    for ref in e.refs:
+        if ref.key.startswith("ridge_") and ref is not next(r for r in e.refs if r.key == ref.key):
+            continue                                   # the second RefCheck of a ridge key reads risk_rs
+        assert check_ref(e, replace(ref, params={**ref.params, "covariance": "1:1"})).ok, ref.key
+        checked.add(ref.key)
+    assert checked == set(BANK) and len(checked) == 14, sorted(set(BANK) - checked)
     for key, g, s2, r2 in _RIDGELESS:
         assert R.ridgeless_test_error(g, s2, r2) == R.ridgeless_test_error(g, s2, r2, covariance="isotropic")
     for key, g, lam, s2, r2 in _RIDGE:
@@ -164,6 +177,20 @@ def test_ridge_two_point_spectrum_matches_finite_n_fits():
         assert abs(band.mean - iso) > band.half_width, (g, lam, band, iso)
 
 
+@slow
+def test_optimal_penalty_is_the_argmin_with_a_covariance():
+    """lam* = sigma^2 gamma / r^2 (the Gaussian-prior posterior mean, derived for any Sigma) is the numerical argmin
+    of the kappa-form risk (golden section, no formula for lam*) for the two-point spectrum at (gamma, sigma2, r2) =
+    (2, 1, 1), (0.5, 1, 2), to 1e-8; and with the identity covariance at the banked lambda_opt points (2, 1, 1),
+    (2, 1, 5) (against the bank at the second).  Control: 2 lam* misses the argmin by > 1e-3 (the comparison
+    resolves a wrong penalty)."""
+    for g, s2, r2, cov in (("2", 1, 1, TWO), ("0.5", 1, 2, TWO), ("2", 1, 1, "1:1"), ("2", 1, 5, "1:1")):
+        best = R.argmin_lambda(g, s2, r2, tol="1e-10", covariance=cov)
+        lam = R.optimal_lambda(g, s2, r2)
+        assert abs(best - lam) < 1e-8 * (1 + lam) and abs(best - 2 * lam) > 1e-3, (g, cov, best, lam)
+    assert _ok("lambda_opt_g2_s1_r5", R.argmin_lambda("2", 1, 5, tol="1e-14", covariance="1:1"))
+
+
 def test_ridge_covariance_finite_n_small():
     """Default-tier smoke check of the spectrum in ridge_sim: one fit at n = 60, p = 120 with the two-point spectrum
     has Sigma-weighted risk equal to (beta_hat - beta)^T Sigma (beta_hat - beta) and R_X = B_X + V_X; a weight that
@@ -180,14 +207,16 @@ def test_ridge_covariance_finite_n_small():
 
 def test_catalog_ridge_covariance_parameter():
     """The ridge entry reads `covariance`: identity reproduces the default run's numbers; a spectrum changes the
-    closed-form risk and skips the isotropic-only steps (RS saddle, optimal penalty) with a stated reason."""
+    closed-form risk, keeps the optimal penalty (kappa-form risk at lam*) and skips the isotropic-only RS saddle with
+    a stated reason."""
     e = catalog()["ridge"]
     base = e.run(gamma="2", lam="0.1", sigma2="0.5", signal="2")
     ident = e.run(gamma="2", lam="0.1", sigma2="0.5", signal="2", covariance="1:1")
     assert abs(base["risk"] - ident["risk"]) < 1e-25 and abs(base["risk_ridgeless"] - ident["risk_ridgeless"]) < 1e-25
     two = e.run(gamma="2", lam="0.1", sigma2="0.5", signal="2", covariance=TWO)
     assert abs(two["risk"] - R.ridge_test_error("2", "0.1", "0.5", "2", covariance=TWO)) < 1e-25
-    assert "risk_rs" not in two and "lambda_opt" not in two and two["covariance"] == TWO
+    assert "risk_rs" not in two and two["covariance"] == TWO
+    assert abs(two["risk_opt"] - R.ridge_test_error("2", two["lambda_opt"], "0.5", "2", covariance=TWO)) < 1e-25
 
 
 # ---- the notes' ridge errata -------------------------------------------------------------------------------------
@@ -226,13 +255,22 @@ def test_notes_ridge_errata_recorded():
     forms agree: ridgeless_g4_s0p25_r1 (gamma = 4: alpha = 1/4 < 1, Delta = 1/4) and ridgeless_g0p5_s1_r1 (gamma =
     1/2: alpha = 2 > 1, Delta = 1); banked values are excess risks, the notes' eps_gen = E + Delta.  The q trace
     closing Sec. 18.1.2 as printed (alpha (E + Delta)) misses ridge_g2_lam0p1_s0p5_r2 (gamma = 2: alpha = 1/2,
-    lam_notes = lam/gamma = 0.05, Delta = 0.5, rho = 2) and the derived (E + Delta)/alpha reproduces it."""
+    lam_notes = lam/gamma = 0.05, Delta = 0.5, rho = 2) and the derived (E + Delta)/alpha reproduces it.  The map
+    alpha_notes = 1/gamma and lam_notes = lam/gamma is checked against the bank in both directions: the corrected
+    forms evaluated at alpha = gamma (K1's Ch. 3 map) miss the banked values, and the notes' saddle point with the
+    penalty unmapped or alpha = gamma misses ridge_g2_lam0p1_s0p5_r2."""
     for key, g, s2, alpha in (("ridgeless_g4_s0p25_r1", "4", "0.25", mp.mpf(1) / 4),
                               ("ridgeless_g0p5_s1_r1", "0.5", "1", mp.mpf(2))):
         D = mp.mpf(s2)
-        assert alpha == 1 / mp.mpf(g)
         assert not _ok(key, _notes_eps_gen_printed(alpha, D) - D), key
         assert _ok(key, _notes_eps_gen_corrected(alpha, D) - D), key
+        # the convention alpha_notes = 1/gamma, checked against the bank: the K1 (Ch. 3) map alpha = gamma misses
+        assert not _ok(key, _notes_eps_gen_corrected(mp.mpf(g), D) - D), key
     key = "ridge_g2_lam0p1_s0p5_r2"
     assert _ok(key, _notes_q_trace("0.5", "0.05", "0.5", "2", "derived"))
     assert not _ok(key, _notes_q_trace("0.5", "0.05", "0.5", "2", "printed"))
+    # both convention maps, through the notes' own saddle point: alpha = 1/gamma with lam_notes = lam/gamma
+    # reproduces the bank; alpha = gamma (with lam_notes = lam gamma, its consistent penalty map) or lam_notes = lam
+    # (the penalty left unmapped) misses it
+    assert not _ok(key, _notes_q_trace("2", "0.2", "0.5", "2", "derived"))
+    assert not _ok(key, _notes_q_trace("0.5", "0.1", "0.5", "2", "derived"))

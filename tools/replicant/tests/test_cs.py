@@ -40,24 +40,18 @@ def _planted(key, value, fn):
 
 
 def test_cs_phase_diagram():
-    """The l1 boundary two ways: DMM Eq. (5) solved for alpha (rho/alpha = rho_SE(alpha)) and the local stability of
-    the soft-threshold state evolution at E -> 0 minimised over the threshold multiplier (lasso.mse_b, no DMM formula)
-    agree to 1e-5 at rho = 0.1, 0.2, 0.4 (the two starts are run at 0.4 only: default-tier time); the bank's
-    cs_alpha_l1_rho0p4 is reproduced.  The Bayes boundary: the SE
-    spinodal alpha_BP = max_s s mmse(s) (derived in linear/cs.py) at rho = 0.4 is KMSSZ's printed alpha_EM-BP ~ 0.59
-    (bank, tol 0.01), and the two SE starts confirm it: at alpha_BP (1 - 0.02) both converge to different fixed points
-    (the uninformative MSE > 1e-3, the informative < 1e-9), at alpha_BP (1 + 0.02) both reach exact recovery
-    (MSE < 1e-9); the order rho < alpha_BP <
-    alpha_l1 holds (the hard phase lies inside the l1-impossible region).  Control: the snr inside s mmse(s) scaled
-    by 0.9 (_HOOKS["snr"]) moves alpha_BP off the SE's own transition, and the two-start check labels it
-    undetermined."""
-    for rho in (0.1, 0.2):
-        b = CS.cs_phase_boundary(rho, confirm=False)
-        assert abs(b.alpha_l1 - b.alpha_l1_se) < 1e-5, (rho, b)
-        assert rho < b.alpha_bayes < b.alpha_l1 < 1, b
+    """At rho = 0.4.  The l1 boundary two ways: DMM Eq. (5) solved for alpha (rho/alpha = rho_SE(alpha)) and the
+    local stability of the soft-threshold state evolution at E -> 0 minimised over the threshold multiplier
+    (lasso.mse_b, no DMM formula) agree to 1e-5 (no l1 value is banked: none is printed; the LP is the slow
+    finite-N route).  The Bayes boundary: the SE spinodal alpha_BP = max_s s mmse(s) (derived in linear/cs.py) is
+    KMSSZ's printed alpha_EM-BP ~ 0.59 (bank, tol 0.01), and the two SE starts confirm it: at alpha_BP (1 - 0.02) they
+    converge to different fixed points (uninformative MSE > 1e-3, informative < 1e-9), at alpha_BP (1 + 0.02) both
+    reach exact recovery (MSE < 1e-9); rho < alpha_BP < alpha_l1 (the hard phase lies inside the l1-impossible
+    region).  Control: the snr inside s mmse(s) scaled by 0.9 (_HOOKS["snr"]) moves the formula's maximum to
+    alpha_BP/0.9 = 0.655, off the bank (the full planted two-start confirmation, labelled undetermined, and the
+    rho = 0.1, 0.2 points are slow tests: default-tier time)."""
     b = CS.cs_phase_boundary(0.4)
     assert abs(b.alpha_l1 - b.alpha_l1_se) < 1e-5 and 0.4 < b.alpha_bayes < b.alpha_l1 < 1, b
-    assert check(BANK["cs_alpha_l1_rho0p4"], b.alpha_l1, label="l1").ok
     assert check(BANK["cs_alpha_bp_rho0p4"], b.alpha_bayes, label="bp").ok
     assert b.bayes_status == "spinodal" and b.alpha_it == 0.4, b
     lo, hi = b.starts
@@ -66,10 +60,33 @@ def test_cs_phase_diagram():
     assert hi.status == "unique" and hi.mse < 1e-9, hi
     bad = _planted("snr", 0.9, lambda: CS.bayes_spinodal(0.4))[0]
     assert abs(bad - b.alpha_bayes / 0.9) < 1e-6 and not check(BANK["cs_alpha_bp_rho0p4"], bad, label="bp").ok
-    assert SE.gamp_se(bad * 0.98, G.Channel("awgn", Delta=0), Prior("gauss_bernoulli", rho="0.4"),
-                      tol=1e-10).status == "unique"
     _refuses(lambda: CS.cs_phase_boundary(0), "precondition:rho")
     _refuses(lambda: CS.cs_phase_boundary(1), "precondition:rho")
+
+
+def test_dmm_rho_map_both_ways():
+    """DMM's rho is k/n = rho_notes/alpha (delta = alpha).  notes -> DMM: at alpha_l1(rho) for rho = 0.2, 0.4, DMM's
+    rho_SE(alpha_l1) equals rho/alpha_l1 (1e-9).  DMM -> notes: from DMM's curve at delta = 0.3, 0.5, 0.7,
+    rho_notes = delta rho_SE(delta) handed to the notes-side SE route (l1_boundary_se, which never sees DMM's
+    variables) returns alpha = delta (1e-5).  Control: the unmapped rho (rho_SE(delta) taken as the notes' rho)
+    misses delta by > 1e-2."""
+    for rho in (0.2, 0.4):
+        a = CS.l1_boundary(rho)
+        assert abs(CS.rho_se(a)[0] - rho / a) < 1e-9, (rho, a)
+    for delta in (0.3, 0.5, 0.7):
+        r_dmm = CS.rho_se(delta)[0]
+        assert abs(CS.l1_boundary_se(delta * r_dmm) - delta) < 1e-5, delta
+        assert abs(CS.l1_boundary_se(r_dmm) - delta) > 1e-2, delta
+
+
+@slow
+def test_cs_boundaries_at_other_densities():
+    """rho = 0.1, 0.2: the two l1 evaluations agree to 1e-5 and rho < alpha_BP < alpha_l1 < 1 (the two starts
+    confirm alpha_BP)."""
+    for rho in (0.1, 0.2):
+        b = CS.cs_phase_boundary(rho)
+        assert abs(b.alpha_l1 - b.alpha_l1_se) < 1e-5 and b.bayes_status == "spinodal", (rho, b)
+        assert rho < b.alpha_bayes < b.alpha_l1 < 1, b
 
 
 def test_l1_lp_recovers_a_sparse_vector():
@@ -82,8 +99,12 @@ def test_l1_lp_recovers_a_sparse_vector():
 
 @slow
 def test_cs_planted_spinodal_is_undetermined():
-    """The full planted confirmation: with the snr inside s mmse(s) scaled by 0.9 the boundary's two-start check fails
-    and bayes_status is undetermined (alpha_bayes reported only as the unconfirmed formula value)."""
+    """The full planted confirmation: with the snr inside s mmse(s) scaled by 0.9 the SE at the lower check point
+    0.98 x 0.655 has a single (exact-recovery) fixed point, so the boundary's two-start check fails and bayes_status
+    is undetermined (alpha_bayes reported only as the unconfirmed formula value)."""
+    a = _planted("snr", 0.9, lambda: CS.bayes_spinodal(0.4))[0]
+    assert SE.gamp_se(a * 0.98, G.Channel("awgn", Delta=0), Prior("gauss_bernoulli", rho="0.4"),
+                      tol=1e-10).status == "unique"
     bad = _planted("snr", 0.9, lambda: CS.cs_phase_boundary(0.4))
     assert bad.bayes_status == "undetermined" and not check(BANK["cs_alpha_bp_rho0p4"], bad.alpha_bayes, label="bp").ok
 

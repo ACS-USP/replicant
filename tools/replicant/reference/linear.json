@@ -1,14 +1,8 @@
 {
-  "cs_alpha_l1_rho0p4": {
-    "value": "0.7497391119273523937811565",
-    "tol": "1e-9",
-    "cite": "l1 (basis pursuit) boundary of noiseless compressed sensing at non-zero fraction rho = k/N = 0.4: Donoho, Maleki & Montanari, 'Message-passing algorithms for compressed sensing', PNAS 106, 18914 (2009), arXiv:0907.3574 (fetched), Eq. (5) with kappa_chi = 2 (signed signals), rho_SE(delta) = max_{z >= 0} [1 - (2/delta)((1 + z^2)Phi(-z) - z phi(z))] / [1 + z^2 - 2((1 + z^2)Phi(-z) - z phi(z))], solved for delta = alpha with DMM's rho = k/n = rho/alpha (the printed formula evaluated in mpmath at 40 digits during the build; no number is printed there). DMM's Finding 1 (numerical) identifies rho_SE with the Donoho-Tanner curve rho_CG (not fetched).",
-    "independent_route": "the local stability of the soft-threshold state evolution at E -> 0 (linear/lasso.py mse_b, closed-form Gaussian moments) minimised over the threshold multiplier (linear/cs.py l1_boundary_se; agreement 1e-5), and basis pursuit by linear programming at N = 300 over named seeds, the success fraction crossing 1/2 between alpha_l1 -+ 0.08 at rho = 0.2 (tests/test_cs.py, slow)"
-  },
   "cs_alpha_bp_rho0p4": {
     "value": "0.59",
     "tol": "0.01",
     "cite": "Bayes-optimal (EM-)BP / AMP reconstruction threshold of noiseless compressed sensing for a Gauss-Bernoulli signal (zero mean, unit variance, density rho0 = 0.4, matched prior rho = rho0), measurement matrix with i.i.d. N(0, 1/N) entries: Krzakala, Mezard, Sausset, Sun & Zdeborova, 'Statistical-physics-based reconstruction in compressed sensing', PRX 2, 021005 (2012), arXiv:1109.4424 (fetched), Fig. 3 caption, 'alpha_EM-BP(rho0 = 0.4) ~ 0.59' (printed with ~: tolerance one unit in the last digit). Physics-level (replica / state evolution).",
-    "independent_route": "the spinodal of the Bayes state evolution E' = mmse(alpha/E), alpha_BP = max_s s mmse(s) (derived in linear/cs.py; mmse by bayes/channels.py quadrature), confirmed by the uninformative and informative SE starts at alpha_BP (1 -+ 0.01) (linear/se.py); finite-N Bayes GAMP at N = 2000 succeeds at alpha = 0.65 and fails at 0.5 (tests/test_cs.py, slow)"
+    "independent_route": "the spinodal of the Bayes state evolution E' = mmse(alpha/E), alpha_BP = max_s s mmse(s) (derived in linear/cs.py; mmse by bayes/channels.py quadrature), confirmed by the uninformative and informative SE starts at alpha_BP (1 -+ 0.02) (linear/se.py); finite-N Bayes GAMP at N = 2000 succeeds at alpha = 0.65 and fails at 0.5 (tests/test_cs.py, slow)"
   }
 }

@@ -23,8 +23,10 @@ Gaussian prior and awgn: at a fixed point g (Delta + V) = y - A x_hat + V g, so 
 x_hat = Sigma' A^T g with Sigma' from the prior, i.e. (I + A^T A/Delta) x_hat = A^T y/Delta: the exact posterior mean
 whatever the scalar Sigma (tests/test_linear_gamp.py).
 Status: finite-N iterates are statistical (one instance; no error bar); Bayes-optimal only on the Nishimori line
-(x0 from `prior`, y from `channel`).  If <v> falls below 1e-12 or 1/Sigma is not finite and positive (the marginals
-collapsed, e.g. exact recovery), the iterate is kept fixed and the note says so (a float64 fixed point).  `seed`
+(x0 from `prior`, y from `channel`).  If <v> falls below 1e-12 or 1/Sigma underflows to 0 (the marginals collapsed,
+e.g. exact recovery), the iterate is kept fixed and the note says so (a float64 fixed point).  A non-finite V,
+1/Sigma, g_out or iterate is a divergence: the run stops, returns its last finite iterate with finite=False and
+converged=False (never frozen, never converged).  `seed`
 names the instance (linear_instance draws it); the iteration itself is deterministic.
 """
 import math
@@ -33,7 +35,7 @@ from dataclasses import dataclass, field
 import numpy as np
 from scipy.special import log_ndtr
 
-from ..bayes.channels import Prior, denoiser
+from ..bayes.channels import Prior, denoiser, sample
 from ..core import Refusal
 
 _HOOKS = {"onsager": 1.0}
@@ -99,14 +101,6 @@ def prior_moments(prior):
     return mean, float(prior.second_moment) - mean * mean
 
 
-def sample_prior(prior, n, rng):
-    w = np.array([float(c[0]) for c in prior.components])
-    k = rng.choice(len(w), size=n, p=w / w.sum())
-    mu = np.array([float(c[1]) for c in prior.components])[k]
-    sd = np.sqrt(np.array([float(c[2]) for c in prior.components]))[k]
-    return mu + sd * rng.standard_normal(n)
-
-
 def linear_instance(N, alpha, channel, prior, seed):
     """(A, y, x0) from numpy.random.default_rng([seed, 6]): M = round(alpha N), A_ij ~ N(0, 1/N)."""
     if isinstance(N, bool) or not isinstance(N, (int, np.integer)) or N < 2:
@@ -115,7 +109,7 @@ def linear_instance(N, alpha, channel, prior, seed):
     if not (float(alpha) > 0 and M >= 1):
         raise Refusal("precondition:alpha", f"alpha={alpha} gives M = {M} measurements")
     rng = np.random.default_rng([int(seed), 6])
-    x0 = sample_prior(_prior(prior), int(N), rng)
+    x0 = sample(_prior(prior), rng, int(N))
     A = rng.standard_normal((M, int(N))) / math.sqrt(N)
     return A, channel.sample(A @ x0, rng), x0
 
@@ -129,6 +123,7 @@ class GAMPRun:
     converged: bool              # last increment <(x_hat^T - x_hat^{T-1})^2> < tol
     increments: list = field(default_factory=list)
     frozen: bool = False
+    finite: bool = True          # False: an iterate went non-finite and the run stopped (never converged)
     alpha: float = 0.0
     N: int = 0
     seed: int = 0
@@ -162,33 +157,44 @@ def gamp(A, y, channel, prior, *, iters, seed, teacher=None, variance="derivativ
             raise Refusal("precondition:teacher-length", f"teacher has shape {teacher.shape}; need ({N},)")
     ov = None if teacher is None else [float(xh @ teacher) / N]
     ms = None if teacher is None else [float((xh - teacher) @ (xh - teacher)) / N]
-    incs, frozen = [], False
-    for _ in range(iters):
-        V = float(v.mean())
-        lam = math.nan
-        if V >= _V_FLOOR:
-            omega = A @ xh - _HOOKS["onsager"] * V * g
-            g_new, dg = channel.gout(omega, y, V)
-            lam = float(-dg.sum() if variance == "derivative" else g_new @ g_new) / N
-        if not (math.isfinite(lam) and lam > 0 and V >= _V_FLOOR):
-            frozen = True
-            incs.append(0.0)
-        else:
-            g = g_new
-            R = xh + A.T @ g / lam
-            mean_fn, var_fn = denoiser(prior, lam)
-            ys = R * math.sqrt(lam)
-            new, v = mean_fn(ys), var_fn(ys)
-            incs.append(float((new - xh) @ (new - xh)) / N)
-            xh = new
-        if teacher is not None:
-            ov.append(float(xh @ teacher) / N)
-            ms.append(float((xh - teacher) @ (xh - teacher)) / N)
+    incs, frozen, finite = [], False, True
+    with np.errstate(over="ignore", invalid="ignore"):
+        for _ in range(iters):
+            V = float(v.mean())
+            lam = 0.0
+            if math.isfinite(V) and V >= _V_FLOOR:
+                omega = A @ xh - _HOOKS["onsager"] * V * g
+                g_new, dg = channel.gout(omega, y, V)
+                lam = float(-dg.sum() if variance == "derivative" else g_new @ g_new) / N
+            if not (math.isfinite(V) and math.isfinite(lam)) or (lam > 0 and not np.all(np.isfinite(g_new))):
+                finite = False                 # diverged: stop, never report it converged
+                break
+            if not (lam > 0 and V >= _V_FLOOR):
+                frozen = True                  # collapsed marginals (V or 1/Sigma underflow): a float64 fixed point
+                incs.append(0.0)
+            else:
+                R = xh + A.T @ g_new / lam
+                mean_fn, var_fn = denoiser(prior, lam)
+                ys = R * math.sqrt(lam)
+                new, v_new = mean_fn(ys), var_fn(ys)
+                if not (np.all(np.isfinite(new)) and np.all(np.isfinite(v_new))):
+                    finite = False
+                    break
+                g, v = g_new, v_new
+                incs.append(float((new - xh) @ (new - xh)) / N)
+                xh = new
+            if teacher is not None:
+                ov.append(float(xh @ teacher) / N)
+                ms.append(float((xh - teacher) @ (xh - teacher)) / N)
     note = (f"statistical (finite N = {N}, one instance, seed {seed}; never certified); Bayes-optimal only on the "
             f"Nishimori line ({prior!r}, {channel!r}); variance form {variance}")
     if frozen:
-        note += "; the variances collapsed (<v> < 1e-12 or 1/Sigma not finite > 0): the iterate was kept fixed"
-    return GAMPRun(xh, v, ov, ms, bool(incs[-1] < tol), incs, frozen, M / N, N, seed, iters, note=note)
+        note += "; the variances collapsed (<v> < 1e-12 or 1/Sigma underflowed to 0): the iterate was kept fixed"
+    if not finite:
+        note += (f"; NON-FINITE iterates at step {len(incs) + 1}: stopped, the last finite iterate is returned, "
+                 "NOT converged")
+    conv = finite and bool(incs) and incs[-1] < tol
+    return GAMPRun(xh, v, ov, ms, conv, incs, frozen, finite, M / N, N, seed, iters, note=note)
 
 
-__all__ = ["Channel", "GAMPRun", "gamp", "linear_instance", "prior_moments", "sample_prior"]
+__all__ = ["Channel", "GAMPRun", "gamp", "linear_instance", "prior_moments"]

@@ -115,6 +115,20 @@ def test_gamp_awgn_fixed_point_is_the_gaussian_posterior_mean():
         assert abs(SE.gamp_se(alpha, ch, pr).overlap - q) < 1e-10
 
 
+def test_gamp_divergence_is_never_converged():
+    """A run whose iterates go non-finite stops and reports finite=False, converged=False, frozen=False, with its last
+    finite iterate and a NON-FINITE note (planted divergence: noiseless awgn with y scaled by 1e200, N = 200).
+    Control: the same instance with the true y collapses to exact recovery, reported frozen (a float64 fixed point),
+    finite and converged."""
+    ch, pr = G.Channel("awgn", Delta=0), Prior("gauss_bernoulli", rho="0.4")
+    A, y, x0 = G.linear_instance(200, 0.7, ch, pr, 0)
+    bad = G.gamp(A, y * 1e200, ch, pr, iters=20, seed=0)
+    assert not bad.finite and not bad.converged and not bad.frozen and "NON-FINITE" in bad.note
+    assert np.all(np.isfinite(bad.x_hat))
+    good = G.gamp(A, y, ch, pr, iters=150, seed=0, teacher=x0)
+    assert good.finite and good.frozen and good.converged and good.mse_trace[-1] < 1e-6
+
+
 def test_gamp_refusals_are_named():
     """Unknown channel, unknown or bad channel parameter, a non-+-1 label on the sign channel, shape mismatches,
     an unknown variance form, non-positive iters: named refusals."""
