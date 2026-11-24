@@ -112,7 +112,8 @@ def transitions(p):
     note = (f"planted / random population dynamics over seeds {list(seeds)} ({kw['pop']} members, {kw['sweeps']} "
             f"sweeps per c_d probe): c_d = {vals['c_d']:.4g} +- {vals['c_d_halfwidth99']:.2g}, c_c = "
             f"{vals['c_c']:.4g} +- {vals['c_c_halfwidth99']:.2g} (99% Student-t), c_l = {c_l:.6g}")
-    return Out({**vals, "transitions_status": "determined", "transitions_note": runs[0].note}, note, errors=errs,
+    per_seed = "; ".join(f"seed {s}: {r.note}" for s, r in zip(seeds, runs))
+    return Out({**vals, "transitions_status": "determined", "transitions_note": per_seed}, note, errors=errs,
                statistical=tuple(stat), notes=(note,))
 
 

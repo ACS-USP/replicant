@@ -48,6 +48,9 @@ def precheck(p):
         raise Refusal("precondition:ansatz", "thresholds and m belong to ansatz = '1rsb'")
     if a == "rs" and p.get("pop") is not None:
         raise Refusal("precondition:ansatz", "pop belongs to ansatz = '1rsb' (the coloring entry has no RS population)")
+    q = p.get("q", 3)
+    if t == "clustering" and isinstance(q, int) and not isinstance(q, bool) and q >= 4:
+        R.refuse_er_first_order(q)
     return Out({}, f"ansatz {a}, planted {p.get('planted', False)}, thresholds {t}")
 
 
@@ -136,11 +139,16 @@ def planted_graphs(p, c):
                errors=errs, statistical=("overlap_planted_bp",))
 
 
+def precheck_step(cite):
+    """Runs first in the coloring pipeline, before K3's BP on graphs: an input refusal (unknown ansatz, ER q >= 4
+    clustering) is raised before any paid step."""
+    return fstep("coloring-k7-parameters", f"{cite}, Chs. 13-14", precheck,
+                 when=lambda p: any(p.get(k) is not None for k in PARAMS), skip="K3's parameter set")
+
+
 def steps(mean_degree, cite):
     one = lambda p: p.get("ansatz", "rs") == "1rsb"
-    return [fstep("coloring-k7-parameters", f"{cite}, Chs. 13-14", precheck,
-                  when=lambda p: any(p.get(k) is not None for k in PARAMS), skip="K3's parameter set"),
-            fstep("coloring-1rsb-closed-forms", f"{cite}, Secs. 13.2.3, 14.3; {ZK}, Eq. (44)", closed, when=one,
+    return [fstep("coloring-1rsb-closed-forms", f"{cite}, Secs. 13.2.3, 14.3; {ZK}, Eq. (44)", closed, when=one,
                   skip="ansatz rs"),
             fstep("coloring-1rsb-population", f"{cite}, Secs. 14.2-14.3 (population dynamics: statistical)",
                   lambda p: population(p, mean_degree(p)), when=lambda p: one(p) and (p.get("pop") is not None or

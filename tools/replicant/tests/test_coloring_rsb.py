@@ -129,29 +129,43 @@ def test_colorability_table_q3_by_1rsb():
     assert e.finality_of(v)["c_d_1rsb"].state == "not-computed"
 
 
+class _Reached(Exception):
+    """Raised only by the stubs below: a paid step was reached."""
+
+
 def test_er_first_order_is_refused_up_front():
     """ER q >= 4 (ZK 2007: a first-order clustering transition, c_d < (q - 1)^2) is refused by name on the input,
-    before any population runs: no seed-dependent refusal after paid runs.  The population engine is replaced by a
-    stub that fails if called, so a refusal reached after a run would show as that failure; q = 3 on ER and q = 4 on
-    regular graphs do reach the engine (the control that the stub is live)."""
+    before any paid step: no population run and, in the catalog with N given, no K3 BP on sampled graphs.  The
+    engines are replaced by stubs that raise _Reached, so a refusal reached after a paid step shows as _Reached; q = 3
+    on ER and q = 4 on regular graphs do reach the population stub, and the catalog run without thresholds reaches
+    the BP stub (the controls that the stubs are live)."""
+    from replicant.coloring import potts_graph as PG
+
     def boom(*a, **k):
-        raise AssertionError("a population ran before the refusal")
-    old = RP.coloring_1rsb
-    RP.coloring_1rsb = boom
+        raise _Reached
+    old_pop, old_bp = RP.coloring_1rsb, PG.bp_convergence
+    RP.coloring_1rsb = PG.bp_convergence = boom
+    e = catalog()["coloring"]
     try:
         for q in (4, 5, 7):
             _refuses(lambda: R.cluster_thresholds(q, "er", seeds=(0, 1)), "unsupported:er-first-order")
             _refuses(lambda: R.clustering_threshold(q, "er"), "unsupported:er-first-order")
+            _refuses(lambda: e.execute("cavity", q=q, ansatz="1rsb", thresholds="clustering", N=2000, seeds=(0,)),
+                     "unsupported:er-first-order")
         for q, graph in ((3, "er"), (4, "regular")):
             try:
                 R.cluster_thresholds(q, graph, seeds=(0,))
-                raise RuntimeError("the stub was not reached")
-            except AssertionError:
+                raise RuntimeError("the population stub was not reached")
+            except _Reached:
                 pass
+        try:
+            e.execute("cavity", q=4, ansatz="1rsb", N=2000, seeds=(0,))
+            raise RuntimeError("the BP stub was not reached")
+        except _Reached:
+            pass
     finally:
-        RP.coloring_1rsb = old
-    assert RP.coloring_1rsb is old
-    e = catalog()["coloring"]
+        RP.coloring_1rsb, PG.bp_convergence = old_pop, old_bp
+    assert RP.coloring_1rsb is old_pop and PG.bp_convergence is old_bp
     try:
         run_cached(e, "cavity", {"q": 4, "ansatz": "1rsb", "thresholds": "clustering"})
         raise AssertionError("not refused")

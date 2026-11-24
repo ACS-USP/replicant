@@ -236,7 +236,8 @@ def _col_bp(p):
 
 
 def coloring():
-    steps = [fstep("coloring-paramagnetic", f"{KZ}, Sec. 6.4", _col_para),
+    steps = [K7.precheck_step(KZ),
+             fstep("coloring-paramagnetic", f"{KZ}, Sec. 6.4", _col_para),
              fstep("coloring-thresholds", f"{KZ}, Sec. 6.6, Eqs. (6.17), (6.24)", _col_thr),
              fstep("coloring-bp-graphs", f"{KZ}, Sec. 6.6 (BP on large random graphs)", _col_bp,
                    when=lambda p: p.get("N") is not None and p.get("planted", False) is not True,

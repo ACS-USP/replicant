@@ -202,8 +202,6 @@ def _sbm_check(p):
 
 
 def _sbm_ks(p):
-    if p.get("q") is not None:
-        return Out({}, "q given: the q-group path (catalog_sbm_q.py)")
     _sbm_check(p)
     if p.get("a") is None:
         return Out({}, "no a, b given")
@@ -251,7 +249,8 @@ def _ks_label(v):
 
 
 def sbm():
-    steps = [fstep("sbm-kesten-stigum", f"{DKMZ}; {MNS15}; {MAS}; {MNS18}", _sbm_ks),
+    steps = [fstep("sbm-kesten-stigum", f"{DKMZ}; {MNS15}; {MAS}; {MNS18}", _sbm_ks, when=_two(lambda p: True),
+                   skip="q given: the q-group path (catalog_sbm_q.py)"),
              fstep("sbm-ks-line", f"{DKMZ}, Fig. 1 caption", _sbm_line, when=_two(has("c")),
                    skip="no c given"),
              fstep("sbm-bp-finite-n", f"{DKMZ} (BP on sampled graphs: statistical)", _sbm_finite,

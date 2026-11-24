@@ -313,13 +313,19 @@ def _er(q, seeds, pop, sweeps, measure):
                          tuple(r.sigma for r in runs))
 
 
-def cluster_thresholds(q, graph="regular", *, seeds=(0, 1, 2, 3), pop=None, sweeps=150, measure=60):
-    """(c_d, c_c) as Thresholds, from one set of population runs."""
-    q, graph = _q3(q), _graph(graph)
-    if graph == "er" and q >= 4:
+def refuse_er_first_order(q):
+    """The input check for ER clustering, shared by cluster_thresholds and the catalog's first step."""
+    if q >= 4:
         raise Refusal("unsupported:er-first-order", f"q = {q} on ER: the clustering transition is first-order for "
                       "q >= 4 (ZK 2007, arXiv:0704.1269); the ER 1RSB path here does the continuous case q = 3 only "
                       "(the sbm entry at c_in = 0 locates the q = 5 c_d, c_c by K4's planted population)")
+
+
+def cluster_thresholds(q, graph="regular", *, seeds=(0, 1, 2, 3), pop=None, sweeps=150, measure=60):
+    """(c_d, c_c) as Thresholds, from one set of population runs."""
+    q, graph = _q3(q), _graph(graph)
+    if graph == "er":
+        refuse_er_first_order(q)
     if graph == "regular":
         return _regular(q, tuple(seeds), pop, sweeps, measure)
     return _er(q, tuple(seeds), pop, sweeps, measure)

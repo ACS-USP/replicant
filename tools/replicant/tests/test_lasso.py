@@ -160,9 +160,8 @@ def test_lasso_calibration_and_least_squares_limit():
 
 def test_lasso_amp_is_the_lasso_at_small_n():
     """N = 250, alpha = 0.5, Gauss-Bernoulli rho = 0.1, Delta = 0.01, lam = 0.1, named seeds 0-3 (no seed picked
-    from a survey: every seed whose undamped Alg. 4 converges is checked -- it can diverge at small N, e.g. N = 200,
-    alpha = 0.6, and a non-converged seed is reported converged False and skipped, at least one must converge; the
-    checks are deterministic fixed-point equalities): KZ Alg. 4 converges, its
+    from a survey; undamped Alg. 4 can diverge at small N, e.g. N = 200, alpha = 0.6, but on these four named seeds it
+    converges on every one, and the test requires all four; the checks are deterministic fixed-point equalities): KZ Alg. 4 converges, its
     fixed point satisfies the calibration lam = threshold (alpha - b) with the empirical b = <1{|R| > threshold}>
     (derived: Sigma = (1 + V)/alpha and V = Sigma b give Sigma (alpha - b) = 1), is a fixed point of the proximal-
     gradient map with eta = 1/(alpha - b) (KZ (12.154)), and equals the coordinate-descent LASSO (KKT residual
@@ -192,7 +191,9 @@ def test_lasso_amp_is_the_lasso_at_small_n():
             assert np.max(np.abs(bad.x - ex.x)) < 1e-7, seed
             assert abs(bad.threshold * (0.5 - bad.b) - 0.1) > 1e-3, seed
             planted.append(seed)
-    assert checked and planted, ("no seed converged", checked, planted)
+    # every named seed must converge (a regression that stops Alg. 4 converging fails here, not by skipping), and
+    # the planted control must bite on at least three of the four
+    assert checked == [0, 1, 2, 3] and len(planted) >= 3, (checked, planted)
 
 
 @slow

@@ -5,8 +5,8 @@ Convention (KZ Ch. 4): H = -J sum_(ij) s_i s_j - sum_i h_i s_i on a random graph
 from the field law of meanfield/rfim.py (gaussian N(0, Delta), Delta the variance, or bimodal +-h0).  graph:
 regular (every vertex has d neighbours, excess d - 1) or poisson (Erdos-Renyi, mean degree c), the spelling of
 potts_bethe and coloring.  `c` on a regular graph is the older (pre-final-review) spelling of d and keeps that
-meaning (the same degree, identical values); giving both is refused, and d on a poisson graph is refused with a hint.  The fully
-connected entry (route replica, H = -(J N/2) Sbar^2 - sum h_i s_i) is the c -> oo limit with the edge coupling
+meaning (the same degree, identical values); giving both is refused, and d on a poisson graph is refused with a
+hint.  The fully connected entry (route replica, H = -(J N/2) Sbar^2 - sum h_i s_i) is the c -> oo limit with the edge coupling
 J/c.  State 0 is s = +1; the planted start is every message on s = +1.
 Run parameters (route cavity): graph (regular | poisson, default regular), d (regular degree, default 4) or c
 (poisson mean degree, default 4; on regular graphs the old spelling of d), J (default 1), law,
@@ -75,8 +75,9 @@ def _state(p):
         v["d"] = c                  # the regular degree; "c" kept with the same number for the older spelling
     if branching > 1:
         v["beta_c_zero_field"] = math.atanh(1 / branching) / j
-    return Out(v, f"{g} graph, c = {c}, J = {j}; Delta = 0 ferromagnetic point beta_c = atanh(1/{branching})/J"
-               if branching > 1 else f"{g} graph, c = {c}: branching <= 1, no zero-field transition")
+    deg = f"d = {c}" if g == "regular" else f"c = {c}"      # the regular degree is d; the ER mean degree is c
+    return Out(v, f"{g} graph, {deg}, J = {j}; Delta = 0 ferromagnetic point beta_c = atanh(1/{branching})/J"
+               if branching > 1 else f"{g} graph, {deg}: branching <= 1, no zero-field transition")
 
 
 def _pd(p):
@@ -86,7 +87,8 @@ def _pd(p):
                                 sweeps=p.get("sweeps", 20), seeds=_checks.seeds(p.get("seeds", (0, 1, 2, 3))),
                                 init="planted")
     m = float(r.marginal[0] - r.marginal[1])
-    return Out({"m_cavity": m, "phi_cavity": r.phi, "pd_status": r.status, "pd_status_note": r.note, "seeds": list(r.seeds)},
+    return Out({"m_cavity": m, "phi_cavity": r.phi, "pd_status": r.status, "pd_status_note": r.note,
+                "seeds": list(r.seeds)},
                f"population dynamics ({p.get('pop', 2000)} x {p.get('sweeps', 20)} sweeps, planted s = +1): m = "
                f"{m:.6g}, Phi = {r.phi:.8g} ({r.status})", errors={"m_cavity": 2 * float(r.marginal_stderr[0]),
                                                                     "phi_cavity": r.phi_stderr},
