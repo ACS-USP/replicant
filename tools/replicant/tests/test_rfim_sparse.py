@@ -61,6 +61,8 @@ def test_rfim_population_homogeneous_limits():
     res = compose(e.spec, "cavity").run(c=4, beta="9/25", Delta="1/1000000", pop=100, sweeps=8, seeds=[0, 1])
     assert res.values["pd_status"] == "undetermined" and "UNDETERMINED" in res.finality["m_cavity"].note
     assert not res.finality["m_cavity"].final and "m_cavity" in res.statistical
+    res = compose(e.spec, "cavity").run(c=4, beta="1/2", Delta="1/10", pop=100, sweeps=8, seeds=[0, 1], N=60)
+    assert "approximation" in res.finality["phi_bp"].note, res.finality["phi_bp"]       # loopy sampled graphs
     assert _refusal(lambda: e.run("cavity", graph="lattice")).reason == "unsupported:graph"
     assert _refusal(lambda: e.run("cavity", c=4, J=-1)).reason == "precondition:J"
     assert _refusal(lambda: POP.population_dynamics(POP.potts_law(3, 1), ("regular", 3), pop=10, sweeps=8,

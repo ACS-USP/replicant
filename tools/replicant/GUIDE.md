@@ -1638,7 +1638,7 @@ banked in `reference/perceptron.json` as independent targets. Honest limits:
   (default tier): time averages at N = 8 equal the exact spectrum means within 99% bands at four betas,
   and the planted acceptance rule (x0.8) and the reversed exchange sign are detected at every beta.
 
-ACCEPTANCE GATES: `python3 tools/replicant/selftest.py` (default tier: 781 tests after K2, 789 after K3, about 30 s on a laptop at the 662 of the final fix wave (measured 30.2 s wall, cold, on a clean export); the margin-law, pinned-direction, negative-margin RSB and dense-memory tests added since were not re-timed cold; also `python3
+ACCEPTANCE GATES: `python3 tools/replicant/selftest.py` (default tier: 781 tests after K2, 790 after K3, about 30 s on a laptop at the 662 of the final fix wave (measured 30.2 s wall, cold, on a clean export); the margin-law, pinned-direction, negative-margin RSB and dense-memory tests added since were not re-timed cold; also `python3
 run_selftests.py replicant`, which runs the `python3` on PATH; run both from the activated project venv,
 which has python-flint) covers the core and
 refusal paths, the symbolic derivation against independent expressions, level agreement (a)=(b) for
@@ -2251,9 +2251,17 @@ KNOWN HAZARDS:
   (Phi crossing) are reported "determined" only when, at beta_c, the planted (a = 1) and the random (a = 1/q + 0.01)
   iterations both converge; generic BP on sampled d-regular graphs from the two starts reproduces both branches'
   Phi (Eq. (6.12), the paramagnetic closed form) to 1e-9 and the side of beta_c (`coloring/potts_graph.two_starts`:
-  phase "undetermined" unless both converge). KS: undamped parallel BP also has the uniform mode -c/(q - 1) (unstable
-  for c > q - 1, an artefact of synchronous updates); damping 1/2 removes it and leaves the variance threshold c =
-  (q - 1)^2 (slow test: converged at c = 3, not at c = 5, q = 3). First moment: the exact E Z over G(N, M) (a
+  phase "undetermined" unless both converge). KS: undamped parallel BP also has the uniform mode -c theta/(q - theta) (unstable
+  for c > q - 1 at beta = oo, an artefact of synchronous updates); damping d tames it only above d_min = 1 - 2(q -
+  1)/(q - 1 + c) (beta = oo), which for q >= 5 exceeds 1/2 below c_KS (q = 5, c = 14: 0.56), while the variance
+  threshold c = (q - 1)^2 is unchanged by damping. The entry chooses the damping above the bound
+  (`coloring/potts_graph.uniform_mode_damping`), and a damping given at or below it labels `bp_converged_fraction`
+  undetermined (slow test: q = 3 converged at c = 3, not at c = 5; q = 5 converged at c = 14, not at c = 18, and
+  damping 1/2 at c = 14 fails and is labelled). The loopy-graph Bethe values (`phi_planted_bp`, `phi_random_bp`,
+  rfim `phi_bp`) carry factor.bp's "approximation" label in their finality notes; potts_bethe at an
+  antiferromagnetic beta on a d-regular graph, where no root of the ansatz is stable, reports `phase` undetermined
+  with the reason; `potts_transitions` audits the saddle node by its residual and the bracket and reports
+  undetermined (never a silent fallback or a crash) when the audit fails or the ferro root vanishes inside the window. First moment: the exact E Z over G(N, M) (a
   composition sum, equal to brute-force enumeration at N = 5, 6) approaches the annealed form at O(1/N). RFIM on graphs:
   the c -> oo limit with coupling J/c approaches the K1 replica route (c |dPhi| about 0.06 in the disordered phase);
   near the ordering transition the population relaxes slowly and is labelled undetermined.

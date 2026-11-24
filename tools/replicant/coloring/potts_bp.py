@@ -18,8 +18,8 @@ refined by brentq; a = 1/q always), each with RHS'(a) (stable when |RHS'| < 1) a
 First-order structure for q >= 3 (Sec. 6.5.2; beta_stab < beta_c < beta_s < 0): beta_s, where the stable
 ferromagnetic root a > 1/q disappears (bisection on the root list, refined as the saddle node RHS = a,
 RHS' = 1), and beta_c, where Phi(a_ferro) = Phi(1/q) (brentq).  KZ's rule, here a ruling: the points are
-reported only when, at beta_c, the iteration of (6.11) from the planted start a = 1 and from the random start
-a = 1/q + 0.01 both converge (to the ferromagnetic and the paramagnetic roots); otherwise each is labelled
+reported only when, at beta_c, the iteration of (6.11) from the planted start a = 1 and from the paramagnetic-side
+start a = 1/q + 0.01 both converge (to the ferromagnetic and the paramagnetic roots); otherwise each is labelled
 undetermined with the reason.  For q = 2 the transition is continuous: beta_s = beta_c = beta_stab (KZ).
 Floats (physics-level BP formulas, not certified).
 
@@ -28,6 +28,7 @@ Floats (physics-level BP formulas, not certified).
   coloring_annealed_threshold(q, beta=inf);  kesten_stigum(q, beta=inf)
 """
 import math
+import warnings
 from dataclasses import dataclass
 from fractions import Fraction
 
@@ -181,6 +182,10 @@ def _ferro(q, d, beta):
     return max(fs, key=lambda f: f.a) if fs else None
 
 
+class _NoFerro(Exception):
+    pass
+
+
 @dataclass(frozen=True)
 class Transitions:
     beta_stab: float
@@ -207,17 +212,34 @@ def potts_transitions(q, d):
         mid = (lo + hi) / 2
         lo, hi = (mid, hi) if _ferro(q, d, mid) is not None else (lo, mid)
     f = _ferro(q, d, lo)
-    sol, info, ok, _ = fsolve(lambda z: [_rhs(z[0], q, d, _theta(z[1]))[0] - z[0],
-                                         _rhs(z[0], q, d, _theta(z[1]))[1] - 1], [f.a, lo], full_output=True,
-                              xtol=1e-14)
-    bs = float(sol[1]) if ok == 1 and lo - 1e-6 <= sol[1] <= hi + 1e-6 else (lo + hi) / 2
-    dphi = lambda b: _ferro(q, d, b).phi - potts_paramagnetic(q, d, b).phi
-    bc = brentq(dphi, bst + 1e-9, lo, xtol=1e-14)
+    sn = lambda z: [_rhs(z[0], q, d, _theta(z[1]))[0] - z[0], _rhs(z[0], q, d, _theta(z[1]))[1] - 1]
+    with warnings.catch_warnings():                          # fsolve's exit flag is replaced by the audit below
+        warnings.simplefilter("ignore", RuntimeWarning)
+        sol = fsolve(sn, [f.a, lo], xtol=1e-14)
+    res = max(abs(x) for x in sn(sol))                       # audited directly, whatever fsolve's exit flag says
+    if not (lo - 1e-6 <= sol[1] <= hi + 1e-6 and 1.0 / q < sol[0] < 1 and res < 1e-10):
+        return Transitions(bst, None, None, "first", "undetermined",
+                           f"beta_s not determined: the saddle-node solve (residual {res:.3g}, a = {sol[0]:.12g}, "
+                           f"beta = {sol[1]:.12g}) fails its audit against the bisection bracket [{lo:.12g}, {hi:.12g}]")
+    bs = float(sol[1])
+
+    def dphi(b):
+        fb = _ferro(q, d, b)
+        if fb is None:
+            raise _NoFerro(b)
+        return fb.phi - potts_paramagnetic(q, d, b).phi
+    try:
+        bc = brentq(dphi, bst + 1e-9, lo, xtol=1e-14)
+    except _NoFerro as e:
+        return Transitions(bst, bs, None, "first", "undetermined",
+                           f"beta_c not located: no stable ferromagnetic root at beta = {e.args[0]:.12g}, inside "
+                           f"(beta_stab, beta_s): the window is not connected")
     af, conv_f = iterate_map(q, d, bc, 1.0)
     ap, conv_p = iterate_map(q, d, bc, 1.0 / q + 0.01)
     good = conv_f and conv_p and af > 1.0 / q + 1e-6 and abs(ap - 1.0 / q) < 1e-9
-    note = (f"at beta_c the planted start a = 1 converges to a = {af:.12g} and the random start a = 1/q + 0.01 to "
-            f"{ap:.12g}" + ("" if good else f" (planted converged: {conv_f}, random converged: {conv_p})"))
+    note = (f"at beta_c the planted start a = 1 converges to a = {af:.12g} and the paramagnetic-side start "
+            f"a = 1/q + 0.01 to {ap:.12g}" + ("" if good else f" (planted converged: {conv_f}, paramagnetic-side "
+                                                               f"converged: {conv_p})"))
     return Transitions(bst, bs, bc, "first", "determined" if good else "undetermined", note)
 
 

@@ -17,6 +17,8 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspa
 import numpy as np
 
 from replicant.catalog import catalog
+from replicant.compose import compose
+from replicant.core import Refusal
 from replicant.coloring import first_moment as FM
 from replicant.coloring import potts_bp as PB
 from replicant.coloring import potts_graph as PG
@@ -39,6 +41,25 @@ def _planted(module, key, value, fn):
     finally:
         reg[key] = old
         assert module._HOOKS is reg and reg[key] is old
+
+
+def _swapped(module, name, value, fn):
+    """Run fn with module.<name> replaced by value, restored in finally with an identity assert."""
+    old = getattr(module, name)
+    setattr(module, name, value)
+    try:
+        return fn()
+    finally:
+        setattr(module, name, old)
+        assert getattr(module, name) is old
+
+
+def _refusal(fn):
+    try:
+        fn()
+    except Refusal as r:
+        return r
+    raise AssertionError("expected a Refusal")
 
 
 def _imports(src):
@@ -168,14 +189,21 @@ def test_coloring_annealed_and_ks():
 
 @slow
 def test_coloring_bp_kesten_stigum_on_graphs():
-    """Damped BP (damping 1/2: the uniform mode of the parallel iteration, eigenvalue -c/(q - 1), is tamed, the
-    bulk c~ lambda^2 of Eq. (6.23) is not) on sampled ER graphs at beta = oo, q = 3: back to chi = 1/q at
-    c = 3 < c_KS = 4 on every seed; no convergence at c = 5 on any seed (N = 2000)."""
+    """Damped BP (the default damping clears the uniform-mode bound of potts_graph.uniform_mode_damping: the mode
+    -c/(q - 1) of the parallel iteration is tamed, the bulk c~ lambda^2 of Eq. (6.23) is not) on sampled ER graphs at
+    beta = oo, N = 2000: q = 3 back to chi = 1/q at c = 3 < c_KS = 4, no convergence at c = 5; q = 5 converges at
+    c = 14 < c_KS = 16 and not at c = 18, while damping 1/2 at c = 14 fails and is labelled undetermined."""
     for s in (0, 1):
-        ok, dev = PG.bp_convergence(3, 3.0, "inf", n=2000, seed=s)
-        assert ok and dev < 1e-8, (s, dev)
-        ok, dev = PG.bp_convergence(3, 5.0, "inf", n=2000, seed=s)
-        assert not ok and dev > 0.1, (s, dev)
+        r = PG.bp_convergence(3, 3.0, "inf", n=2000, seed=s)
+        assert r.converged and r.max_deviation < 1e-8 and r.status == "determined", (s, r)
+        r = PG.bp_convergence(3, 5.0, "inf", n=2000, seed=s)
+        assert not r.converged and r.max_deviation > 0.1 and r.status == "determined", (s, r)
+    r = PG.bp_convergence(5, 14.0, "inf", n=2000, seed=0)                # q = 5 below c_KS = 16: converges
+    assert r.converged and r.max_deviation < 1e-8 and r.status == "determined", r
+    r = PG.bp_convergence(5, 14.0, "inf", n=2000, seed=0, damping=0.5)   # the uniform mode, not KS: labelled
+    assert not r.converged and r.status == "undetermined", r
+    r = PG.bp_convergence(5, 18.0, "inf", n=2000, seed=0)                # above c_KS
+    assert not r.converged and r.status == "determined", r
     v = catalog()["coloring"].run("cavity", q=3, c=5, N=1500, seeds=[0, 1])
     assert v["bp_converged_fraction"] == 0.0
 
@@ -196,3 +224,39 @@ def test_potts_population_on_er_graphs():
     v = e.run("cavity", beta="-0.3", **kw)
     assert v["pd_status"] == "converged" and abs(v["b0_pd_planted"] - 1 / 3) < 1e-3, v
     assert abs(v["phi_pd_planted"] - v["phi_para"]) < 0.01 and abs(v["phi_random_bp"] - v["phi_para"]) < 0.01, v
+
+
+def test_potts_coloring_fix_round_1():
+    """Review fixes: (1) the KS damping bound: the synchronous uniform mode -c theta/(q - theta) is inside (-1, 1)
+    after damping only above 1 - 2(q - 1)/(q - 1 + c) (beta = oo); the default damping clears it, and a damping of
+    1/2 at q = 5, c = 14 < c_KS = 16 is labelled undetermined (its non-convergence is not the KS signal); (2) loopy-
+    graph Bethe values carry the "approximation" label into their finality notes; (3) potts_bethe at an
+    antiferromagnetic beta on a d-regular graph (no stable root of the ansatz) reports phase undetermined with the
+    reason, no phi; (4) coloring refuses a non-finite or non-positive c; (5) potts_transitions: a failing saddle-node
+    audit and a ferro root missing inside the bracket give undetermined with the reason, never a crash."""
+    for q, c in ((3, 3.0), (3, 5.0), (5, 14.0), (5, 18.0), (10, 70.0)):
+        d_min, d = PG.uniform_mode_damping(q, c, "inf")
+        assert d_min >= 1 - 2 * (q - 1) / (q - 1 + c) - 1e-12 and d > d_min, (q, c, d_min, d)
+        assert abs((1 - d) * (-c / (q - 1)) + d) < 1, (q, c, d)
+    assert PG.uniform_mode_damping(5, 14, "inf")[0] > 0.5                    # 1/2 does not tame it at q = 5
+    run = PG.bp_convergence(5, 14, "inf", n=200, seed=0, iters=50, damping=0.5)
+    assert run.status == "undetermined" and "says nothing" in run.note, run
+    res = compose(catalog()["coloring"].spec, "cavity").run(q=5, c=14, N=200, seeds=[0], iters=50, damping="1/2")
+    assert "UNDETERMINED" in res.finality["bp_converged_fraction"].note
+    res = compose(catalog()["potts_bethe"].spec, "cavity").run(q=3, d=5, beta="-7/10", N=60, seeds=[0, 1], iters=500)
+    for k in ("phi_planted_bp", "phi_random_bp"):
+        assert "approximation" in res.finality[k].note, res.finality[k]
+    v = catalog()["potts_bethe"].run("cavity", q=3, d=6, beta=5)
+    assert v["phase"] == "undetermined" and "no stable root" in v["phase_note"] and "phi" not in v, v
+    for c in ("inf", 0, "-1"):
+        assert _refusal(lambda c=c: catalog()["coloring"].run("cavity", q=3, c=c)).reason == "precondition:c"
+    bad_fsolve = lambda fn, x0, **kw: np.array([0.5, 7.0])
+    t = _swapped(PB, "fsolve", bad_fsolve, lambda: PB.potts_transitions(3, 5))
+    assert t.status == "undetermined" and t.beta_s is None and "audit" in t.note, t
+    real, calls = PB._ferro, []
+
+    def gappy(q, d, b):                  # the 62 calls of the beta_s bisection see the real roots, brentq a gap
+        calls.append(b)
+        return None if len(calls) > 62 and b < -0.67 else real(q, d, b)
+    t = _swapped(PB, "_ferro", gappy, lambda: PB.potts_transitions(3, 5))
+    assert t.status == "undetermined" and t.beta_c is None and "not connected" in t.note, t

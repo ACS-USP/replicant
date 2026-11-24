@@ -9,7 +9,9 @@ Run parameters:
                         beta (default -0.66), pop, sweeps (poisson: the population, default 2000 x 20),
                         N, seeds (BP on sampled graphs from the planted and a random start), iters
   coloring (cavity)     q (default 3), c (ER mean degree, default 3), beta (> 0 or inf, default inf),
-                        N, seeds, iters, damping (BP on sampled ER graphs from random messages: the KS test)
+                        N, seeds, iters, damping (BP on sampled ER graphs from random messages: the KS test; damping
+                        default chosen above the synchronous uniform-mode bound, coloring/potts_graph.py; a given
+                        damping at or below it labels the fraction undetermined)
 Closed forms and scalar roots are floats (physics-level); finite-N BP and population dynamics are statistical over
 named seeds (never final); a first-order point needs both starts converged, otherwise it is undetermined.
 """
@@ -36,10 +38,14 @@ def _phys(where, note):
     return Stability("not-computed", "rs", f"{KZ}, {where}", note)
 
 
-def _stat(status_key, where):
+def _stat(status_key, where, label_key=None):
+    """Finality of a statistical value; with label_key, the run's Bethe labels (factor.bp: exact on a tree factor
+    graph, an approximation on a loopy one) go into the note."""
     def f(v):
         und = v.get(status_key) not in (None, "converged", "determined")
+        lab = "; ".join(v.get(label_key, ())) if label_key else ""
         return Stability("not-computed", "finite-N", f"{KZ}, {where}", "statistical over named seeds: NOT final"
+                         + (f"; Bethe free entropy on sampled graphs: {lab}" if lab else "")
                          + (f"; UNDETERMINED: {v.get(status_key + '_note', '')}" if und else ""))
     return f
 
@@ -76,6 +82,13 @@ def _pb_ferro(p):
     q, beta = p.get("q", 3), p.get("beta", "-0.66")
     fps = PB.potts_ferro_fixed_points(q, d, beta)
     stable = [f for f in fps if f.stable]
+    if not stable:
+        sl = ", ".join(f"{f.kind} a = {f.a:.6g} (slope {f.slope:.4g})" for f in fps)
+        return Out({"phase": "undetermined", "phase_note": f"no stable root of Eq. (6.11) ({sl}): the homogeneous "
+                    "ansatz (6.9) has no stable fixed point here (antiferromagnetic beta on a d-regular graph: the "
+                    "paramagnet is unstable to a mode outside the ansatz); phi and a_eq are not reported",
+                    "fixed_points": [(f.kind, f.a, f.stable) for f in fps]},
+                   "no stable fixed point of the homogeneous ansatz: phase undetermined")
     best = max(stable, key=lambda f: f.phi)
     v = {"phi": best.phi, "a_eq": best.a, "phase": best.kind, "fixed_points": [(f.kind, f.a, f.stable) for f in fps]}
     ferro = [f for f in stable if f.kind == "ferromagnetic"]
@@ -129,7 +142,8 @@ def _pb_graph(p):
     runs = [PG.two_starts(PG.potts_graph(q, n, _sample_edges(p, n, np.random.default_rng(s)), beta),
                           iters=p.get("iters", 3000), seed=s + 1) for s in seeds]
     bad = [f"seed {s}: {r.note}" for s, r in zip(seeds, runs) if r.phase == "undetermined"]
-    v = {"N": n, "seeds": list(seeds), "phases_bp": [r.phase for r in runs],
+    labels = sorted({r.label_planted for r in runs} | {r.label_random for r in runs})
+    v = {"N": n, "seeds": list(seeds), "phases_bp": [r.phase for r in runs], "bethe_labels_bp": labels,
          "bp_status": "undetermined" if bad else "converged", "bp_status_note": "; ".join(bad)}
     err = {}
     for k in ("phi_planted", "phi_random"):
@@ -166,10 +180,10 @@ def potts_bethe():
            "beta_stab_ising": _phys("Sec. 4.2; Eq. (6.13)", "beta_Ising = -beta_Potts/2 at q = 2"),
            "beta_s": fo, "beta_c": fo,
            **{k: _stat("pd_status", "Sec. 4.3.2") for k in ("phi_pd_planted", "phi_pd_random", "b0_pd_planted")},
-           **{k: _stat("bp_status", "Sec. 5.2") for k in ("phi_planted_bp", "phi_random_bp")}}
+           **{k: _stat("bp_status", "Sec. 5.2", "bethe_labels_bp") for k in ("phi_planted_bp", "phi_random_bp")}}
     meta = ("graph", "q", "c_tilde", "phase", "fixed_points", "transition_order", "transition_status",
             "transition_status_note", "pd_status", "pd_status_note", "pd_phase", "N", "seeds", "phases_bp", "bp_status",
-            "bp_status_note")
+            "bp_status_note", "bethe_labels_bp", "phase_note")
     return entry("potts_bethe", ModelSpec("potts_bethe", "potts", "none", constraint="sparse random graph"), KZ,
                  {"cavity": steps}, refs, {"cavity": "BP / cavity fixed points (physics-level); finite-N BP and "
                                            "population dynamics statistical"},
@@ -180,8 +194,19 @@ def potts_bethe():
 
 
 # ---- coloring --------------------------------------------------------------------------------------------
+def _mean_degree(p):
+    c = p.get("c", 3)
+    try:
+        v = float(PB.beta_value(c)) if not isinstance(c, bool) else math.nan
+    except Refusal:
+        v = math.nan
+    if not (math.isfinite(v) and v > 0):
+        raise Refusal("precondition:c", f"c = {c!r}: the ER mean degree must be a finite number > 0")
+    return v
+
+
 def _col_para(p):
-    q, c, beta = p.get("q", 3), float(PB.beta_value(p.get("c", 3))), p.get("beta", "inf")
+    q, c, beta = p.get("q", 3), _mean_degree(p), p.get("beta", "inf")
     if not PB.beta_value(beta) > 0:
         raise Refusal("precondition:beta", "coloring is the antiferromagnet: beta > 0 (or inf); beta < 0 is potts_bethe")
     pa = PB.potts_paramagnetic(q, c, beta)
@@ -197,14 +222,16 @@ def _col_thr(p):
 
 
 def _col_bp(p):
-    q, c, beta, n = p.get("q", 3), p.get("c", 3), p.get("beta", "inf"), p["N"]
+    q, c, beta, n = p.get("q", 3), _mean_degree(p), p.get("beta", "inf"), p["N"]
     seeds = _checks.seeds(p.get("seeds", _SEEDS))
-    runs = [PG.bp_convergence(q, c, beta, n=n, seed=s, iters=p.get("iters", 2000), damping=p.get("damping", 0.5))
+    runs = [PG.bp_convergence(q, c, beta, n=n, seed=s, iters=p.get("iters", 2000), damping=p.get("damping"))
             for s in seeds]
-    frac = sum(r[0] for r in runs) / len(runs)
-    return Out({"bp_converged_fraction": frac, "bp_max_deviation": [r[1] for r in runs], "N": n, "seeds": list(seeds)},
-               f"damped BP on {len(seeds)} sampled ER graphs (N = {n}): converged fraction {frac}",
-               statistical=("bp_converged_fraction",))
+    frac = sum(r.converged for r in runs) / len(runs)
+    return Out({"bp_converged_fraction": frac, "bp_max_deviation": [r.max_deviation for r in runs], "N": n,
+                "seeds": list(seeds), "bp_damping": runs[0].damping, "bp_status": runs[0].status,
+                "bp_status_note": runs[0].note},
+               f"damped BP (damping {runs[0].damping:.4g}) on {len(seeds)} sampled ER graphs (N = {n}): converged "
+               f"fraction {frac} ({runs[0].status})", statistical=("bp_converged_fraction",))
 
 
 def coloring():
@@ -221,14 +248,13 @@ def coloring():
            "e_at_s_max": _phys("Sec. 6.4", "c/(2q): a random coloring violates each edge w.p. 1/q"),
            "c_ks": _phys("Sec. 6.6, Eqs. (6.18)-(6.24)", "linear (variance) stability of chi = 1/q: physics-level"),
            "c_ks_inf": _phys("Eq. (6.24)", "(q - 1)^2 at beta = oo"),
-           "bp_converged_fraction": Stability("not-computed", "finite-N", f"{KZ}, Sec. 6.6",
-                                              "statistical over named seeds: NOT final")}
+           "bp_converged_fraction": _stat("bp_status", "Sec. 6.6")}
     return entry("coloring", ModelSpec("coloring", "potts", "none", constraint="antiferromagnetic, ER graph"), KZ,
                  {"cavity": steps}, refs, {"cavity": "paramagnetic BP / annealed closed forms (physics-level); "
                                            "finite-N BP statistical"},
                  "graph q-coloring (the Potts antiferromagnet) on ER graphs: paramagnetic entropy, annealed threshold "
                  "c_ann, Kesten-Stigum c_KS", default_route="cavity", finality=fin,
-                 meta=("q", "bp_max_deviation", "N", "seeds"),
+                 meta=("q", "bp_max_deviation", "N", "seeds", "bp_damping", "bp_status", "bp_status_note"),
                  parameters={"cavity": ("q", "c", "beta", "N", "seeds", "iters", "damping")})
 
 

@@ -80,7 +80,8 @@ def _pd(p):
 
 
 def rfim_graph(n, c, graph, beta, j, law, seed, iters=3000):
-    """(m, phi, converged) of BP on one sampled graph with fields from `law`, from the planted (+1) start."""
+    """(m, phi, converged, label) of BP on one sampled graph with fields from `law`, from the planted (+1) start;
+    label is factor.bp's Bethe label (an approximation on a loopy graph)."""
     rng = np.random.default_rng(seed)
     e = FG.random_regular_edges(n, c, rng) if graph == "regular" else FG.erdos_renyi_edges(n, c, rng)
     s = np.array([1.0, -1.0])
@@ -88,7 +89,8 @@ def rfim_graph(n, c, graph, beta, j, law, seed, iters=3000):
     g = FG.pairwise(n, 2, e, np.exp(beta * j * np.outer(s, s)), np.exp(beta * np.outer(h, s)))
     st = BP.bp(g, iters=iters, init=("planted", np.zeros(n, dtype=int)))
     b = BP.marginals(g, st)
-    return float(np.mean(b[:, 0] - b[:, 1])), BP.bethe_free_entropy(g, st).phi, st.converged
+    be = BP.bethe_free_entropy(g, st)
+    return float(np.mean(b[:, 0] - b[:, 1])), be.phi, st.converged, be.label
 
 
 def _bp(p):
@@ -99,6 +101,7 @@ def _bp(p):
     bad = [s for s, r in zip(seeds, runs) if not r[2]]
     bm, bp = student_band([r[0] for r in runs]), student_band([r[1] for r in runs])
     return Out({"m_bp": bm.mean, "phi_bp": bp.mean, "N": n, "bp_status": "undetermined" if bad else "converged",
+                "bethe_labels_bp": sorted({r[3] for r in runs}),
                 "bp_status_note": f"BP not converged on seeds {bad}" if bad else ""},
                f"BP on {len(seeds)} sampled graphs (N = {n}): m = {bm.mean:.6g}, Phi = {bp.mean:.8g}",
                errors={"m_bp": bm.stderr, "phi_bp": bp.stderr}, statistical=("m_bp", "phi_bp"))
@@ -112,10 +115,12 @@ def cavity_steps():
                   skip="no beta or no N given")]
 
 
-def _stat(key, where):
+def _stat(key, where, label_key=None):
     def f(v):
         und = v.get(key) not in (None, "converged")
+        lab = "; ".join(v.get(label_key, ())) if label_key else ""
         return Stability("not-computed", "finite-N", f"{KZ}, {where}", "statistical over named seeds: NOT final"
+                         + (f"; Bethe free entropy on sampled graphs: {lab}" if lab else "")
                          + (f"; UNDETERMINED: {v.get(key + '_note', '')}" if und else ""))
     return f
 
@@ -123,7 +128,7 @@ def _stat(key, where):
 FINALITY = {"beta_c_zero_field": Stability("not-computed", "rs", f"{KZ}, Sec. 4.2; Ex. 4.2.1",
                                            "zero-field linear stability of the cavity recursion (physics-level)"),
             "m_cavity": _stat("pd_status", "Sec. 4.3.2"), "phi_cavity": _stat("pd_status", "Sec. 4.3.2"),
-            "m_bp": _stat("bp_status", "Sec. 4.2.1"), "phi_bp": _stat("bp_status", "Sec. 4.2.1")}
-META = ("graph", "c", "pd_status", "pd_status_note", "bp_status", "bp_status_note")
+            "m_bp": _stat("bp_status", "Sec. 4.2.1"), "phi_bp": _stat("bp_status", "Sec. 4.2.1", "bethe_labels_bp")}
+META = ("graph", "c", "pd_status", "pd_status_note", "bp_status", "bp_status_note", "bethe_labels_bp")
 
 __all__ = ["FINALITY", "META", "PARAMS", "cavity_steps", "rfim_graph"]
