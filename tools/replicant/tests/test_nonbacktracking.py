@@ -91,23 +91,59 @@ def test_nonbacktracking_detects_above_ks():
         bad = NB.nonbacktracking_spectrum(SQ.sbm_q_sample(1000, 2, 6, 0.5, 0), 4).eigenvalues[0]
     finally:
         NB._HOOKS["backtrack"] = saved
+    assert NB._HOOKS["backtrack"] is saved
     assert abs(bad - 3.25) > b1.half_width + 0.15, (bad, b1)
+
+
+# Finite-N margins of the slow test, measured on seeds 100-109 at N = 20000 (c_in = 5, c_out = 1), which the test does
+# not use: mu1 - E[d(d-1)]/E[d] of the same graph = -0.0011 +- 0.0069 (99%); mu2 - 2 = -0.0151 +- 0.0242; |mu3| -
+# sqrt(E[d(d-1)]/E[d]) = +0.0127 +- 0.0038.  Each margin is |mean| + half-width of that calibration.
+M1, M2, M3 = 0.008, 0.040, 0.017
+
+
+def _per_graph(N, c_in, c_out, seeds):
+    """(mu1, `second`, |mu3|, E[d(d-1)]/E[d], spectral overlap) per seed, q = 2."""
+    out = []
+    for s in seeds:
+        g = SQ.sbm_q_sample(N, 2, c_in, c_out, s)
+        d = np.bincount(g.edges.ravel(), minlength=g.N)
+        sp = NB.nonbacktracking_spectrum(g, 6)
+        v, sec = sp.eigenvalues, _second(sp.eigenvalues)
+        third = next(abs(x) for x in v[1:] if abs(abs(x) - sec) > 1e-9)
+        out.append((v[0].real, sec, third, float((d * (d - 1)).sum() / d.sum()), NB.cluster(g, 2, sp, seed=s).overlap))
+    return [np.array(x) for x in zip(*out)]
 
 
 @slow
 def test_nonbacktracking_bank_values():
-    """KMMNSZZ Fig. 2 parameters (c_in = 5, c_out = 1, c = 3) at N = 20000, seeds 0-5: the leading eigenvalue is in the
-    99% band of the bank 3 plus a finite-N systematic of 0.01 (the statement is N -> oo; on each graph the
-    leading eigenvalue sits -0.004 to 0.009 below the graph's own E[d(d - 1)]/E[d], seeds 0-3, build) and the
-    second real eigenvalue in that of the bank 2 plus a finite-N systematic of 0.05 (the second eigenvalue sits ~
-    0.03-0.05 below mu_c at N = 4000-20000, build); the spectral overlap band is above 0.3. q = 3 (c_in = 9,
-    c_out = 1.5, mu_c = 2.5 > sqrt(4) = 2): two real eigenvalues near mu_c."""
+    """KMMNSZZ Fig. 2 parameters (c_in = 5, c_out = 1, c = 3) at N = 20000, seeds 0-5, against per-graph predictors
+    and margins calibrated on seeds 100-109 (M1, M2, M3 above).  Leading eigenvalue: the band of mu1 - E[d(d-1)]/E[d]
+    (the graph's own non-backtracking branching number) contains 0 within M1, and the band of E[d(d-1)]/E[d] (no
+    margin: a sample mean of a Poisson(3) law) contains the bank 3.  Second: the band of the second real eigenvalue
+    contains the bank 2 within M2.  Bulk: the band of |mu3| - sqrt(E[d(d-1)]/E[d]) contains 0 within M3.  Spectral
+    overlap band above 0.3.  Positive controls: the adjacency-matrix prediction mu + (c - 1)/mu = 3 (KMMNSZZ Eq. (2)
+    form) for the second eigenvalue lies outside its band + M2, and B' with backtracking (_HOOKS["backtrack"] = 0)
+    moves mu1 off the per-graph predictor by more than the band + M1.  q = 3 (c_in = 9, c_out = 1.5, mu_c = 2.5 >
+    sqrt(4) = 2): two real eigenvalues near mu_c."""
     seeds = tuple(range(6))
-    top, sec, edge, ov = _stats(20000, 2, 5, 1, seeds, k=6)
-    b1, b2 = student_band(top), student_band(sec)
-    assert abs(b1.mean - float(BANK["nb_leading_cin5_cout1"].value)) <= b1.half_width + 0.01, b1
-    assert abs(b2.mean - float(BANK["nb_second_cin5_cout1"].value)) <= b2.half_width + 0.05, b2
+    top, sec, third, ratio, ov = _per_graph(20000, 5, 1, seeds)
+    b1, br = student_band(top - ratio), student_band(ratio)
+    b2, b3 = student_band(sec), student_band(third - np.sqrt(ratio))
+    assert abs(b1.mean) <= b1.half_width + M1, b1
+    assert abs(br.mean - float(BANK["nb_leading_cin5_cout1"].value)) <= br.half_width, br
+    assert abs(b2.mean - float(BANK["nb_second_cin5_cout1"].value)) <= b2.half_width + M2, b2
+    assert abs(b3.mean) <= b3.half_width + M3, b3
     assert student_band(ov).mean - student_band(ov).half_width > 0.3, ov
+    assert abs(b2.mean - (2 + (3 - 1) / 2)) > b2.half_width + M2
+    g0 = SQ.sbm_q_sample(20000, 2, 5, 1, 0)
+    saved = NB._HOOKS["backtrack"]
+    try:
+        NB._HOOKS["backtrack"] = 0.0
+        bad = NB.nonbacktracking_spectrum(g0, 6).eigenvalues[0]
+    finally:
+        NB._HOOKS["backtrack"] = saved
+    assert NB._HOOKS["backtrack"] is saved
+    assert abs(abs(bad) - ratio[0]) > b1.half_width + M1, (bad, ratio[0])
     g = SQ.sbm_q_sample(20000, 3, 9, 1.5, 0)
     cl = NB.spectral_clustering(g, 3, seed=0)
     assert cl.separated and np.all(np.abs(cl.informative.real - 2.5) < 0.2), cl.informative

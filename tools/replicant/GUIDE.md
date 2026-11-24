@@ -1668,7 +1668,7 @@ banked in `reference/perceptron.json` as independent targets. Honest limits:
   (default tier): time averages at N = 8 equal the exact spectrum means within 99% bands at four betas,
   and the planted acceptance rule (x0.8) and the reversed exchange sign are detected at every beta.
 
-ACCEPTANCE GATES: `python3 tools/replicant/selftest.py` (default tier: 781 tests after K2, 790 after K3, 802 after K4, about 30 s on a laptop at the 662 of the final fix wave (measured 30.2 s wall, cold, on a clean export); the margin-law, pinned-direction, negative-margin RSB and dense-memory tests added since were not re-timed cold; also `python3
+ACCEPTANCE GATES: `python3 tools/replicant/selftest.py` (default tier: 781 tests after K2, 790 after K3, 803 after K4, about 30 s on a laptop at the 662 of the final fix wave (measured 30.2 s wall, cold, on a clean export); the margin-law, pinned-direction, negative-margin RSB and dense-memory tests added since were not re-timed cold; also `python3
 run_selftests.py replicant`, which runs the `python3` on PATH; run both from the activated project venv,
 which has python-flint) covers the core and
 refusal paths, the symbolic derivation against independent expressions, level agreement (a)=(b) for
@@ -2072,10 +2072,14 @@ KNOWN HAZARDS:
   (both sources). Finite N = 10^4 BP pair (slow): c = 12 both factorized; 13 planted informative with Delta Phi < 0,
   random factorized; 14 the same with Delta Phi > 0; 17 both informative. EM (BP-learning, Eqs. (10.27)-(10.28))
   from the non-backtracking spectral start recovers (8, 2) at q = 2 and (12, 2) at q = 3 (N = 3000, seeds 0-3); a
-  wrong group count is detected by name by `sbm_em_group_count` (DKMZ's rule with a gain threshold max(2e-3,
-  4k/N)); an over-specified q leaves EM drifting along a flat direction (undetermined). Non-backtracking: B' of
-  KMMNSZZ Eq. (9) matches the full B on a small graph; at N = 20000, (5, 1): leading eigenvalue 2.981 +- 0.015
-  (bank 3, systematic 0.01 stated), second real eigenvalue 1.985 +- 0.040 (bank 2, systematic 0.05 stated), spectral overlap 0.435 +- 0.027. Not implemented: unequal group sizes in the
+  wrong group count is detected by name by `sbm_em_group_count` (DKMZ's rule with the BIC threshold (k + 1) ln N /
+  (2N); 4/4 seeds each way at N = 1500); an over-specified q leaves EM drifting along a flat direction (status
+  `stationary` once Phi is flat to 1e-6 over 5 steps; a decision resting on a run that is neither converged nor
+  stationary is undetermined). Non-backtracking: B' of KMMNSZZ Eq. (9) matches the full B on a small graph; at N =
+  20000, (5, 1), seeds 0-5, against per-graph predictors with margins calibrated on seeds 100-109: mu1 minus the
+  graph's E[d(d-1)]/E[d] contains 0, E[d(d-1)]/E[d] contains the bank 3, the second real eigenvalue 1.985 +- 0.040
+  contains the bank 2 within 0.040, |mu3| - sqrt(E[d(d-1)]/E[d]) contains 0 within 0.017; spectral overlap 0.435 +-
+  0.027. Not implemented: unequal group sizes in the
   catalog (the modules accept them), the q = 10, c = 10 assortative case of Fig. 10.4.3(b), a Gibbs sampler, the
   large-q asymptotics c_d ~ q log q, c_c ~ 2q log q (printed as trends only).
 - Ridge regression (E7, `learning/`, entry `ridge`). Convention HMRT (Hastie-Montanari-Rosset-

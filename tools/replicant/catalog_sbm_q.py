@@ -67,6 +67,10 @@ def _check(p):
         raise Refusal("precondition:known-parameter", f"init = {init!r}: accepted values are planted and random")
     if not (isinstance(learn, bool) or learn in ("true", "false")):
         raise Refusal("precondition:known-parameter", f"learn = {learn!r}: accepted values are true and false")
+    unread = [k for k in ("init", "damping") if learn in (True, "true") and p.get(k) is not None]
+    if unread:
+        raise Refusal("precondition:known-parameter", f"{', '.join(unread)}: not read with learn=true (EM starts BP "
+                      "from random messages at damping 1/2, inference/sbm_learn.py)")
     return q
 
 

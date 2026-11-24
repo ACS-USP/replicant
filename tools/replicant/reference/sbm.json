@@ -33,12 +33,12 @@
     "value": "3",
     "tol": "1e-20",
     "cite": "Krzakala, Moore, Mossel, Neeman, Sly, Zdeborova & Zhang, 'Spectral redemption in clustering sparse networks', PNAS 110, 20935 (2013), arXiv:1306.5550 (arXiv PDF fetched and read during K4), caption of Fig. 2: 'The leading eigenvalue is at c = 3' for the non-backtracking matrix B of a two-group block model with n = 4000, c_in = 5, c_out = 1 (the parameters of Fig. 1); Sec. II: the leading eigenvalue of B is the average degree c = (c_in + c_out)/2 as n -> oo (argued, not proved there). tol: an exact N -> oo statement",
-    "independent_route": "the leading eigenvalue of B' = [[0, D - 1], [-1, A]] (Eq. (9), ARPACK) on sampled graphs (inference/nonbacktracking.py) over named seeds: a 99% Student-t band at N = 20000 (slow test); B' against the full 2M x 2M matrix B on a small graph (Ihara-Bass, default tier)"
+    "independent_route": "the leading eigenvalue of B' = [[0, D - 1], [-1, A]] (Eq. (9), ARPACK) on sampled graphs (inference/nonbacktracking.py) over named seeds: a 99% Student-t band at N = 20000 (slow test: mu1 against the graph's own E[d(d-1)]/E[d], whose band contains 3, margin calibrated on seeds 100-109); B' against the full 2M x 2M matrix B on a small graph (Ihara-Bass, default tier)"
   },
   "nb_second_cin5_cout1": {
     "value": "2",
     "tol": "1e-20",
     "cite": "Krzakala, Moore, Mossel, Neeman, Sly, Zdeborova & Zhang, 'Spectral redemption in clustering sparse networks', PNAS 110, 20935 (2013), arXiv:1306.5550 (arXiv PDF fetched and read during K4), caption of Fig. 2: 'the second eigenvalue is close to mu_c = (c_in - c_out)/2 = 2' (n = 4000, c_in = 5, c_out = 1), Eq. (3); Sec. IV, Eq. (11)-(12): mu_c = (c_in - c_out)/q in general. tol: an exact N -> oo statement; the finite-N comparison adds a stated systematic",
-    "independent_route": "the first real eigenvalue of B' after the leading one on sampled graphs (inference/nonbacktracking.py) over named seeds at N = 20000 (slow test), 99% Student-t band plus the finite-N systematic stated there"
+    "independent_route": "the first real eigenvalue of B' after the leading one on sampled graphs (inference/nonbacktracking.py) over named seeds at N = 20000 (slow test), 99% Student-t band plus a finite-N margin 0.040 calibrated on seeds 100-109, which the test does not use"
   }
 }

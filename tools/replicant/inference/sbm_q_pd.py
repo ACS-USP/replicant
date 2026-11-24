@@ -16,8 +16,14 @@ with ln Z^i = ln sum_t n_t e^{-h_t} prod_k (C chi_k)_t and Z^{ij} = chi_i . C ch
 factorized point Phi = -(c/2)(1 - ln c) (KZ Eq. (10.31)), the reference of Delta Phi.  The estimator averages
 ln Z^i - (d ln c - c) and ln (Z^{ij} / c), whose factorized values are 0 (a control variate: the degree noise
 d ln c, standard deviation sqrt(c) ln c per member, cancels), and adds Phi_para back.
-Starts: "planted" (every member one-hot on the planted colour, KZ Eq. (10.38)) and "random" (independent uniform
-points of the simplex, uncorrelated with the planted colour).
+Starts: "planted" (every member one-hot on the planted colour, KZ Eq. (10.38)), "random" (independent uniform
+points of the simplex, uncorrelated with the planted colour) and ("tilt", eps) (every member n + eps (e_0 - n),
+m = eps).
+Linear growth near the paramagnet (derived here, the planted-measure form of KZ Eqs. (10.33)-(10.36)): a child of
+colour t with deviation m (e_t - n) q/(q - 1) contributes T (e_t - n) = lambda_2 (e_t - n) to its parent of colour 0,
+whose projection on the planted direction averages to sum_t p_t (delta_{t0} - 1/q) = (c_in - c)/(q c) =
+lambda_2 (q - 1)/q over the child colour law p_t = c_{0t} n_t / c; with Poisson(c) children
+m' = c lambda_2^2 m, so one sweep from ("tilt", eps) multiplies m by c lambda_2^2 (= 1 at c_l).
 Thresholds (planted_informative, sbm_q_transitions): c_d is where the planted start stops decaying to the paramagnet
 (bisection on m after `sweeps`; finite sweeps bias c_d low near the spinodal, the note says by how much the last
 bracket moved); c_c is the zero of Delta Phi = Phi_planted - Phi_para on the informative branch (bisection); c_l is the
@@ -89,11 +95,14 @@ def population(q, c_in, c, *, init, pop, sweeps, measure, seed):
     if init == "planted":
         P = np.zeros((pop, q))
         P[:, 0] = 1.0
+    elif isinstance(init, tuple) and len(init) == 2 and init[0] == "tilt" and 0 < float(init[1]) < 1:
+        P = np.full((pop, q), (1 - float(init[1])) / q)
+        P[:, 0] += float(init[1])                 # n + eps (e_0 - n): planted magnetisation m = eps
     elif init == "random":
         x = -np.log(rng.random((pop, q)))
         P = x / x.sum(1, keepdims=True)
     else:
-        raise Refusal("precondition:init", f"init = {init!r}: 'planted' or 'random'")
+        raise Refusal("precondition:init", f"init = {init!r}: 'planted', 'random' or ('tilt', eps), 0 < eps < 1")
     ms, phis, bad = [], [], 0
     for s in range(sweeps):
         d = rng.poisson(_HOOKS["degree"] * c, pop)

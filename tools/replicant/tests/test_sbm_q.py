@@ -14,6 +14,7 @@ import mpmath as mp
 import numpy as np
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+from replicant.amp._stats import student_band
 from replicant.catalog import catalog, check_ref
 from replicant.compose import compose
 from replicant.core import Refusal
@@ -159,29 +160,50 @@ def test_bethe_at_the_factorized_point():
 
 
 def test_q5_first_order_thresholds():
-    """q = 5, c_in = 0 (KZ Fig. 10.4.3, DKMZ Fig. 3: c_d = 12.84, c_c = 13.23, c_l = 16).  Default tier:
-    c_l computed by the KS bisection equals the bank (16, exact); planted-measure population dynamics (1000
-    members, seed 0) brackets the other two: the planted start decays to the paramagnet at c = 12.3 and stays
-    informative at 13.0 (so 12.3 < c_d < 13.0), Delta Phi > 0 at 14.0 by more than 4 stderr (c_c < 14) while the
-    random start decays there (phase III: the planted / random pair disagrees below c_l).  The banked c_d, c_c lie
-    inside these brackets.  Planted error: the mean degree read as c_out (_HOOKS["degree"] = 0.8) makes the
-    planted start decay at 13.0.  The located values are in the slow test."""
+    """q = 5, c_in = 0 (KZ Fig. 10.4.3, DKMZ Fig. 3: c_d = 12.84, c_c = 13.23, c_l = 16).  Default tier, every
+    number computed:
+    - c_l, two routes: the KS bisection (sbm_q_ks_degree) equals the bank 16; and population dynamics: one sweep
+      from ("tilt", 1e-4) multiplies the planted magnetisation by c lambda_2^2 (derived in sbm_q_pd.py; c / 16
+      here), measured over 6 independent named seeds (5000 members each) at c = 12 and 17; each band contains
+      c / 16, and the root of the line through the two measured rates is in the propagated 99% band of 16.
+    - c_d: the planted start decays to the paramagnet at c = 12.3 and stays informative at 13.0 (1000 members):
+      12.3 < c_d < 13.0.
+    - c_c: Delta Phi of the planted branch at 14.0 is positive with a 99% Student-t band over 4 independent seeds
+      (each the mean of 20 measured sweeps; seeds independent, so the sweep autocorrelation does not enter), so
+      c_c < 14; and c_c > 12.3, because at 12.3 there is no informative branch (the planted start decays, Delta
+      Phi = 0) and c_c is a zero of Delta Phi on that branch, which first exists at c_d.
+    - the random start decays at 14 (phase III: the pair disagrees below c_l).
+    The banked c_d, c_c lie in these computed brackets.  Planted error: the mean degree read as c_out
+    (_HOOKS["degree"] = 0.8) makes the planted start decay at 13.0 and the growth rate at 17 fall to 0.85, outside
+    its band.  The located values are in the slow test."""
     c_l = SQ.sbm_q_ks_degree(5, 0)
     assert check(BANK["c_l_q5_cin0"], c_l, label="c_l").ok
-    run = lambda c, init, **kw: PD.population(5, 0, c, init=init, pop=1000, seed=0, **kw)
+    rate = lambda c: [PD.population(5, 0, c, init=("tilt", 1e-4), pop=5000, sweeps=1, measure=1, seed=s).m / 1e-4
+                      for s in range(6)]
+    r12, r17 = student_band(rate(12.0)), student_band(rate(17.0))
+    assert abs(r12.mean - 12 / 16) < r12.half_width and abs(r17.mean - 17 / 16) < r17.half_width, (r12, r17)
+    slope = (r17.mean - r12.mean) / 5
+    root = 12 + (1 - r12.mean) / slope
+    err = math.hypot(r12.half_width, r17.half_width) / slope * 2
+    assert abs(root - float(BANK["c_l_q5_cin0"].value)) < err, (root, err)
+    run = lambda c, init, seed=0, **kw: PD.population(5, 0, c, init=init, pop=1000, seed=seed, **kw)
     lo, mid = run(12.3, "planted", sweeps=100, measure=5), run(13.0, "planted", sweeps=100, measure=5)
-    hi, rnd = run(14.0, "planted", sweeps=80, measure=30), run(14.0, "random", sweeps=60, measure=5)
-    assert lo.m < 1e-3 < PD.INFORMATIVE < 0.5 < mid.m, (lo.m, mid.m)
-    assert hi.m > 0.5 and hi.phi - hi.phi_para > 4 * hi.phi_stderr > 0, (hi.phi - hi.phi_para, hi.phi_stderr)
-    assert abs(rnd.m) < 1e-3
-    assert 12.3 < float(BANK["c_d_q5_cin0"].value) < 13.0 < float(BANK["c_c_q5_cin0"].value) < 14.0 < c_l
+    assert lo.m < 1e-3 and abs(lo.phi - lo.phi_para) < 1e-9 and PD.INFORMATIVE < 0.5 < mid.m, (lo.m, mid.m)
+    hi = [run(14.0, "planted", seed=s, sweeps=60, measure=20) for s in range(4)]
+    bd = student_band([r.phi - r.phi_para for r in hi])
+    assert all(r.m > 0.5 for r in hi) and bd.mean - bd.half_width > 0, bd
+    assert abs(run(14.0, "random", sweeps=60, measure=5).m) < 1e-3
+    c_d, c_c = float(BANK["c_d_q5_cin0"].value), float(BANK["c_c_q5_cin0"].value)
+    assert 12.3 < c_d < 13.0 and 12.3 < c_c < 14.0
     saved = PD._HOOKS["degree"]
     try:
         PD._HOOKS["degree"] = 0.8
         bad = run(13.0, "planted", sweeps=100, measure=5)
+        bad_rate = student_band(rate(17.0))
     finally:
         PD._HOOKS["degree"] = saved
-    assert PD._HOOKS["degree"] is saved and bad.m < PD.INFORMATIVE
+    assert PD._HOOKS["degree"] is saved
+    assert bad.m < PD.INFORMATIVE and abs(bad_rate.mean - 17 / 16) > bad_rate.half_width, bad_rate
 
 
 @slow
@@ -203,6 +225,7 @@ def test_q5_thresholds_located():
         bad = PD.sbm_q_transitions(5, 0, seed=0, steps=3)
     finally:
         PD._HOOKS["degree"] = saved
+    assert PD._HOOKS["degree"] is saved
     assert bad.status == "undetermined" and bad.c_d is None, bad
 
 
@@ -258,6 +281,8 @@ def test_catalog_q_path_and_old_parameters():
                         ({**FIN, "learn": "maybe"}, "precondition:known-parameter"),
                         ({"q": 3, "c_in": "5", "c_out": "1", "seeds": (0, 1)}, "precondition:known-parameter"),
                         ({**FIN, "pop": 10}, "precondition:known-parameter"),
+                        ({**FIN, "learn": True, "init": "planted"}, "precondition:known-parameter"),
+                        ({**FIN, "learn": "true", "damping": 0.3}, "precondition:known-parameter"),
                         ({"q": 3}, "precondition:state-point"),
                         ({"q": 3, "c": 5, "c_in": 1}, "precondition:state-point"),
                         ({"q": 3, "c_in": "5", "N": 500}, "precondition:state-point"),

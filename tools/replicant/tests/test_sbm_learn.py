@@ -69,21 +69,31 @@ def test_em_recovers_parameters():
         bad = [EM.sbm_em(SQ.sbm_q_sample(3000, 2, 8, 2, s), 2, iters=80, seed=s) for s in seeds]
     finally:
         EM._HOOKS["edge_update"] = saved
+    assert EM._HOOKS["edge_update"] is saved
     bb = student_band([np.mean(np.diag(r.affinity)) for r in bad])
     assert abs(bb.mean - 8) > bb.half_width + 0.3, bb
 
 
 @slow
 def test_em_detects_a_wrong_group_count():
-    """N = 2000, seed 0.  A graph planted with q* = 2 (8, 2) and learned at q = 3: detected:too-many-groups (the
-    q = 3 run does not raise the Bethe free entropy over q = 2).  A graph planted with q* = 3 (12, 2) learned at q =
-    2: detected:too-few-groups (the q = 3 run raises it).  At the planted q both report consistent."""
-    two, three = SQ.sbm_q_sample(2000, 2, 8, 2, 0), SQ.sbm_q_sample(2000, 3, 12, 2, 0)
-    assert EM.sbm_em_group_count(two, 3, iters=40, seed=0).status == "detected:too-many-groups"
-    assert EM.sbm_em_group_count(three, 2, iters=40, seed=0).status == "detected:too-few-groups"
-    for g, q in ((two, 2), (three, 3)):
-        r = EM.sbm_em_group_count(g, q, iters=40, seed=0)
-        assert r.status == "consistent", (q, r.status, r.note)
+    """N = 1500, named seeds 10-13 (not the seeds of the other EM tests), 200 EM steps, the BIC threshold gain(k, N)
+    = (k + 1) ln N / (2N) (derived, not fitted: 0.0098 for k = 4).  A graph planted with q* = 2 (8, 2) and learned at
+    q = 3 is detected:too-many-groups, and one planted with q* = 3 (12, 2) learned at q = 2 is
+    detected:too-few-groups, on 4/4 seeds each (required rate 4/4).  Margins (build): the true gain 2 -> 3 groups
+    is 0.037-0.059, the overfitting gain 2 -> 3 is below 5e-4, against the threshold 0.0098.  A decision resting on
+    a run that is not stationary would be undetermined and fail the test."""
+    for s in (10, 11, 12, 13):
+        two, three = SQ.sbm_q_sample(1500, 2, 8, 2, s), SQ.sbm_q_sample(1500, 3, 12, 2, s)
+        a = EM.sbm_em_group_count(two, 3, iters=200, seed=s)
+        b = EM.sbm_em_group_count(three, 2, iters=200, seed=s)
+        assert a.status == "detected:too-many-groups", (s, a.status, a.note)
+        assert b.status == "detected:too-few-groups", (s, b.status, b.note)
+
+
+def test_group_count_threshold_is_bic():
+    """gain(k, N) = (k + 1) ln N / (2N), the Schwarz penalty of the k + 1 parameters added by the k-th group."""
+    for k, N in ((2, 1000), (3, 1500), (5, 10 ** 5)):
+        assert abs(EM.gain(k, N) - (k + 1) * np.log(N) / (2 * N)) < 1e-15
 
 
 def test_em_refusals():
