@@ -45,7 +45,9 @@ Results.  Result.rigor is "physics-level", except for a catalog route its entry 
 "certified" (CatalogEntry.rigor): there every physical value must carry its ball radius in errors,
 else the run is refused precondition:certified-radius; or "statistical" (the `sample` route of the
 percolation and Monte Carlo entries): means over named seeds with stderr in errors, never certified, never
-final.  Finality is per value (Result.finality: key -> catalog.Stability): catalog values carry their entry's
+final.  CatalogEntry.rigor[route] may also be a callable of the run's values that returns the label (K2's
+scalar_denoising: "certified" for the gaussian and +-1 priors, a quadrature label otherwise); the
+certified-radius rule applies when it returns "certified".  Finality is per value (Result.finality: key -> catalog.Stability): catalog values carry their entry's
 declaration; composed values the solver's computed flag (True -> stable, False ->
 unstable, None -> not-computed), with a note naming the derived replicon and its rules
 (derive_replicon: SK, the spherical and Ising perceptron and Hopfield have one; Hopfield

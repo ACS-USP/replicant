@@ -116,3 +116,76 @@ The same discipline as the earlier series:
 - work directly on `main`, the user's standing choice, with no push until the user asks.
 
 Order: K1, K2, K3, K4, K5, K6, K7, K8. K1 and K2 are cheap and give the bases. K3 is the BP that K4 and K7 need. K5 and K6 reuse K2's denoisers. K8 documents everything and re-times the full tier.
+
+## As built
+
+Deviations of the implementation from the text above, taken from the build ledger
+(`.superpowers/sdd/2026-11-23-kz-notes/progress.md`, not committed), the task reports and the code.
+Commits 9db72fa (this design and its plan) .. f6df7f8 (K7 fix round), then the documentation task K8. Every task had
+one review and one fix round; every re-review was clean.
+
+- **Shape.** The seven extensions as designed, with these file-level deviations: `catalog_index.py` holds the
+  registry that was inside `catalog()` (K1, behaviour unchanged, tested); `meanfield/cw_exact.py` (K1),
+  `coloring/rsb_pop.py` and `catalog_coloring.py` (K7) were split out to keep files under 400 lines; the K3 `rfim`
+  cavity route lives in `catalog_rfim_sparse.py` and K4's q path in `catalog_sbm_q.py`; `rem`'s condensation values
+  (K2) sit behind a new parameter `condensation=true` (default false), because adding them unconditionally made old
+  `rem` runs non-final. K4's `sbm` gained `q`, `c_in`, `c_out`, `init` (planted | random), `learn` and the population
+  parameters (the design's `planted` is `init=planted`). Interfaces that differ from the plan: K7's thresholds take
+  `(q, graph)`, not `(q, c)`; `sbm_q_transitions` needs a seed and returns a `Transitions` object;
+  `sparse_vector_free_entropy(Delta, d=None)` has `d` optional (None: the limit).
+- **Routes.** No new route name. `curie_weiss` uses `replica`, `cavity` and `exact`; `scalar_denoising` `exact`;
+  `random_matrix` `replica` and `cavity`.
+- **Generic layers.** `factor/` (K3) is reused by `coloring/` in K3 and K7 (BP on sampled graphs, Bethe counts) and its
+  relaxation diagnostic is shared with K7's 1RSB populations (`factor.population.relaxation`, a review ruling). K4's
+  q-group BP is specialised (`inference/sbm_q.py`: the non-edge field needed a hook `factor/bp.py` does not have;
+  ruling: allowed, with the q = 2 check against `sbm.py` independent and AST-audited). K7's 1RSB population is its
+  own engine (the Z^m reweighting; ruling). `bayes/channels.py` (K2) is the one place for priors and denoisers:
+  K5's diluted prior was first duplicated in `inference/spiked_diluted.py` and moved into channels in the fix round
+  (the unit-variance `diluted(rho)`, amplitude exact as `Sqrt(1/rho)`); K6's GAMP uses its denoisers, and
+  `channels.sample` is shared by K5's Wishart and K6's GAMP instances.
+- **Cross-checks against existing entries.** As designed: q = 2 Potts against `bethe_ising`, q = 2 SBM against `sbm`,
+  ASP against `sk_1rsb`, the REM for sparse denoising, the ridge closed forms for the LASSO at lam = 0 and for ridge
+  with an identity covariance (all 14 `ridge.json` keys). Golden values recorded from a pre-K5 export
+  (`tests/golden_58953a7.json`) pin the old `spiked_wigner` and `sk` amp outputs. The Nishimori / Stein / I-MMSE
+  validators run on `spiked_wigner` and `teacher_student` results (not on `sbm`).
+- **Labels.** As designed, plus: an entry's rigor may be a callable of the values (K2's `scalar_denoising`:
+  certified for the gaussian and +-1 priors, a quadrature label otherwise; `compose.py`). Labelled `not-computed`
+  where no fetched theorem covers the value: the `random_matrix` densities and edges (Wigner and Marchenko-Pastur
+  not fetched), the q >= 3 KS points, the Wishart thresholds (BBP proves the complex case), the diluted-prior
+  `overlap_se` / `mmse_se`, the LASSO non-zero fraction `b` (BM's theorem needs pseudo-Lipschitz functions).
+  `undetermined` (never refused): Potts first-order points without both starts converged, K4's first-order pair and
+  EM decisions on non-stationary runs, the diluted SE without both starts, the ER q = 3 coloring c_c (only an upper
+  bound) and the regular q = 3 c_d, c_c (ZK's critical "5+"). One data-dependent refusal: an ER first-order
+  clustering transition is refused `unsupported:er-first-order` after the runs show it (the ER 1RSB path is
+  continuous-only).
+- **Sources.** Fetched and read: GSV, DKMZ, KMMNSZZ, LKZ, BBP, AFUZ, ASP, DMM, BM, KMSSZ, Rangan, HMRT, ZK (REFERENCES.md,
+  "Krzakala-Zdeborova lecture notes"). Not fetched, nothing banked from them: Wigner (1958), Marchenko-Pastur (1967),
+  Krzakala-Zdeborova PRL 102 (2009) (quiet planting from the notes only), Mulet et al. (2002); KMRSZ (PNAS 104) was not
+  reread. Pointer corrections: AFUZ is arXiv:1805.05857 (the plan's 1802.01535 is an unrelated paper) and is the hard-
+  phase paper, not ASP; ASP is Antenucci, Krzakala, Urbani & Zdeborova, arXiv:1807.01296 (the notes' "as shown in ?").
+- **Errata.** Every misprint of the design's list was confirmed and is in the GUIDE's KNOWN HAZARDS ("ERRATA IN THE
+  KZ NOTES") with the corrected form and its route; (11.26) and (12.62) are confirmed by algebra and existing entries
+  (`viana_bray`'s transition equation, `sk`'s AT replicon), not by new code. Found beyond the list: the p. 33
+  spinodal, p. 18's g(m), Fig. 2.2.1's axis (sqrt(Delta)), Lemmas 8-9's swapped labels, p. 230's "diverges", p. 59's
+  "d = 2c", p. 106's "beta -> 0", (12.97)-(12.100)'s U* / V* swap, (16.86)'s sign, the q trace of Sec. 18.1.2, Sec.
+  13.2.3's "q < 9" remark, and the p. 208 table, whose "c_col ~ 5.4 / 14.4" are the annealed thresholds (banked as
+  `coloring_c_ann_q3`, `coloring_c_ann_q5`; c_col comes from ZK Table II). The "5.4" of the pre-flight scan is the
+  annealed threshold once (p. 108 names it so), not a second quantity. Source errata: DKMZ p. 17, HMRT Eq. (12).
+- **Bank.** No value from memory; each key has a cite and an independent route. Removed in review because no
+  independent route resolved them: `cs_alpha_l1_rho0p4` (a formula evaluated in scratch, an input), `coloring_c_d_q4`,
+  `coloring_c_c_q4`, `coloring_c_c_q3`, `coloring_regular_d_c_q3`. Read off figures (tolerance covering the reading):
+  `cw_spinodal_fig1b4_beta1p5`, the two Fig. 2.2.1 readings, LKZ Fig. 3 (a disagreeing second source for AFUZ's
+  Delta_alg). Inferred, said in the cite: Delta = 1 for the notes' scalar posteriors. UNCLAIMED (tests only): the two
+  non-backtracking values of KMMNSZZ Fig. 2.
+- **Not implemented.** Listed in the GUIDE ("KZ NOTES, NOT IMPLEMENTED" and the K4-K6 bullets), among them
+  Curie-Weiss dynamics, the fully connected Potts model, the RFIM large-deviation free entropy, the sparse spin-glass
+  game, independent sets and matchings, relaxed BP and the GLM free entropy, the probit channel, the random subcube
+  model, finite-N diluted AMP and ASP, the ER first-order 1RSB path. The success criterion "every method implemented
+  or listed" was audited at K8 by searching the package against the gap maps, not by a row-by-row table.
+- **Pre-existing finding.** `families/sk.py`'s 1RSB at h = 0 selects a q0 > 0 stationary point (q0 = 0.2146 at
+  beta = 2) by largest f, not the textbook q0 = 0 solution; ASP reproduces it. Outside this series; left to the user.
+- **Time standard.** The baseline (HEAD 9db72fa, clean export, cold) was 752 tests, 56.6 s and 54.7 s on a machine at
+  load average about 5 (the documented 30 s was idle-machine), so growth was measured against same-session
+  baselines at each task boundary. Per task (default tier, loaded machine): K1 about +0.9 s, K2 about +1 s, K3 under
+  1 s, K4 about +0.6 s, K5 about +1.5 s (accepted, ruling), K6 +0.7 s after its fix round (from +2.0 s), K7 about
+  +0.9 s: about 6 s for K1-K7 against the 7 s budget. The K8 re-timing is in the CHANGELOG.

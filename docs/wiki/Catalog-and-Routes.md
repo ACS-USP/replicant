@@ -1,6 +1,6 @@
 # Catalog and Routes
 
-The catalog holds 38 entries (`python3 -m replicant list` prints each entry with its routes and
+The catalog holds 48 entries (`python3 -m replicant list` prints each entry with its routes and
 citation). An entry is a published pipeline, made of the paper's steps with its banked reference
 values. A route is a way of computing the entry: the same model through the replica method, the
 cavity method, AMP, an exact solution, a series, a rigorous bound, the online-learning ODEs or
@@ -30,13 +30,18 @@ sampling. Every entry's default route is `replica`. An entry without that route 
 | Learning | `teacher_student`, `ridge` | `teacher_student`: `replica`, `amp`; `ridge`: `replica` |
 | Dense associative memory | `dense_memory`, `dense_memory_ising` | `replica` |
 | Constraint satisfaction | `xorsat`, `ksat` | `cavity` |
-| Inference | `ldpc_bec`, `sbm`, `spiked_wigner` | `cavity`; `spiked_wigner` `amp` only |
+| Inference | `ldpc_bec`, `sbm`, `spiked_wigner` | `cavity`; `spiked_wigner` `amp` only (`sbm` with `q` groups, K4; `spiked_wigner` with the diluted prior, K5) |
 | Exact lattices | `ising1d`, `ising2d`, `ising2d_anisotropic`, `ising_triangular`, `ising_honeycomb`, `bethe_ising` | `exact`; `bethe_ising` `cavity` |
 | Series | `series_ising2d` | `series` |
 | Bounds | `sk_bounds` | `bound` |
 | Online learning | `online_perceptron`, `online_linear`, `online_drift`, `online_tcm`, `online_scm` | `online` |
 | Percolation | `percolation_bethe`, `percolation_graph`, `percolation_lattice`, `percolation_kcore`, `percolation_bootstrap` | `cavity` / `exact` and `sample` |
 | Monte Carlo | `cluster_mc`, `wang_landau_mc`, `histogram_reweighting_mc`, `population_annealing_mc` | `sample` |
+| Mean field (KZ Ch. 1-3, K1) | `curie_weiss`, `rfim`, `random_matrix` | `curie_weiss`: `replica`, `cavity`, `exact` (certified); `rfim`: `replica`, `cavity` (K3); `random_matrix`: `replica` (certified), `cavity` |
+| Bayes denoising (KZ Ch. 7, K2) | `scalar_denoising`, `sparse_denoising` | `scalar_denoising`: `exact` (certified for the gaussian and +-1 priors); `sparse_denoising`: `replica` |
+| Factor graphs, Potts, coloring (KZ Ch. 4-6, 13-14; K3, K7) | `potts_bethe`, `coloring` | `cavity` (`coloring` also `ansatz=1rsb`, `planted=true`) |
+| Low rank (KZ Ch. 8, 12; K5) | `spiked_wishart` | `amp` |
+| Linear estimation (KZ Ch. 12, 16, 18; K6) | `lasso`, `compressed_sensing` | `lasso`: `replica`, `amp`; `compressed_sensing`: `amp` |
 
 ## Where an entry lives
 
@@ -65,7 +70,13 @@ python3 -m replicant run xorsat --route cavity                 # alpha_d 0.81846
 python3 -m replicant run perceptron --route rsb --param kappa=-1
 python3 -m replicant run online_scm --route online
 python3 -m replicant run cluster_mc --route sample
+python3 -m replicant run curie_weiss                          # every root; h_sp 0.138364 at beta = 3/2
+python3 -m replicant run coloring --route cavity --param q=5 --param ansatz=1rsb
+python3 -m replicant run lasso --param alpha=0.5 --param rho=0.1 --param lam=0.05 --param sigma2=0.01
 ```
+
+Existing entries gained parameters in the K series: `rem` `condensation=true` (K2), `sbm` `q` (q groups, K4),
+`spiked_wigner` `prior=diluted_rademacher` and the `sk` amp route `ansatz=1rsb` (ASP, K5), `ridge` `covariance` (K6).
 
 ## Related pages
 

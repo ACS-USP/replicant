@@ -1,6 +1,6 @@
 # replicant Wiki
 
-Last updated: 2026-11-06 (source branch: `main`)
+Last updated: 2026-11-24 (source branch: `main`)
 
 ## What this project is
 
@@ -14,7 +14,7 @@ published statistical-mechanics result reproduced together with its derivation, 
 calculation for a nearby model.
 
 - Python 3 with `sympy`, `mpmath`, `numpy`, `scipy` and `python-flint`. Ball arithmetic goes through `tools/baller`.
-- 38 catalog entries over eight routes: `replica`, `cavity`, `amp`, `exact`, `series`, `bound`, `online` and `sample`.
+- 48 catalog entries over eight routes (10 of them from Krzakala & Zdeborova's lecture notes, K1-K7): `replica`, `cavity`, `amp`, `exact`, `series`, `bound`, `online` and `sample`.
 - A level-(a) symbolic derivation (replicate, average, RS ansatz, n -> 0, stationarity) for models near a catalogued one.
 - Three rigor levels:
   - `physics-level`: replica, cavity, AMP and series results;
@@ -22,15 +22,15 @@ calculation for a nearby model.
   - `statistical`: sampled values over named seeds.
 - A LaTeX writer that turns any run, refusals included, into a derivation appendix.
 - A battery runner without pytest:
-  - default tier, 752 tests;
-  - `--full` adds 231 `@slow` tests.
+  - default tier, 841 tests;
+  - `--full` adds 258 `@slow` tests.
 
 ## Pages
 
 | Page | What it covers |
 |---|---|
 | [Architecture Overview](Architecture-Overview) | System diagram, design principles, module boundaries, the run flow |
-| [Catalog and Routes](Catalog-and-Routes) | The 38 entries grouped by domain, their routes and rigor |
+| [Catalog and Routes](Catalog-and-Routes) | The 48 entries grouped by domain, their routes and rigor |
 | [Derivation and Composer](Derivation-and-Composer) | Level (a) and level (b), `ModelSpec`, how the composer matches, reuses and adapts |
 | [Results, Finality and Refusals](Results-Finality-and-Refusals) | The `Result` object, per-value finality, `require_final`, refusal reasons |
 | [Reference Store and Provenance](Reference-Store-and-Provenance) | `reference/*.json`, the schema, banking rules, checks and tolerances |
@@ -48,7 +48,7 @@ calculation for a nearby model.
 python3 -m venv .venv && source .venv/bin/activate
 pip install mpmath sympy numpy scipy python-flint pytest
 python3 tools/replicant/selftest.py                 # default battery, about 30 s
-cd tools && python3 -m replicant list               # the 38 catalog entries
+cd tools && python3 -m replicant list               # the 48 catalog entries
 python3 -m replicant run perceptron --param alpha=1.5 --out /tmp/result.json --latex /tmp/p.tex
 ```
 

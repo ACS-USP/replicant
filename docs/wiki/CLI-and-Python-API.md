@@ -50,7 +50,8 @@ res.reference_checks(slow=False)
 
 `run(require_final=True)` refuses when any value is not final. The lower-level surfaces (the
 derived solvers `solve_derived_rs` and `solve_derived_1rsb`, `derived_replicon`, the `amp`,
-`csp`, `inference`, `lattice`, `online` and `montecarlo` modules) are listed with their signatures
+`csp`, `inference`, `lattice`, `online` and `montecarlo` modules, and the K1-K7 layers `meanfield`, `rmt`, `bayes`,
+`factor`, `coloring` and `linear`) are listed with their signatures
 in the INVOKE section of `tools/replicant/GUIDE.md`.
 
 ## Related pages

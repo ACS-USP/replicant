@@ -8,9 +8,18 @@ fallback; every run returns a trace, a per-value finality label (`stable`, `unst
 Results are physics-level (the n -> 0 continuation and the RS/RSB ansaetze are not proved; the
 online-learning ODEs assume the N -> oo limit), except what is certified in ball arithmetic (the lattice
 entries `ising2d`, `ising1d`, `bethe_ising`, `ising2d_anisotropic`, `ising_triangular`, `ising_honeycomb`,
-the bound entry `sk_bounds`, and the `cavity` / `exact` routes of the percolation entries);
+the bound entry `sk_bounds`, the `cavity` / `exact` routes of the percolation entries, the `exact` route of
+`curie_weiss`, the `replica` route of `random_matrix`, and `scalar_denoising` with the gaussian or +-1 prior);
 population-dynamics, AMP, finite-N simulation, the percolation `sample` route and the Monte Carlo entries
 are statistical. Full documentation: [GUIDE.md](GUIDE.md).
+
+The latest series (K1-K7) follows Krzakala & Zdeborova's lecture notes (*Statistical Physics Methods in Optimization
+and Machine Learning*, June 9 2024): 10 new entries (`curie_weiss`, `rfim`, `random_matrix`, `scalar_denoising`,
+`sparse_denoising`, `potts_bethe`, `coloring`, `spiked_wishart`, `lasso`, `compressed_sensing`; 48 in all), new
+parameters on `rem` (`condensation`), `sbm` (`q`: q groups), `spiked_wigner` (`prior=diluted_rademacher`), the `sk`
+amp route (`ansatz=1rsb`: ASP), `ridge` (`covariance`) and `coloring` (`ansatz=1rsb`, `planted`), and the generic
+layers `meanfield/`, `rmt/`, `bayes/`, `factor/`, `coloring/` and `linear/`. The notes' misprints found on the way
+are listed, with the corrected forms and the routes that confirm them, in the GUIDE's KNOWN HAZARDS.
 
 Requirements: Python 3 with `sympy`, `mpmath`, `numpy`, `scipy` and `python-flint` (the certified
 entries go through `tools/baller`). Run the battery from the project venv (INSTALL.md: `.venv`, which
@@ -190,7 +199,7 @@ sample`), and `--pdf` (with `--latex`) to compile the derivation.
   block that does, the longitudinal mode), `pinned_check.py` (integer-n Hessian, an independent check),
   `pinned_report.py` (the table of `docs/replicant/pinned_joint_replicon.md`).
 - `catalog*.py`, `compose.py` (+ `compose_result.py`: `Result` and the finality rule), `cli.py`,
-  `__main__.py`: the 46-entry catalog (registered in `catalog_index.py`; `catalog_ts.py` holds the
+  `__main__.py`: the 48-entry catalog (registered in `catalog_index.py`; `catalog_ts.py` holds the
   teacher-student entry, `catalog_pspin.py` the two p-spin entries; LaTeX in `latex_pspin.py`), the
   composer, the command line.
 - `meanfield/`, `rmt/` (K1, Krzakala & Zdeborova's lecture notes, Ch. 1-3): `curie_weiss.py` (Theorem 1 in arb,
@@ -221,14 +230,15 @@ sample`), and `--pdf` (with `--latex`) to compile the derivation.
 
 ## Test tiers
 
-- Default: `python3 tools/replicant/selftest.py` (781 tests after K2, 803 after K4, 821 after K5, 837 after K6; the 662 before the margin law and the pinned
-  directions took about 30 s, measured 30.2 s cold on a clean export after the final fix wave). Also `python3 run_selftests.py replicant` from the repository root, with the venv activated (it runs
+- Default: `python3 tools/replicant/selftest.py` (841 tests after K7, 58.96 s wall on a loaded machine; the 662 before the margin law and the pinned
+  directions took about 30 s, measured 30.2 s cold on an idle machine after the v1 final fix wave). Also `python3 run_selftests.py replicant` from the repository root, with the venv activated (it runs
   the `python3` on PATH; without python-flint the certified lattice, bounds and percolation tests and the Monte
   Carlo exact targets fail, by design).
-- Full: `python3 tools/replicant/selftest.py --full` adds the 231 `@slow` tests (full RSB,
+- Full: `python3 tools/replicant/selftest.py --full` adds the 258 `@slow` tests (full RSB,
   population dynamics at reference sizes, the K-SAT and LDPC crossings, Monte Carlo and enumeration
   held-out routes, solver-based checks, the online simulations at N = 1000, the lattice, percolation and
-  Monte Carlo checks at reference sizes); about 35 minutes on a laptop (measured 34 min 39 s with 859 tests before the final fix wave; the K = 3 RSB test alone is about 7 minutes; not re-measured after the margin-law, pinned-direction, negative-margin RSB and dense-memory additions).
+  Monte Carlo checks at reference sizes, the KZ lecture-notes series at reference sizes: the q = 5 SBM and coloring
+  thresholds by population dynamics, the slow catalog RefCheck over every entry); about 35 minutes on a laptop (measured 34 min 39 s with 859 tests before the final fix wave; the K = 3 RSB test alone is about 7 minutes; not re-measured after the margin-law, pinned-direction, negative-margin RSB and dense-memory additions).
 - The held-out tests are `tests/test_heldout*.py` (helpers `tests/heldout_common.py`, `tests/heldout_mc.py`).
 - `@slow` is a plain function attribute honoured by `selftest.py` only. pytest ignores the
   marker and would run every test, slow ones included.

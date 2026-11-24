@@ -15,7 +15,48 @@ reader can follow to the paper, a per-value finality label, and a comparison wit
 values. Two levels: (a) a symbolic derivation (replicate, average the disorder, introduce order
 parameters, RS ansatz, n -> 0, stationarity, solve) that works for models you describe, and (b) the
 published pipelines of a catalog of 48 entries, each with a replica route and/or a cavity route (and an
-`amp` route for `sk` and `teacher_student`; the constraint-satisfaction entries `xorsat` and `ksat`, the code entry `ldpc_bec` and the block model `sbm` (two groups, and q groups with `q`, K4) are cavity-only; the spiked Wigner model `spiked_wigner` is amp-only; the ridge-regression entry `ridge` is replica-only, its RS saddle point a cited closed form, not a level-(a) derivation; the dense-associative-memory entries `dense_memory` (Gaussian / spherical patterns, Lucibello & Mezard) and `dense_memory_ising` (Ising neurons, +-1 patterns, Demircigil et al.) are replica-only: the Random Energy Model noise of the softmax denominator by a label-replica derivation, at zero temperature, the Ising entry derived here beyond one rigorous number; the 2D Ising entry `series_ising2d` has the route `series` only: an exact series and its holonomic operator, no replica or cavity step; the solvable lattice entries `ising2d`, `ising1d`, `ising2d_anisotropic`, `ising_triangular` and `ising_honeycomb` have the route `exact` and `bethe_ising` the route `cavity`, all certified in ball arithmetic, `rigor` "certified"; the bound entry `sk_bounds` has the route `bound` only: Guerra's rigorous upper bounds on the SK pressure, certified, and a consistency check of the package's own RS / 1RSB / K-RSB optimisers against them; the percolation entries `percolation_bethe` and `percolation_graph` have the routes `cavity` (certified generating-function fixed points) and `sample` (statistical, finite graphs and union-find), and `percolation_lattice` the routes `exact` (certified 2D thresholds, exponents, Cardy's formula, exact small lattices) and `sample` (statistical, Newman-Ziff sweeps and finite-size scaling), and the k-core entries `percolation_kcore` and `percolation_bootstrap` the routes `cavity` (certified core fixed points and birth points) and `sample` (statistical, exact peeling and spreading), and the cluster Monte Carlo entry `cluster_mc` the route `sample` only (statistical: Swendsen-Wang, Wolff and a Metropolis baseline on Ising / Potts tori), and the flat-histogram entries `wang_landau_mc` (Wang-Landau 1/t density of states, multicanonical sampling) and `histogram_reweighting_mc` (Ferrenberg-Swendsen single / multiple histogram) the route `sample` only (statistical, 2D Ising torus), and the population-annealing entry `population_annealing_mc` the route `sample` only (statistical: the 2D Ising torus or one SK / +-J matrix at small N); the online-learning entries `online_perceptron`, `online_linear`, `online_drift`, `online_tcm` and `online_scm` have the route `online` only: the N -> oo order-parameter ODEs of online learning in alpha = examples / N, physics-level, checked against finite-N simulation; the Bayes-denoising entries of K2 are `scalar_denoising` (route `exact`: closed forms and certified integrals, `rigor` "certified" for the gaussian and +-1 priors; for the Gauss-Bernoulli and sparse priors the MMSE and I are binary64 quadrature and the run's `rigor` says so) and `sparse_denoising` (route `replica`: Theorem 15 of the notes beside an independent REM route); the K3 entries `potts_bethe` and `coloring` have the route `cavity` only (BP / cavity fixed points, physics-level; finite-N BP and population dynamics statistical), and `rfim` gains the route `cavity` (the RFIM on random graphs by population dynamics); the K5 entry `spiked_wishart` has the route `amp` only (the two-overlap Bayes state evolution, the BBP edge, finite-N rectangular AMP and SVD), `spiked_wigner` gains `prior=diluted_rademacher` with `rho` (every SE fixed point, the spinodals, the IT threshold, the hard phase, the tricritical point) and the `sk` amp route gains `ansatz=1rsb` with `m` (approximate survey propagation, whose state evolution is the 1RSB q equations); the K6 entries `lasso` (routes `amp`: Alg. 4's state evolution and finite-N AMP against an exact solver, and `replica`: the calibrated fixed point, Bayati-Montanari's theorem) and `compressed_sensing` (route `amp`: the l1, Bayes-spinodal and IT boundaries), and `ridge` gains `covariance` (a covariance spectrum)). A composer
+`amp` route for `sk` and `teacher_student`; the constraint-satisfaction entries `xorsat` and `ksat`, the code entry
+`ldpc_bec` and the block model `sbm` (two groups, and q groups with `q`, K4) are cavity-only; the spiked Wigner
+model `spiked_wigner` is amp-only; the ridge-regression entry `ridge` is replica-only, its RS saddle point a cited
+closed form, not a level-(a) derivation; the dense-associative-memory entries `dense_memory` (Gaussian / spherical
+patterns, Lucibello & Mezard) and `dense_memory_ising` (Ising neurons, +-1 patterns, Demircigil et al.) are
+replica-only: the Random Energy Model noise of the softmax denominator by a label-replica derivation, at zero
+temperature, the Ising entry derived here beyond one rigorous number; the 2D Ising entry `series_ising2d` has the
+route `series` only: an exact series and its holonomic operator, no replica or cavity step; the solvable lattice
+entries `ising2d`, `ising1d`, `ising2d_anisotropic`, `ising_triangular` and `ising_honeycomb` have the route
+`exact` and `bethe_ising` the route `cavity`, all certified in ball arithmetic, `rigor` "certified"; the bound
+entry `sk_bounds` has the route `bound` only: Guerra's rigorous upper bounds on the SK pressure, certified, and a
+consistency check of the package's own RS / 1RSB / K-RSB optimisers against them; the percolation entries
+`percolation_bethe` and `percolation_graph` have the routes `cavity` (certified generating-function fixed points)
+and `sample` (statistical, finite graphs and union-find), and `percolation_lattice` the routes `exact` (certified
+2D thresholds, exponents, Cardy's formula, exact small lattices) and `sample` (statistical, Newman-Ziff sweeps and
+finite-size scaling), and the k-core entries `percolation_kcore` and `percolation_bootstrap` the routes `cavity`
+(certified core fixed points and birth points) and `sample` (statistical, exact peeling and spreading), and the
+cluster Monte Carlo entry `cluster_mc` the route `sample` only (statistical: Swendsen-Wang, Wolff and a Metropolis
+baseline on Ising / Potts tori), and the flat-histogram entries `wang_landau_mc` (Wang-Landau 1/t density of
+states, multicanonical sampling) and `histogram_reweighting_mc` (Ferrenberg-Swendsen single / multiple histogram)
+the route `sample` only (statistical, 2D Ising torus), and the population-annealing entry `population_annealing_mc`
+the route `sample` only (statistical: the 2D Ising torus or one SK / +-J matrix at small N); the online-learning
+entries `online_perceptron`, `online_linear`, `online_drift`, `online_tcm` and `online_scm` have the route `online`
+only: the N -> oo order-parameter ODEs of online learning in alpha = examples / N, physics-level, checked against
+finite-N simulation; the mean-field entries of K1 (Krzakala & Zdeborova's lecture notes, Ch. 1-3) are `curie_weiss`
+(routes `replica`: Theorem 1 solved in ball arithmetic, `cavity` and `exact`: Z_N by its binomial sum, `rigor`
+"certified"), `rfim` (route `replica`, the fully connected RFIM; K3 adds `cavity`) and `random_matrix` (routes
+`replica`, `rigor` "certified", and `cavity`: the Stieltjes transforms of the Wigner and Wishart spectra); the
+Bayes-denoising entries of K2 are `scalar_denoising` (route `exact`: closed forms and certified integrals, `rigor`
+"certified" for the gaussian and +-1 priors; for the Gauss-Bernoulli and sparse priors the MMSE and I are binary64
+quadrature and the run's `rigor` says so) and `sparse_denoising` (route `replica`: Theorem 15 of the notes beside
+an independent REM route); the K3 entries `potts_bethe` and `coloring` have the route `cavity` only (BP / cavity
+fixed points, physics-level; finite-N BP and population dynamics statistical), and `rfim` gains the route `cavity`
+(the RFIM on random graphs by population dynamics); the K5 entry `spiked_wishart` has the route `amp` only (the
+two-overlap Bayes state evolution, the BBP edge, finite-N rectangular AMP and SVD), `spiked_wigner` gains
+`prior=diluted_rademacher` with `rho` (every SE fixed point, the spinodals, the IT threshold, the hard phase, the
+tricritical point) and the `sk` amp route gains `ansatz=1rsb` with `m` (approximate survey propagation, whose state
+evolution is the 1RSB q equations); the K6 entries `lasso` (routes `amp`: Alg. 4's state evolution and finite-N AMP
+against an exact solver, and `replica`: the calibrated fixed point, Bayati-Montanari's theorem) and
+`compressed_sensing` (route `amp`: the l1, Bayes-spinodal and IT boundaries), and `ridge` gains `covariance` (a
+covariance spectrum); K7 adds `ansatz=1rsb` (frozen survey propagation, the 1RSB cavity, rigidity) and
+`planted=true` to `coloring`). A composer
 matches a model description against the catalog, reuses what applies, adapts what it can through
 registered hooks, and says what it reused, adapted, or could not do. A LaTeX writer turns any run into a
 derivation document. Monte Carlo (parallel tempering) and exact enumeration (`numerics/`) check the
@@ -36,7 +77,8 @@ NOT-FOR:
   results say so (`rigor: "physics-level"`). The `sample` route of the percolation entries, of `cluster_mc`, `wang_landau_mc`, `histogram_reweighting_mc` and `population_annealing_mc` is
   `rigor: "statistical"` (means over named seeds, stderr in `errors`, never final). The entries `ising2d`,
   `ising1d`, `bethe_ising`, `ising2d_anisotropic`, `ising_triangular`, `ising_honeycomb`, `sk_bounds` and the
-  `cavity` route of `percolation_bethe` / `percolation_graph` / `percolation_kcore` / `percolation_bootstrap` and the `exact` route of `percolation_lattice` are `rigor: "certified"`: ball-arithmetic enclosures (python-flint) of a cited closed
+  `cavity` route of `percolation_bethe` / `percolation_graph` / `percolation_kcore` / `percolation_bootstrap` and the `exact` route of `percolation_lattice`, the `exact` route of `curie_weiss`, the `replica` route of
+  `random_matrix` and `scalar_denoising` with the gaussian or +-1 prior are `rigor: "certified"`: ball-arithmetic enclosures (python-flint) of a cited closed
   form, a cited theorem's formula or a rigorous bound, with the radius in `errors`; that certifies
   the evaluation, not the cited theorem. A value flagged `exact-by-literature` rests on the cited
   paper, not on this package.
@@ -137,6 +179,39 @@ CLI (from `tools/`):
   point `inverse_eps_ks_q` 2.333333 (DKMZ Fig. 1: 2.33), not-computed (no q >= 3 theorem fetched); `--param q=5
   --param c_in=0 --param c_out=20` -> `ks_margin_q` 1 (c = 16 = c_l); `--param q=5 --param c_in=0` runs the
   population dynamics (about 90 s): `c_d`, `c_c` with 99% bands, `c_l` 16.
+- Worked examples, the KZ lecture-notes entries (K1-K7; run literally from `tools/`, each under 1 s measured, most of it
+  building the catalog):
+  - `python3 -m replicant run curie_weiss` (beta = 3/2, h = 0) -> every root: `m_upper` 0.858560 and `m_lower` (stable),
+    `m_middle` 0 (unstable), `phi` 0.808341 (exact-by-literature, Theorem 1), `h_sp` 0.138364 (the corrected spinodal,
+    not-computed, so `final` is false). `... --route exact --param N=200`: `phi_N` 0.813090, `abs_magnetization_N`
+    0.853701, `chi_N` 146.226, `rigor` certified, final.
+  - `python3 -m replicant run rfim --param Delta=0.36` -> T = 0 `e_min` -0.531204, `m_t0` 0.836968, `delta_c_t0` 0.636620
+    (2/pi), not-computed.  `python3 -m replicant run random_matrix --param kind=wishart --param alpha=1/4` -> `edge_lower`
+    0.25, `edge_upper` 2.25, `atom_zero` 0, `rigor` certified.
+  - `python3 -m replicant run scalar_denoising --route exact --param prior=rademacher --param Delta=1/2` -> `snr` 2,
+    `mmse` 0.231018, `mutual_information` 0.500072 (certified, final).  `... --param prior=gaussian --param data=7.8` ->
+    `posterior_mean` 0.629674, `posterior_var` 0.0909091 (KZ Eq. (7.8) prints 0.630, 0.091; Delta = 1 inferred).
+    `python3 -m replicant run sparse_denoising --param Delta=1/2` -> `Delta_c` 0.721348, `f` 0.306853 (= 1 - ln 2) and the
+    REM route's `f_rem` the same, `mmse` 0, final.  `python3 -m replicant run rem --param beta=3 --param condensation=true`
+    adds `participation_ratio` 0.444964, `participation_ratio_sq` 0.280316 (not-computed).
+  - `python3 -m replicant run potts_bethe --route cavity --param q=3 --param d=5` (beta = -0.66) -> `phase` paramagnetic,
+    `phi` 1.776727 (the ferromagnetic root 1.776149 is metastable), `beta_stab` -0.693147, `beta_s` -0.658348, `beta_c`
+    -0.662198, `transition_status` determined.  `python3 -m replicant run coloring --route cavity --param q=3 --param
+    c=4` -> `c_ann` 5.419023, `c_ks` 4, `phi_para` 0.287682.  `... --param q=5 --param ansatz=1rsb` -> `c_r_m1` 14.0356
+    (ZK Table II: 14.036), `d_sp_regular` 13, `d_uncol_regular` 15 (ZK Table I), `c_ann` 14.425135 (the notes' "c_col ~
+    14.4").
+  - `python3 -m replicant run spiked_wigner --route amp --param prior=diluted_rademacher --param rho=0.08` ->
+    `delta_dyn_over_rho2` 1.04086, `delta_it_over_rho2` 1.02942, `delta_alg_over_rho2` 0.980792; `... --param snr=0.99`
+    (Delta/rho^2 = 1.0203, in the hard phase) -> `se_fixed_points` 0, 0.166568, 0.425999, `se_phase` hard,
+    `se_uninformative_gamma` 0 (AMP's limit), Bayes `gamma_se` 0.425999, `q_se` 0.434649, `matrix_mmse_se` 0.811080.
+    `python3 -m replicant run spiked_wishart --route amp --param alpha=4 --param snr=1` -> `lambda_c` 0.707107,
+    `sigma_edge` 3, `sigma_top` 3.162278, `m_u_se` 0.6, `m_v_se` 0.375 (not-computed).
+  - `python3 -m replicant run lasso --param alpha=0.5 --param rho=0.1 --param lam=0.05 --param sigma2=0.01` -> `risk`
+    0.0120677, `tau2` 0.0441354, `threshold` 0.246642, `kappa` 1.174014 (exact-by-literature, BM Thm 1.5), `b` 0.297277
+    (not-computed); `--route amp` gives the same `risk_se`, `threshold_se`.  `python3 -m replicant run compressed_sensing
+    --route amp --param rho=0.4` -> `alpha_l1` 0.749739 (and `alpha_l1_se` to 3e-9), `bayes_status` spinodal,
+    `alpha_bayes` 0.589246 (KMSSZ: ~0.59), `alpha_it` 0.4.  `python3 -m replicant run ridge --param gamma=2 --param
+    lam=0.1 --param covariance=1:1` -> `risk` 1.227707, the isotropic value.
 - Worked example, ridge regression (`ridge`, replica-only; X with i.i.d. N(0, 1) entries, |beta|^2 =
   `signal`, gamma = p/n, ridge (X^T X + n lam I)^{-1} X^T y; values are the EXCESS risk |beta_hat -
   beta|^2, `test_mse*` add sigma^2): `python3 -m replicant run ridge --param gamma=2 --param lam=0.1`
@@ -599,6 +674,61 @@ iters, threshold, Sigma, b, kkt_residual)`; `kkt_residual`, `soft_threshold`, `m
 alpha_bayes, alpha_it, bayes_status, note, starts)`; `l1_boundary`, `l1_boundary_se`, `bayes_spinodal`, `rho_se`
 (DMM Eq. (5)), `l1_recover(A, y)` (LP), `l1_recover_instance`, `l1_success_fraction(N, alpha, rho, seeds)`.
 Example: `cs_phase_boundary(0.4).alpha_bayes` -> 0.589246 (KMSSZ: ~0.59).
+`from replicant.meanfield import curie_weiss, cw_exact, rfim` and `from replicant.rmt import stieltjes` (K1; rationals
+as strings, results in balls where certified): `curie_weiss.cw_fixed_points(beta, h)` -> every root of phi'(m) as
+`CWFixedPoint(branch, m, phi, jacobian, stable)`; `cw_solution(beta, h, branch)` -> `CWSolution(beta, h,
+fixed_points, selected, phi, argmax)`; `cw_magnetization`, `cw_free_entropy`, `cw_thermo`, `cw_critical_beta`,
+`cw_spinodal(beta)`; the separate routes `cw_free_entropy_cavity`, `cw_free_entropy_field` (mpmath floats).
+`cw_exact.cw_exact(N, beta, h)` -> `CWExact(N, z, phi, magnetization, abs_magnetization, energy, chi)` (balls),
+`cw_exact_rate`, `cw_finite_size_term`, `cw_rate_function(m, beta, h, route="legendre"|"gartner_ellis")`,
+`cw_ldp_rate`.  `rfim.field_law(kind, Delta=, h0=)`, `rfim_rs(beta, J, law)` -> `RS(m, f, e, phi, stationary)`,
+`rfim_ground_energy`, `rfim_delta_c`, `rfim_sample_fields(N, law, seed)`, `rfim_exact_ground_energy(h, J, branch)`,
+`rfim_exact_phi(h, beta, J)`, `rfim_guerra_bound(h, beta, J)` -> (lower, upper).  `stieltjes.stieltjes_wigner(z)`,
+`stieltjes_mp(z, alpha)` and their `_cavity` twins, `density(kind, x, route, alpha)`, `edges(kind, route, alpha)`,
+`atom_at_zero`, `sample_spectrum(kind, N, seed, alpha)`.  Hooks: `curie_weiss._HOOKS` (`spinodal_sign`,
+`field_h`), `rfim._HOOKS` (`emin_sign`, `guerra_quadratic`), `stieltjes._HOOKS` (`edge`).
+Examples: `cw_spinodal("3/2")` -> Ball(0.1383643035480201949674666647326346409719410941143 +/- 2.63e-50);
+`cw_finite_size_term("3/2", "1/20")`
+-> 0.194060886348103; `rfim_ground_energy(1, field_law("gaussian", Delta="0.36")).e` -> -0.531204062614697.
+`from replicant.bayes import channels, identities, sparse_vector` (K2; the channel y = sqrt(snr) x + z):
+`channels.Prior(name, **p)` (gaussian(var), rademacher, gauss_bernoulli(rho, var), sparse(rho, a), diluted(rho));
+`denoiser(prior, snr)` -> (mean_fn, var_fn) (numpy-vectorised), `denoiser_dy`, `sample(prior, rng, k)`,
+`map_estimate`, `mmse`, `mutual_information` (binary64 quadrature), `scalar_moments(prior, snr, slope)`,
+`overlaps(prior, snr, model)`, and in balls `mmse_ball`, `information_ball` (gaussian, rademacher only),
+`posterior_ball(prior, data, Delta)`.  `identities.check_nishimori(result)`, `check_stein(g, dg, mu, sigma2)`,
+`check_immse(prior, snr_grid)` -> `CheckResult` (never raise for an off-line result); `_HOOKS` (`immse_factor`,
+`stein_power`).  `sparse_vector.delta_c()`, `sigma_c2(d)`, `sparse_vector_free_entropy(Delta, d=None)`,
+`sparse_vector_mmse`, `rem_parameters`, `delta_c_via_rem`, `free_entropy_via_rem`, `sample_log_z(Delta, N, seed)`;
+`families.rem.rem_participation_ratio(beta, N_scale, N=None)`, `rem_y2`, `rem_overlap_distribution`.
+Example: `channels.mmse(Prior("rademacher"), 2)` -> 0.23101822192929555, `mmse_ball` the same digits certified;
+`sparse_vector.delta_c()` = `delta_c_via_rem()` -> 0.721347520444482.
+`from replicant.factor import graph, bp, population, enumerate` and `from replicant.coloring import potts_bp,
+potts_graph, first_moment` (K3): `graph.FactorGraph(variables, factors)` (one alphabet q; factors as (scope, table)
+or `FactorGroup` blocks), `pairwise(n, q, edges, table, unary)`, samplers `random_tree_edges`, `random_factor_tree`,
+`random_regular_edges`, `erdos_renyi_edges`; `bp.bp(graph, *, iters, damping, init, seed, tol)` -> `BPState(messages,
+converged, iters, delta, note)`, `marginals`, `bethe_free_entropy(graph, state)` -> `Bethe(log_z, phi, variable,
+factor, edge, exact, label)`; `population.population_dynamics(factor_law, degree_law, *, pop, sweeps, seeds)` ->
+`PDResult(phi, phi_stderr, phi_halfwidth99, marginal, ..., status, note)` over `FactorLaw` (`potts_law`, `rfim_law`)
+and ("regular", d) / ("poisson", c); `population.relaxation(series, tol, name)` (the drift / monotone-relaxation
+diagnostic shared with K7); `enumerate.exact_log_z`, `exact_marginals`.  `potts_bp.potts_paramagnetic(q, c, beta)`,
+`potts_beta_stab`, `potts_ferro_fixed_points(q, d, beta)`, `potts_transitions(q, d)` -> `Transitions(beta_stab,
+beta_s, beta_c, order, status, note)`, `coloring_annealed_threshold(q, beta)`, `kesten_stigum(q, beta)`,
+`ising_beta` / `potts_beta`; `potts_graph.two_starts(graph)` -> `TwoStarts(...)`, `uniform_mode_damping(q, c, beta)`,
+`bp_convergence(q, c, beta, *, n, seed)` -> `KSRun`; `first_moment.first_moment_log`, `first_moment_brute`.
+Example: `potts_transitions(3, 5)` -> beta_s -0.6583479534222482, beta_c -0.6621979541239644, status determined;
+`coloring_annealed_threshold(3)` -> 5.419022582702911, `kesten_stigum(3)` -> 4.0.
+`from replicant.coloring import planted, rsb, rsb_pop, sample` (K7; q >= 3, graph "regular" | "er"):
+`planted.planted_coloring(n, q, c, *, beta, seed)` -> `PlantedGraph`, `sbm_affinities(q, c, beta)`,
+`beta_from_affinities(c_in, c_out)`, `bp_threshold(q, beta)` (c_l, Eq. (13.9)), `quiet_planting(q, c, *, n, seeds)` ->
+`Quiet(verdict, status, delta, half_width, ...)`.  `rsb.sp_regular(q, d)` -> `SPRegular(q, d, eta, sigma,
+nontrivial)`, `colorability_threshold(q, graph)` -> `Colorability(value, status, note, d_sp, d_uncol, ...)`,
+`rigidity_threshold(q, graph)` -> `Rigidity(q, graph, c_r, eta_r)`, `rigidity_corrections(q)`,
+`cluster_thresholds(q, graph)` / `clustering_threshold` / `condensation_threshold` -> `Threshold(value, kind, status,
+note, estimates)`.  `rsb_pop.coloring_1rsb(q, d_or_c, m, *, graph)` -> `RSB(psi, phi, sigma, q1, psi_annealed,
+nontrivial, status, phase, ...)`, `frozen_sp(q, d_or_c, *, graph)` -> `SP(eta, sigma, nontrivial, status, ...)`.
+`sample.count_colorings(n, edges, q)`, `mean_count(q, n, m, *, graphs, seed)`, `bethe_log_count`, `planted_bp(q, c,
+*, n, seeds)` -> `PlantedRun`s.  Example: `bp_threshold(5)` -> 16.0; `sp_regular(3, 5)` -> sigma 0.03755727669677045,
+nontrivial; `rigidity_threshold(5, "er").c_r` -> 14.03560532969138 (ZK: 14.036).
 `from replicant.learning import ridge, ridge_rs, ridge_sim` (E7; gamma = p/n, lam in HMRT's
 convention, `sigma2` the noise variance, `signal` = |beta|^2; mpf at 30 digits):
 `ridge.ridge_test_error(gamma, lam, sigma2=0, signal=1)` (excess risk; lam = 0 is the ridgeless
@@ -1459,8 +1589,8 @@ required; amp also `N`, `seeds` (default 0-3), `iters` (default 2000; those two 
 `ridge` gains `covariance` (K6): "isotropic" or "e1:w1,..."; a spectrum skips the RS saddle point (isotropic only)
 and keeps the optimal penalty (labelled not-computed: its optimality under Sigma is derived here).
 `scalar_denoising` (exact): `prior` (gaussian (default) | rademacher | gauss_bernoulli | sparse | diluted (K5: unit
-variance, atoms +-1/sqrt(rho))), `rho` (the non-zero fraction, gauss_bernoulli / sparse / diluted, default 1/2), `var` (gaussian / gauss_bernoulli variance, default 1), `a` (the sparse
-atoms +-a, default 1), `Delta` (the noise variance of y = x + sqrt(Delta) z, rational > 0, default 1; snr = 1/Delta),
+variance, atoms +-1/sqrt(rho))), `rho` (the non-zero fraction, gauss_bernoulli / sparse / diluted, default 1/2),
+`var` (gaussian / gauss_bernoulli variance, default 1), `a` (the sparse atoms +-a, default 1), `Delta` (the noise variance of y = x + sqrt(Delta) z, rational > 0, default 1; snr = 1/Delta),
 `data` ("7.6" | "7.8" | "7.11", KZ's printed data sets, or a list of numbers: the posterior given them);
 `sparse_denoising` (replica): `Delta` (rational > 0; without it only `Delta_c`), `d` (= 2^N, N <= 40: `sigma_c2`, and
 with `Delta` the exact finite-d `f_N`).
@@ -1517,7 +1647,7 @@ re-runs the entry's banked comparisons) and its JSON (`target`, `spec`, `route`,
 | `precondition:order-parameter`, `:levels`, `:digits`, `:K`, `:temperature-range`, `unsupported:field`, `undetermined:stationary-points`, `ambiguous:minimiser`, `no-solution:certification`, `:radius-stall` | bounds (`bounds/`, `sk_bounds`): q or m outside Guerra's admissible set (q nondecreasing in [0, 1], m nondecreasing in (0, 1]); overlap / Parisi-parameter counts that do not match; digits not an int 1 .. 200; K outside 1 .. 5 (catalog: 1 or 2); K-step staircases outside 1 < beta <= 3 or with h != 0; the stationary points of P_RS not certified complete (a cover or monotone run undecided); two local minima with overlapping values; interval Newton or the precision escalation failing |
 | `precondition:coupling-matrix`, `:pm-one-couplings`, `:enumeration-size`, `:integer-patterns`, `:seed`, `:betas`, `:sweeps`, `:nbetas`, `:windows`, `:sizes`, `:samples`, `:order`, `:supported-disorder-law`, `no-solution:capacity`, `undetermined:ground-states`, `undetermined:equilibration` | Monte Carlo and enumeration (`numerics/`): J not a finite symmetric matrix with zero diagonal (PT: a stack of them), or not +-1/sqrt N for the +-J spectrum; N above the enumeration limit (SK 26, perceptron 30); P not an int >= 0, or alpha N not an integer; a seed not an int >= 0 (or a list of them); betas not positive and strictly increasing (the finite-size thermal route also needs beta > 0.5, `moments.pm_one_gap_limit` 0 <= beta < 1); sweeps / nbetas not an int >= 1 or betas not a sequence (never a silent default); fewer than two samples or a window split that is empty; fewer than three distinct sizes, or a size without >= 2 samples; a closure order other than 2, 3; a law other than `pm_one`, `gaussian`; every drawn pattern stored (draw more); the two PT runs of a sample disagreeing on its ground state (raise sweeps); a size whose late and early energy windows differ beyond the 99% band (raise sweeps) |
 | `precondition:ordered-phase`, `:size`, `:magnetization`, `:magnetization-grid`, `:branch`, `:off-critical`, `:Delta`, `:h0`, `:J`, `:alpha`, `:upper-half-plane`, `:state-point`, `:known-parameter`, `unsupported:field-law`, `unsupported:ensemble`, `unsupported:route`, `ambiguous:branch`, `undetermined:spinodal`, `no-solution:audit`, `:certification`, `:solver`, `:bracket` | K1 (`meanfield/`, `rmt/`): a spinodal asked for beta <= 1; N not an int in range; m outside (-1, 1) or off the finite-N grid (2k - N)/N; a branch not among the roots; the Laplace term at the critical point; Delta, h0 or J not > 0; Wishart without alpha; a cavity Stieltjes value at Im z <= 0; y without x; a parameter of the other law / ensemble; an unknown law, ensemble or rate route; the magnetization at h = 0, beta > 1 without a branch; a root count undecided at 4096 bits (at a spinodal, or beta = 1, h = 0); phi_N outside Lemma 2's window, Guerra's sandwich violated, or the maximum aligned with h not certified above the other |
-| `precondition:known-prior`, `:known-parameter`, `:rho`, `:var`, `:a`, `:snr`, `:Delta`, `:data`, `:dimension`, `:overlaps`, `:sigma2`, `:integer-N`, `unsupported:certified-prior`, `unsupported:map-mixed-measure` | Bayes denoising (`bayes/`, K2) and the REM moments: a prior not gaussian / rademacher / gauss_bernoulli / sparse, or a parameter it does not take; rho outside (0, 1]; var, a, Delta not rationals > 0; snr < 0 (or a grid point within the difference step of 0 for `check_immse`); data empty or not a KZ set; d not 2^N (N <= 40) or not >= 2; a Nishimori check without m or q; sigma2 <= 0 (Stein); the finite-N REM moments outside 2 <= N <= 400; a certified MMSE / I asked for a prior with no closed form; MAP of a prior mixing atoms and densities (no mode) |
+| `precondition:known-prior`, `:known-parameter`, `:rho`, `:var`, `:a`, `:snr`, `:Delta`, `:data`, `:dimension`, `:overlaps`, `:sigma2`, `:integer-N`, `unsupported:certified-prior`, `unsupported:map-mixed-measure` | Bayes denoising (`bayes/`, K2) and the REM moments: a prior not gaussian / rademacher / gauss_bernoulli / sparse / diluted (K5), or a parameter it does not take; rho outside (0, 1]; var, a, Delta not rationals > 0; snr < 0 (or a grid point within the difference step of 0 for `check_immse`); data empty or not a KZ set; d not 2^N (N <= 40) or not >= 2; a Nishimori check without m or q; sigma2 <= 0 (Stein); the finite-N REM moments outside 2 <= N <= 400; a certified MMSE / I asked for a prior with no closed form; MAP of a prior mixing atoms and densities (no mode) |
 | `precondition:factor-graph`, `:init`, `:bp`, `:enumeration-size`, `:population`, `:named-seeds`, `:q`, `:d`, `:c`, `:beta`, `:graph`, `unsupported:degree-law`, `unsupported:graph`, `unsupported:hard-constraints`, `no-solution:graph`, `no-solution:audit` | K3 (`factor/`, `coloring/`): a factor graph with a scope out of range or repeating a variable, a table of the wrong shape or with a negative / non-finite entry, unary weights with a zero sum; a BP init that is not uniform / random / planted / an (E, q) array; iters < 1 or damping outside [0, 1); more than 2^21 configurations to enumerate; pop < 100 or sweeps < 8; fewer than two named seeds; q not an int >= 2, d not an int >= 2, c not > 0, beta not a number or inf (c_ann, c_KS need beta > 0, the ferromagnetic ansatz a finite beta); no simple d-regular graph or G(N, M) out of range; a degree law other than regular / poisson; a graph other than regular / poisson; population dynamics on a law with hard zeros; d-regular switches that do not terminate; every population run non-finite (a non-converged BP or a drifting population is labelled, never refused) |
 | `unstable:<ansatz>` | `require_final` or `require_stable`: a computed stability is negative (RS replicon or cavity lambda < 0); `unstable:1rsb` also from `pspin_gardner_temperature` when the spherical scan is negative everywhere |
 | `unknown-stability:rs` | `require_final`: an RS value whose stability is not computed |
@@ -1545,10 +1675,18 @@ re-runs the entry's banked comparisons) and its JSON (`target`, `spec`, `route`,
 | `no-solution:capacity`, `:above-capacity`, `:state-point`, `:untied-slack`, `precondition:independent-pinned-directions`, `:dimension`, `:pinned-spherical-only`, `:overlap-range`, `:untied-structure` | pinned directions (`pinned.py`, `derive_pinned.py`, `pinned_modes.py`): kappa(M) has no interior maximum (no stationary point of C(M) at C = 0; the planted blind entropy); kappa >= the capacity kappa* (the volume is empty, no RS saddle with q < 1); no RS root (q, M) from the seeds; the untied branch (derived: M_2 = c M_1 violates M_2 >= M_1); |c| >= 1 (singular Gram matrix); d <= 0 or not finite (alpha: `precondition:alpha-range`); variables other than spherical; q outside (0, 1) in a class value; the untied stationarity of M_2 holds an energy term. Also `precondition:state-point` (d, c or alpha / n missing), `:known-parameter`, `:consistent-parameters` (alpha and n both), `:rs-saddle` (the float root fails the derived-equation audit), `:symbolic-replica-number` (explicit n) |
 | `unbanked:missing-entry`, `:malformed`, `:no-citation`, `:no-independent-route` | a banked reference value is absent or has no citation / no independent route (a value that fed a fit never certifies it) |
 | `precondition:known-channel`, `:known-parameter`, `:Delta`, `:sign-labels`, `:label-count`, `:variance-form`, `:positive-iters`, `:alpha`, `:matrix`, `:teacher-length`, `:size`, `:known-prior`, `:rho`, `:lambda`, `:sigma2`, `:theta`, `:covariance`, `:state-point`, `no-solution:bracket` | K6 (`linear/`, `learning/ridge.py`): an unknown channel or channel parameter, Delta < 0, a non-+-1 label on the sign channel, y of the wrong length, an unknown GAMP variance form, alpha not > 0, a non-finite matrix, rho outside (0, 1], lam < 0 or lam = 0 with alpha <= 1, sigma2 <= 0 (BM's hypothesis; noiseless problems are `compressed_sensing`), a threshold multiplier below kappa_min, a malformed covariance spectrum or one whose weights give non-integer coordinate counts, missing entry parameters; a planted calibration that cannot be bracketed.  GAMP, SE or AMP that does not converge is labelled (not converged / UNDETERMINED), never refused |
-| `precondition:parisi-m`, `:population`, `:init`, `:q`, `:d`, `:c`, `:beta`, `:size`, `:affinity`, `:named-seeds`, `:graph`, `:enumeration-size`, `:planted`, `:ansatz`, `unsupported:er-first-order`, `unsupported:graph`, `unsupported:ansatz`, `unsupported:thresholds`, `unsupported:beta` | K7 (`coloring/planted.py`, `rsb.py`, `rsb_pop.py`, `sample.py`, `catalog_coloring.py`): a Parisi m outside [0, 1]; a population size, sweeps or measure that is not a positive int (measure > sweeps); a 1RSB init other than frozen / ("tilt", eps); q < 3 for clusters; a regular degree that is not an int >= 2 or an ER mean degree not > 0; beta <= 0 for the planted coloring; N too small for M edges; c_in >= c_out; a graph other than regular / er; more than 6e6 colorings to enumerate; planted not a boolean; thresholds, m or pop under ansatz=rs; an unknown ansatz or thresholds; BP on planted graphs at finite beta; an ER clustering transition that is first-order (the ER 1RSB path does the continuous case only).  A population that drifts, seeds that disagree or a Sigma band containing 0 are labelled undetermined, never refused |
+| `precondition:parisi-m`, `:population`, `:init`, `:q`, `:d`, `:c`, `:beta`, `:size`, `:affinity`, `:named-seeds`, `:graph`, `:enumeration-size`, `:planted`, `:ansatz`, `unsupported:er-first-order`, `unsupported:graph`, `unsupported:ansatz`, `unsupported:thresholds`, `unsupported:beta` | K7 (`coloring/planted.py`, `rsb.py`, `rsb_pop.py`, `sample.py`, `catalog_coloring.py`): a Parisi m outside [0, 1]; a population size, sweeps or measure that is not a positive int (measure > sweeps); a 1RSB init other than frozen / ("tilt", eps); q < 3 for clusters; a regular degree that is not an int >= 2 or an ER mean degree not > 0; beta <= 0 for the planted coloring; N too small for M edges; c_in >= c_out; a graph other than regular / er; more than 6e6 colorings to enumerate; planted not a boolean; thresholds, m or pop under ansatz=rs; an unknown ansatz or thresholds; BP on planted graphs at finite beta; an ER clustering transition that is first-order (the ER 1RSB path does the continuous case only; this refusal is DATA-DEPENDENT: it fires on a computed outcome, after the runs, when the frozen start stays nontrivial at 0.95 c_inst, so whether a given (q, seeds, pop) refuses is known only after the populations ran; `run coloring --route cavity --param q=4 --param ansatz=1rsb --param thresholds=clustering` ends in it after about 60 s, measured).  A population that drifts, seeds that disagree or a Sigma band containing 0 are labelled undetermined, never refused |
 | `tex-engine:failed`, `tex-engine:unavailable` | `--pdf`: the engine ran and failed, or could not reach its offline resources |
 
-CATALOG (48 entries: the 7 of v1, 12 added by the extensions E4-E10, 5 by the online-learning tasks O1-O5 (O6 adds `rule=optimal` to `online_scm`), 3 by the Ising task I3, 2 by the percolation task P1, 1 by P2, 2 by P3, 1 by the Monte Carlo task M1, 2 by M2, 1 by M3, 2 by the dense-memory task D1, 3 by K1 (Krzakala & Zdeborova's lecture notes, Ch. 1-3), 2 by K2 (Ch. 7) and 2 by K3 (Ch. 4-6; K3 also adds the route `cavity` to `rfim`); K4 (Ch. 10) adds the q-group path to `sbm`; K5 (Ch. 8, 9, 11, 12) adds `spiked_wishart`, the diluted prior to `spiked_wigner` and `ansatz=1rsb` (ASP) to the `sk` amp route; K6 (Ch. 12, 16, 18) adds `lasso` and `compressed_sensing` and `covariance` to `ridge`; K7 (Ch. 13-14) adds `ansatz=1rsb` and `planted=true` to `coloring`; `list` shows the live table;
+CATALOG (48 entries: the 7 of v1, 12 added by the extensions E4-E10, 5 by the online-learning tasks O1-O5 (O6 adds
+`rule=optimal` to `online_scm`), 3 by the Ising task I3, 2 by the percolation task P1, 1 by P2, 2 by P3, 1 by the
+Monte Carlo task M1, 2 by M2, 1 by M3, 2 by the dense-memory task D1, and 10 by the Krzakala & Zdeborova
+lecture-notes series K1-K7: 3 by K1 (Ch. 1-3), 2 by K2 (Ch. 7, 15), 2 by K3 (Ch. 4-6; K3 also adds the route
+`cavity` to `rfim`), none by K4 (Ch. 10: the q-group path of `sbm`), 1 by K5 (Ch. 8, 9, 11, 12: `spiked_wishart`;
+also the diluted prior of `spiked_wigner` and `ansatz=1rsb` (ASP) on the `sk` amp route), 2 by K6 (Ch. 12, 16, 18:
+`lasso`, `compressed_sensing`; also `covariance` on `ridge`) and none by K7 (Ch. 13-14: `ansatz=1rsb` and
+`planted=true` on `coloring`; `rem` gains `condensation=true` from K2); `python3 -m replicant list | wc -l` gives
+48; `list` shows the live table;
 values at the default / banked state points):
 
 | entry | routes | headline values | banked references | finality |
@@ -1598,7 +1736,7 @@ values at the default / banked state points):
 | `curie_weiss` Curie-Weiss ferromagnet (KZ Ch. 1) | replica, cavity, exact | `beta_c` 1; at beta = 3/2: `h_sp` 0.138364, every root `m_*`, `phi_*`, `jacobian_*` (certified), `phi`, `f`, `e`, `s`, `magnetization`; `phi_field` (field-theoretic saddle); with `m`: `rate_legendre`, `rate_gartner_ellis`, `rate_ldp`; cavity: `phi`, `magnetization` (`abs_magnetization` at h = 0), `cavity_ratio`; exact: `phi_N`, `magnetization_N`, `abs_magnetization_N`, `energy_N`, `chi_N`, `rate_N` | `cw_beta_c` (printed); `cw_spinodal_fig1b4_beta1p5` (read off Fig. 1.B.4; the printed closed form is an erratum) | `phi`, `magnetization`, `f`, `e`, `s`, `rate_ldp` exact-by-literature (Theorem 1; Theorem 6 on the cavity route); finite-N values exact (certified); `h_sp`, field saddle and the convex rates not-computed |
 | `rfim` random field Ising model, fully connected (KZ Ch. 2) and on random graphs (Ch. 4) | replica, cavity | T = 0: `e_min` (-0.531204 at Delta = 0.36), `m_t0`, `delta_c_t0` 2/pi (derived); at `beta`: RS `m`, `phi`, `f`, `e`; with `N`: `e_ground_plus`, `e_ground` (exact sorted ground states), with `beta` `phi_exact`, `phi_guerra_lower`, `phi_guerra_upper` (statistical); cavity (K3): `beta_c_zero_field` (Ex. 4.2.1: atanh(1/(c - 1))/J regular, atanh(1/c)/J ER), at `beta` `m_cavity`, `phi_cavity` (population dynamics), with `N` `m_bp`, `phi_bp` | two readings of Fig. 2.2.1 (horizontal axis is sqrt(Delta), not the labelled Delta); cavity: KZ Sec. 4.2's 0.346 at c = 4 (`bethe_peierls_beta_dim2`) | RS values not-computed (physics-level); samples statistical; cavity values statistical (undetermined when the population drifts) |
 | `potts_bethe` q-state Potts on random d-regular / ER graphs (KZ Ch. 6) | cavity | `phi_para`, `e_para`, `s_para`, `beta_stab` (Eq. (6.13) / (6.22); q = 2: `beta_stab_ising` = -beta_stab/2); regular: every root of Eq. (6.11) (`fixed_points`), `phi`, `a_eq`, `phase`, `a_ferro`, `phi_ferro`; q >= 3: `beta_s`, `beta_c` (status determined only when the planted and the random start both converge; q = 3, d = 5: -0.693147 < -0.662198 < -0.658348); ER with `pop`: `phi_pd_planted`, `phi_pd_random`, `pd_phase`; with `N`: `phi_planted_bp`, `phi_random_bp`, `phases_bp` | Sec. 4.2's beta_BP for c = 2d, d = 2..5 (printed 3 digits, 0.346 truncated: tol 1e-3); Sec. 6.5.1's beta_stab(d = 4) -0.693, (d = 6) -0.4055, Fig. 6.5.1's -0.5108 | not-computed (BP fixed points, physics-level); `beta_s`, `beta_c` carry UNDETERMINED when a start fails; BP / population values statistical |
-| `coloring` graph q-coloring (Potts antiferromagnet) on ER graphs (KZ Sec. 6.4, 6.6; K7: Ch. 13-14) | cavity | `phi_para` (= annealed), `e_para`, `s_para`, `s_max` ln q at `e_at_s_max` c/(2q); `c_ann` (Eq. (6.17)), `c_ks` (Eq. (6.24)) at `beta` and at beta = oo (`c_ann_inf`, `c_ks_inf`); with `N`: `bp_converged_fraction`, `bp_max_deviation`; ansatz=1rsb: `c_r_m1`, `c_r_m1_regular`, `rigidity_leading`, `rigidity_zk_eq44`, `d_sp_regular`, `d_uncol_regular`, `d_col_regular`, with `pop` `sigma_sp`, `eta_sp`, with `m` `psi_1rsb`, `phi_1rsb`, `sigma_1rsb`, `q1_1rsb`, with `thresholds` `c_col_sp` / `c_d_1rsb`, `c_c_1rsb_upper` / `c_d_regular`, `c_c_regular`; planted=true: `c_in`, `c_out`, `c_l_planted`, with `N` `overlap_planted_bp`, `delta_phi_planted_bp`, `quiet` | c_KS(q = 3) = 4 and c_ann(q = 3) = 5.4 (Sec. 6.6, printed; the page names 5.4 the annealed threshold); K7: c_ann(q = 5) = 14.4 (the notes' p. 208 table, printed as "c_col"), ZK Table II c_col q = 3-5, c_d q = 3 (1RSB), c_r(m=1) q = 3-10, ZK Table I regular c_SP, c_s (q = 3-5), c_d, c_c (q = 4, 5); c_d / c_c q = 5 through `sbm` at c_in = 0 | not-computed (closed forms); BP, populations statistical |
+| `coloring` graph q-coloring (Potts antiferromagnet) on ER graphs (KZ Sec. 6.4, 6.6; K7: Ch. 13-14) | cavity | `phi_para` (= annealed), `e_para`, `s_para`, `s_max` ln q at `e_at_s_max` c/(2q); `c_ann` (Eq. (6.17)), `c_ks` (Eq. (6.24)) at `beta` and at beta = oo (`c_ann_inf`, `c_ks_inf`); with `N`: `bp_converged_fraction`, `bp_max_deviation`; ansatz=1rsb: `c_r_m1`, `c_r_m1_regular`, `rigidity_leading`, `rigidity_zk_eq44`, `d_sp_regular`, `d_uncol_regular`, `d_col_regular`, with `pop` `sigma_sp`, `eta_sp`, with `m` `psi_1rsb`, `phi_1rsb`, `sigma_1rsb`, `q1_1rsb`, with `thresholds` `c_col_sp` / `c_d_1rsb`, `c_c_1rsb_upper` / `c_d_regular`, `c_c_regular`; planted=true: `c_in`, `c_out`, `c_l_planted`, with `N` `overlap_planted_bp`, `delta_phi_planted_bp`, `quiet` | c_KS(q = 3) = 4 and c_ann(q = 3) = 5.4 (Sec. 6.6, printed; the page names 5.4 the annealed threshold); K7: c_ann(q = 5) = 14.4 (the notes' p. 208 table, printed as "c_col"), ZK Table II c_col q = 3-5, c_d q = 3 (1RSB), c_r(m=1) q = 3-10, ZK Table I regular c_SP, c_s (q = 3-5), c_d, c_c (q = 4, 5); c_d / c_c q = 5 through `sbm` at c_in = 0; ZK's q = 4 c_d, c_c, the ER q = 3 c_c and the regular q = 3 c_c are not banked (no route resolves them) | not-computed (closed forms); BP, populations statistical; ER q = 3 `c_c_1rsb_upper` is an upper bound with c_c labelled undetermined, regular q = 3 c_d, c_c undetermined (d = 5 is ZK's critical "5+"); an ER first-order clustering case is refused `unsupported:er-first-order` |
 | `scalar_denoising` Bayes-optimal scalar denoising (KZ Ch. 7) | exact | `mmse`, `mutual_information` (certified for gaussian, +-1: GSV Eqs. (11), (13), (17), (18); binary64 quadrature otherwise); with `data`: `posterior_mean`, `posterior_var`, `p_plus` (+-1), `p_nonzero` (Gauss-Bernoulli, sparse), certified | KZ's printed 0.630, 0.091 (Eq. (7.8)) and 0.8233787142909471 (Eq. (7.11)), Delta = 1 inferred (not printed) | posterior and the gaussian / +-1 MMSE, I exact-by-literature (certified balls); Gauss-Bernoulli / sparse MMSE, I not-computed (quadrature) |
 | `sparse_denoising` one-hot vector of dimension 2^N in Gaussian noise (KZ Sec. 7.3) | replica | `Delta_c` 1/(2 ln 2) = 0.721348; at `Delta`: `f` (Theorem 15), `q`, `mmse` (0 below Delta_c, 1 above), the REM route `f_rem`, `Delta_c_rem`, `beta_rem`; with `d`: `sigma_c2`, `f_N` (exact finite d) | `Delta_c`, f(1/2) = 1 - ln 2 (Theorem 15, evaluated) | exact-by-literature (Theorem 15, Derrida's REM); `f_N` not-computed |
 | `random_matrix` Wigner / Wishart spectra (KZ Ch. 3) | replica, cavity | wigner: `edge_lower`, `edge_upper` +-2, `density` (1/pi at x = 0); wishart: the MP edges (1 +- sqrt alpha)^2, `atom_zero` max(0, 1 - 1/alpha); with `y`: `stieltjes_re`, `stieltjes_im` | the semicircle edge and density at 0, 1; MP edges at alpha = 1/4, 1/2 (printed formulas evaluated) | not-computed (the theorems of Wigner and Marchenko-Pastur not fetched); `atom_zero` exact (rank) |
@@ -1730,44 +1868,82 @@ banked in `reference/perceptron.json` as independent targets. Honest limits:
   (default tier): time averages at N = 8 equal the exact spectrum means within 99% bands at four betas,
   and the planted acceptance rule (x0.8) and the reversed exchange sign are detected at every beta.
 
-ACCEPTANCE GATES: `python3 tools/replicant/selftest.py` (default tier: 781 tests after K2, 790 after K3, 803 after K4, about 30 s on a laptop at the 662 of the final fix wave (measured 30.2 s wall, cold, on a clean export); the margin-law, pinned-direction, negative-margin RSB and dense-memory tests added since were not re-timed cold; also `python3
-run_selftests.py replicant`, which runs the `python3` on PATH; run both from the activated project venv,
-which has python-flint) covers the core and
-refusal paths, the symbolic derivation against independent expressions, level agreement (a)=(b) for
-every family where both exist, every catalog entry against its banked non-slow values, the cavity routes,
-the composer and the held-out models, the CLI and the LaTeX writer (displayed equations re-checked
-numerically), the derived replicon (E1) and 1RSB (E2), AMP / GAMP and state evolution (E3), the 1RSB
-replicon and the Gardner transition (E4), K-XORSAT and K-SAT (closed forms, small-N exact checks, BP on
-trees, the SP-rule audit, small SP populations), LDPC density evolution and small peeling runs, the
-spiked-Wigner and SBM state evolution / KS line, the ridge closed forms and small simulations, the exact
-series and its operator, the certified lattice values and Guerra bounds, the PT detailed-balance gate
-and exact enumeration (E11), the dense-memory noise by four routes, its exact finite-N sampler against the exact REM quadrature of `families/rem.py`, the paper's gradient descent and the single-flip dynamics, with planted controls (D1), and the online-learning ODEs, Gaussian averages and a small simulation
-band (O1), the linear perceptron's ODEs, closed forms, offline geometry, ridge route and small online and
-offline simulation bands (O2), the drift flow, the VKC modulations and their class maximisation, VKC's
-drift-independence claim, the KC93 bound for every rule, stationary states and small-drift laws against
-the bank and a small drifting-teacher simulation band (O3), the TCM's internal-representation averages,
-CC95 Eqs. (5), (21), (24), (30), (32) against the TCM route, CKC96's equivalence with O1's noisy perceptron
-(and a planted wrong mapping failing), the asymptotic constants against K and a K = 3 simulation band
-(O4), the SCM's erf averages against Gauss-Hermite (with planted normalisation errors), the papers'
-fixed points, eigenvalues and critical rates against the ODE, the plateau report (escaped, undetermined,
-none, the rtol check) and a small simulation band with the eta^2 term planted out (O5), VC97's Eq. (3) and its gradients against O5's erf route, the closed ODE against quadrature of the pointwise modulation, the optimality positive control (perturbed modulations decay slower where H is positive definite, one decays faster at the saddle), Fig. 1 and the K = M = 2 plateau against the bank, gradient descent beaten, and a tiny simulation band with H misnormalised planted (O6), the 1D observables against exact rings and the 2D energy and specific heat against Kaufman-torus derivatives and the E8 series (I1), the correlation length against Onsager's strip spectrum and the direct strip matrix, the nu / eta consistency checks and the critical diagonal correlations (I2), the anisotropic, triangular and honeycomb free energies by two or three routes, the star-triangle and four-sector duality identities on exact tori and the high-temperature torus identity (I3), each with planted errors; the percolation fixed points, closed forms and sampled bands (P1), the 2D thresholds, exponents, Cardy's two routes, the exact crossing polynomials and Newman-Ziff sweeps against enumeration (P2), the k-core and bootstrap fixed points and thresholds against DGM's form, csp/xorsat.py and Balogh-Pittel's closed forms, and exact peeling / spreading (P3), each with planted errors; the cluster samplers' stationarity chi^2 and ergodicity with measured power and planted errors, Kaufman's polynomial and P2's crossing polynomial as exact targets (M1), Wang-Landau against the exact g(E), the multicanonical and Ferrenberg-Swendsen estimates against exact values with planted errors of measured power (M2), and population annealing's free energy against Kaufman and enumeration, its families and labels and the finite-R bias (M3). `--full` adds 222 `@slow` tests (the negative-margin perceptron's RSB ladder: K = 2 about 30 s per kappa, K = 3 about 7 minutes; full-RSB Parisi up to K = 9,
-population dynamics at reference sizes, the XORSAT GF(2) crossing at N = 400-2000 and leaf removal at
-N = 100000, the K-SAT SP-population crossing and BP window, the LDPC crossing at N = 20000, the spiked
-AMP and SBM bands at reference sizes, the ridge 1/n bands at n = 400, 1000, the online ODE-vs-simulation
-bands at N = 1000 (8 s; linear perceptron 2.3 s; drifting teacher 9 s; TCM at N = 3 x 300 4 s, CC95 Fig. 1
-and the nonlocal asymptote 8 s; SCM through the plateau at N = 1000 13 s, BRW's Eq. (17) and SS's 1/eta law
-6 s; VC97's K = M = 2 plateau about 2 min), the I1-I3 lattice checks at larger sizes, the ER critical window and the finite-size-scaling validation on the four solved lattices (P1, P2), the k-core second routes at extreme parameters (P3), the cluster Monte Carlo at L = 8-32 and the z fits, Wang-Landau at L = 4-16, multicanonical and Ferrenberg-Swendsen runs against Kaufman, population annealing at 8 x 8, 16 x 16 and SK N = 18 (M1-M3), the 2RSB certified bound and
-the K = 5 chain, the E11 Monte Carlo / enumeration held-out routes (about 4.6 min), the Hopfield replicon
-scans, the p-spin T -> 0 energy, solver-based composed and LaTeX checks, a PDF compile when a TeX engine
-is present) and takes about 35 minutes on a laptop (measured 34 min 39 s with 859 tests, cold, on a clean export, before the final fix wave; 983 tests now, not re-timed: the K = 3 RSB test alone is about 7 minutes); run it before merging
-a change to a family. The `@slow` marker is
-honoured by `selftest.py` only: pytest ignores it and would run everything. Level agreement between the
-derivation and the pipelines is a consistency check, not new evidence for the ansatz; the cavity route reproducing
-the replica RS equations is an independent derivation but NOT independent evidence for the RS ansatz.
+ACCEPTANCE GATES: `python3 tools/replicant/selftest.py` (default tier: 841 tests after K7, 58.96 s wall on a loaded
+machine (load average about 5; the 662 tests of the v1 final fix wave measured 30.2 s cold on an idle one); also
+`python3 run_selftests.py replicant`, which runs the `python3` on PATH; run both from the activated project venv,
+which has python-flint) covers the core and refusal paths, the symbolic derivation against independent expressions,
+level agreement (a)=(b) for every family where both exist, every catalog entry against its banked non-slow values,
+the cavity routes, the composer and the held-out models, the CLI and the LaTeX writer (displayed equations
+re-checked numerically), the derived replicon (E1) and 1RSB (E2), AMP / GAMP and state evolution (E3), the 1RSB
+replicon and the Gardner transition (E4), K-XORSAT and K-SAT (closed forms, small-N exact checks, BP on trees, the
+SP-rule audit, small SP populations), LDPC density evolution and small peeling runs, the spiked-Wigner and SBM
+state evolution / KS line, the ridge closed forms and small simulations, the exact series and its operator, the
+certified lattice values and Guerra bounds, the PT detailed-balance gate and exact enumeration (E11), the
+dense-memory noise by four routes, its exact finite-N sampler against the exact REM quadrature of
+`families/rem.py`, the paper's gradient descent and the single-flip dynamics, with planted controls (D1), and the
+online-learning ODEs, Gaussian averages and a small simulation band (O1), the linear perceptron's ODEs, closed
+forms, offline geometry, ridge route and small online and offline simulation bands (O2), the drift flow, the VKC
+modulations and their class maximisation, VKC's drift-independence claim, the KC93 bound for every rule, stationary
+states and small-drift laws against the bank and a small drifting-teacher simulation band (O3), the TCM's
+internal-representation averages, CC95 Eqs. (5), (21), (24), (30), (32) against the TCM route, CKC96's equivalence
+with O1's noisy perceptron (and a planted wrong mapping failing), the asymptotic constants against K and a K = 3
+simulation band (O4), the SCM's erf averages against Gauss-Hermite (with planted normalisation errors), the papers'
+fixed points, eigenvalues and critical rates against the ODE, the plateau report (escaped, undetermined, none, the
+rtol check) and a small simulation band with the eta^2 term planted out (O5), VC97's Eq. (3) and its gradients
+against O5's erf route, the closed ODE against quadrature of the pointwise modulation, the optimality positive
+control (perturbed modulations decay slower where H is positive definite, one decays faster at the saddle), Fig. 1
+and the K = M = 2 plateau against the bank, gradient descent beaten, and a tiny simulation band with H
+misnormalised planted (O6), the 1D observables against exact rings and the 2D energy and specific heat against
+Kaufman-torus derivatives and the E8 series (I1), the correlation length against Onsager's strip spectrum and the
+direct strip matrix, the nu / eta consistency checks and the critical diagonal correlations (I2), the anisotropic,
+triangular and honeycomb free energies by two or three routes, the star-triangle and four-sector duality identities
+on exact tori and the high-temperature torus identity (I3), each with planted errors; the percolation fixed points,
+closed forms and sampled bands (P1), the 2D thresholds, exponents, Cardy's two routes, the exact crossing
+polynomials and Newman-Ziff sweeps against enumeration (P2), the k-core and bootstrap fixed points and thresholds
+against DGM's form, csp/xorsat.py and Balogh-Pittel's closed forms, and exact peeling / spreading (P3), each with
+planted errors; the cluster samplers' stationarity chi^2 and ergodicity with measured power and planted errors,
+Kaufman's polynomial and P2's crossing polynomial as exact targets (M1), Wang-Landau against the exact g(E), the
+multicanonical and Ferrenberg-Swendsen estimates against exact values with planted errors of measured power (M2),
+and population annealing's free energy against Kaufman and enumeration, its families and labels and the finite-R
+bias (M3), and the Krzakala-Zdeborova lecture-notes series: Curie-Weiss by three toolboxes with disjoint call
+graphs and the exact binomial Z_N, the RFIM against exact sorted ground states and Guerra's sandwich, the spectra
+against eigvalsh (K1); the scalar posteriors against the notes' prints, I-MMSE, Nishimori and Stein with planted
+violations, sparse denoising against the REM, the REM condensation moments against exact finite-N quadrature and
+sampling (K2); BP and the Bethe free entropy exact on trees and labelled an approximation on loops, the q = 2 Potts
+against the certified `bethe_ising`, the population's homogeneous limits, the exact first moment against brute
+force (K3); q-group BP against `sbm` at q = 2 (no shared code), the computed q = 5 brackets, Ihara-Bass (K4); every
+diluted SE fixed point and the conventions both ways, the Wishart SE against its Gaussian closed form and small
+rectangular AMP, ASP against `sk_1rsb`, the golden pre-K5 values (K5); GAMP against amp/gamp, the LASSO against
+Bayati-Montanari's formulas and coordinate descent, the l1 boundary by two routes, ridge with a covariance against
+HMRT's definitions and all 14 ridge keys (K6); the colorability table, the rigidity scaling, the planted coloring's
+SBM link and small-N counts against the first moment and Bethe (K7), each with planted errors. `--full` adds 258
+`@slow` tests (the KZ series at reference sizes: the q = 5 SBM c_d, c_c by population dynamics, the finite-N BP
+pair, the non-backtracking bank and EM; the colorability, clustering and regular 1RSB tables by population
+dynamics, the planted-BP threshold at N = 5000 and the ER first-order refusal; the KS test of coloring BP on
+graphs; the slow catalog RefCheck over every entry, about 7.5 min; the negative-margin perceptron's RSB ladder: K =
+2 about 30 s per kappa, K = 3 about 7 minutes; full-RSB Parisi up to K = 9, population dynamics at reference sizes,
+the XORSAT GF(2) crossing at N = 400-2000 and leaf removal at N = 100000, the K-SAT SP-population crossing and BP
+window, the LDPC crossing at N = 20000, the spiked AMP and SBM bands at reference sizes, the ridge 1/n bands at n =
+400, 1000, the online ODE-vs-simulation bands at N = 1000 (8 s; linear perceptron 2.3 s; drifting teacher 9 s; TCM
+at N = 3 x 300 4 s, CC95 Fig. 1 and the nonlocal asymptote 8 s; SCM through the plateau at N = 1000 13 s, BRW's Eq.
+(17) and SS's 1/eta law 6 s; VC97's K = M = 2 plateau about 2 min), the I1-I3 lattice checks at larger sizes, the
+ER critical window and the finite-size-scaling validation on the four solved lattices (P1, P2), the k-core second
+routes at extreme parameters (P3), the cluster Monte Carlo at L = 8-32 and the z fits, Wang-Landau at L = 4-16,
+multicanonical and Ferrenberg-Swendsen runs against Kaufman, population annealing at 8 x 8, 16 x 16 and SK N = 18
+(M1-M3), the 2RSB certified bound and the K = 5 chain, the E11 Monte Carlo / enumeration held-out routes (about 4.6
+min), the Hopfield replicon scans, the p-spin T -> 0 energy, solver-based composed and LaTeX checks, a PDF compile
+when a TeX engine is present) and is not yet re-timed after K1-K7 (34 min 39 s with 859 tests, cold, on a clean
+export, before the v1 final fix wave; the K = 3 RSB test alone is about 7 minutes); run it before merging a change
+to a family. The `@slow` marker is honoured by `selftest.py` only: pytest ignores it and would run everything.
+Level agreement between the derivation and the pipelines is a consistency check, not new evidence for the ansatz;
+the cavity route reproducing the replica RS equations is an independent derivation but NOT independent evidence for
+the RS ansatz.
 
 KNOWN HAZARDS:
 - Rigor: PHYSICS-LEVEL, not proven, except the certified entries (`ising2d`, `ising1d`,
-  `bethe_ising`, the I3 lattices, `sk_bounds`, the percolation and k-core `cavity` and `exact` routes); the percolation `sample`
+  `bethe_ising`, the I3 lattices, `sk_bounds`, the percolation and k-core `cavity` and `exact` routes, K1's
+  `curie_weiss` route `exact` and `random_matrix` route `replica`, K2's `scalar_denoising` for the gaussian and +-1
+  priors); the percolation `sample`
   route and the Monte Carlo entries (`cluster_mc`, `wang_landau_mc`, `histogram_reweighting_mc`, `population_annealing_mc`)
   are `statistical`, and the `online` route is physics-level (the N -> oo ODE limit is assumed, no concentration theorem
   was fetched). `rigor` says which on every result; the n -> 0 continuation and the
@@ -2146,7 +2322,9 @@ KNOWN HAZARDS:
   large-q asymptotics c_d ~ q log q, c_c ~ 2q log q (printed as trends only).
 - Low rank and AMP (K5, KZ Ch. 8, 9, 11, 12; `inference/spiked_diluted.py`, `wishart.py`, `spin_glass_game.py`,
   `amp/asp.py`; entries `spiked_wigner` with `prior=diluted_rademacher`, `spiked_wishart`, `sk` amp `ansatz=1rsb`).
-  Conventions (each tested both ways): the notes' lambda is lambda_LM = lambda^2 throughout.  Diluted Rademacher:
+  Conventions (each tested both ways): for the unit-variance priors (Gaussian, +-1, the Wishart model) the notes'
+  lambda is lambda_LM = lambda^2; NOT for the diluted prior, whose notes' x is in {0, +-1}: there lambda = rho
+  sqrt(lambda_notes) (below).  Diluted Rademacher:
   replicant's prior is the unit-variance x in {0, +-1/sqrt(rho)}; LKZ (Eq. (33)), AFUZ and the notes' Ex. 8.2 take
   x in {0, +-1} with noise variance Delta, so Delta/rho^2 = 1/lambda^2 (their plotted axis) and LKZ's Delta_c = rho^2
   is lambda = 1.  Spiked Wishart: Y = (lambda/n) u v^T + W, n x m, W_ij ~ N(0, 1/n); Ch. 12's alpha = m/n is the
@@ -2197,7 +2375,8 @@ KNOWN HAZARDS:
   starts confirm it at alpha_BP (1 -+ 0.02).  The l1 boundary comes from DMM Eq. (5) and, independently, from the local
   stability of the soft-threshold SE; basis pursuit by LP (scipy HiGHS) at N = 300 crosses 1/2 between alpha_l1 -+ 0.08.
   Ridge with a covariance spectrum: the effective penalty kappa solves lam = kappa (1 - gamma df1(kappa)); identity
-  covariance reproduces all 12 banked ridge values through this path, and two- and three-point spectra agree with
+  covariance reproduces all 14 keys of reference/ridge.json through this path (the entry run with
+  `covariance=1:1`, the optimal penalty included), and two- and three-point spectra agree with
   HMRT's own Definitions 1-2 (Eqs. (10)-(11), (36)-(39)) to 1e-20 and with SVD fits.
   Sources fetched: DMM arXiv:0907.3574, BM arXiv:1008.2581, KMSSZ arXiv:1109.4424, Rangan arXiv:1010.5141, HMRT
   arXiv:1903.08560 (general covariance).
@@ -2482,6 +2661,101 @@ KNOWN HAZARDS:
   composition sum, equal to brute-force enumeration at N = 5, 6) approaches the annealed form at O(1/N). RFIM on graphs:
   the c -> oo limit with coupling J/c approaches the K1 replica route (c |dPhi| about 0.06 in the disordered phase);
   near the ordering transition the population relaxes slowly and is labelled undetermined.
+- ERRATA IN THE KZ NOTES (Krzakala & Zdeborova, lecture notes of June 9 2024; K1-K7). None is banked as printed; each
+  line gives the place, the corrected form and the route that confirms it (the task bullets above and below have the
+  detail). Formulas damaged only by the text extraction were reread on the PDF pages and are listed last.
+  - p. 33 (App. 1.B), the Curie-Weiss spinodal: printed h_sp = sqrt((1/beta)(1 - 1/beta)) - (1/beta) atanh sqrt(1 -
+    1/beta); corrected h_sp = sqrt(1 - 1/beta) - (1/beta) atanh sqrt(1 - 1/beta) (the double root of m = tanh beta(m +
+    h), at beta(1 - m^2) = 1). Route: Fig. 1.B.4's dashed spinodals at +-0.138 for beta = 1.5 (banked
+    `cw_spinodal_fig1b4_beta1p5`; corrected 0.13836, printed 0.0324), the certified root count across h_sp +- 1e-6 and
+    a grid sign-change count (tests/test_curie_weiss.py; planted `spinodal_sign`).
+  - p. 18 (Sec. 1.5): "g(m) = phi(beta, m) + beta h m" counts beta h m twice (phi already contains it); corrected g(m)
+    = phi(beta, m). Route: with the single term the field-theoretic saddle agrees with Theorem 1 to 1e-25; the double
+    count, planted as `curie_weiss._HOOKS["field_h"] = 2`, moves Phi by more than 1e-3 at beta = 3/2, h = 1/20
+    (tests/test_curie_weiss.py `test_cw_three_toolboxes_agree`).
+  - Fig. 2.2.1 (p. 43): the horizontal axis is the standard deviation sqrt(Delta), not the labelled variance Delta.
+    Route: read as sqrt(Delta) the curve gives -0.533 at 0.6 and -0.721 at 0.9 against Eq. (2.3)'s -0.5312, -0.7181,
+    and its kink sits at sqrt(2/pi) = 0.8; read as labelled the value at 0.6 would be about -0.62, which the test
+    asserts fails (tests/test_rfim.py; banked `rfim_fig221_emin_delta0p36`, `_delta0p81`).
+  - Lemmas 8 and 9 (Sec. 7.3) are labelled "Upper bound" / "Lower bound" but prove the reverse: Lemma 8 proves Phi_N
+    >= f, Lemma 9 Phi_N <= f + o(1). Route: the exact finite-d free entropy lies above Theorem 15's f in the 99% band
+    of direct samples (tests/test_bayes_scalar.py).
+  - Eq. (7.11) has a stray "]" after 1.11920946, and the scalar posteriors (7.6), (7.8), (7.11) are printed without
+    Delta: Delta = 1 is inferred (it reproduces all three; Delta = 1/2 and 2 reproduce none), said in the bank cites.
+  - p. 230 (Sec. 15.2): the participation ratio does not "diverge" at T_c; Y -> 0 there and its inverse (Fig. 15.2.1)
+    diverges. Route: Eq. (15.39) E[Y] = 1 - m and the exact finite-N moments (tests/test_rem_condensation.py).
+  - p. 59 (Sec. 4.2): "assuming d = 2c" is c = 2d (the preceding sentence says c = 2d). Route: atanh(1/(c - 1)) at c
+    = 2d reproduces the printed 0.346, 0.203, 0.144, 0.112 (0.346 is atanh(1/3) = 0.34657 truncated; tol 1e-3), the
+    Potts q = 2 map both ways (tests/test_potts_coloring.py).
+  - p. 106 (Sec. 6.6): "for beta -> 0 ... all proper colorings disappear" reads as beta -> oo (proper colorings are
+    the beta = oo limit of the antiferromagnet; Eq. (6.17)'s c_ann at beta = oo is the coloring bound). Not banked; no
+    route depends on it.
+  - Eq. (11.26), beta_c = sqrt(1/atanh(2M/N)), does not follow from (11.25), 1 = c tanh^2(beta); the corrected root
+    is tanh(beta_c) = 1/sqrt(c). Route: algebra, and the same equation B E tanh^2(beta_c J) = 1 (B = c, +-1
+    couplings) is the one `viana_bray` solves and banks (`beta_c_poisson_pm1_c3`). The sparse planted spin-glass game
+    of Sec. 11.2 is not implemented, so nothing from (11.26) is computed.
+  - Eq. (12.62) drops a beta from the AT criterion: (12.55) applied to f = tanh(beta x + h) gives beta^2 E[(1 -
+    tanh^2)^2] <= 1. Route: that is the AT replicon of `families/sk.py`, and the slope of amp's state evolution
+    satisfies 1 - slope = that replicon to 1e-5 (E3a, tests/test_amp_sk.py).
+  - Eqs. (12.97)-(12.100): V* stands inside g_u and U* inside g_v; the signal reaching u is U* (and V* reaches v), and
+    (12.98)'s closing parenthesis is misplaced. Route: LKZ (195)-(196), the Gaussian closed form of the two-overlap SE,
+    and finite-N rectangular AMP against the SE (tests/test_wishart.py; planted `alpha_in_u_channel`). Also: (12.63)-
+    (12.65)'s x is sqrt(q0) U, and "if r > 4 + 2 sqrt(alpha)" after (12.100) has no antecedent (not used).
+  - Sec. 12.2.5's "as shown in ?" is Antenucci, Krzakala, Urbani & Zdeborova, arXiv:1807.01296 (fetched): ASP.
+  - Eq. (12.173) prints "d f_RS/d lambda = 4 m^2/4"; the envelope theorem gives m^2/4. Not used: the matrix MMSE comes
+    from LM Theorem 1 (matrix_mmse = 1 - q^2), whose banked values `spiked_wigner` checks.
+  - Eqs. (12.163)-(12.164) = (18.17)-(18.18), the ridgeless generalisation error: alpha < 1 loses a -2 alpha,
+    corrected eps_gen = ((1 - alpha)^2 + alpha Delta)/(1 - alpha) + Delta = ((1 - alpha)^2 + Delta)/(1 - alpha), and
+    the E printed just above (12.163) has the same slip (corrected E = ((1 - alpha)^2 + alpha Delta)/(1 - alpha));
+    alpha > 1 has the wrong sign, corrected eps_gen = Delta alpha/(alpha - 1). Route: HMRT's ridgeless risk, banked
+    `ridgeless_g4_s0p25_r1` (alpha = 1/4: corrected 0.8333, printed 1.5) and `ridgeless_g0p5_s1_r1` (alpha = 2)
+    (tests/test_ridge_covariates.py `test_notes_ridge_errata_recorded`).
+  - Sec. 18.1.2, the closing q trace: "alpha (E + Delta) Omega" is (E + Delta)/alpha (it contradicts (18.15) at Omega
+    = I). Route: the banked `ridge_g2_lam0p1_s0p5_r2` through the notes' saddle point (same test).
+  - Eq. (16.86): "R + lambda Sigma if R < lambda Sigma" is R < -lambda Sigma (the soft threshold is odd). Route: the
+    soft threshold ST(u; theta) = sign(u) max(|u| - theta, 0) of linear/lasso.py, whose AMP fixed point equals the
+    exact LASSO solver (tests/test_lasso.py); the misprint itself is not planted in a test.
+  - p. 208 (Sec. 13.2.1), the threshold table: "c_col ~ 5.4" (q = 3) and "c_col ~ 14.4" (q = 5) are the annealed
+    (first-moment) thresholds 2 ln q / ln(q/(q - 1)) = 5.419, 14.427 of Eq. (6.17), not the colorability thresholds
+    (ZK Table II: 4.687, 13.669). Route: Eq. (6.17)'s closed form (banked as `coloring_c_ann_q3`, `coloring_c_ann_q5`),
+    the frozen-SP population root reproducing ZK's c_col (slow), and the default test asserting each print lies 0.7 or
+    more above ZK's c_col (tests/test_coloring_rsb.py). The "5.4" of p. 108 is named c_ann there, correctly.
+  - Sec. 13.2.3: "c_r > c_c for q < 9" holds for ZK's ER c_r(m = 1) against ZK's c_c (q = 8: 29.960 > 29.90; q = 9:
+    35.658 < 36.08), not for the notes' regular recursion against ZK's regular integer c_c at q = 3 or 7; tested for q
+    = 3-5 only.
+  - Extraction only (read on the PDF): Eq. (13.9) is ((q - 1 + e^-beta)/(1 - e^-beta))^2, the square on the whole
+    fraction (`planted._HOOKS["cl_power"]`); Eqs. (7.57)-(7.58)'s "1/2 log 2" is 1/(2 log 2); Fig. 6.5.1's legend
+    minus signs (-0.5108) are lost in the text; (12.104), (12.128) and the Fig. 10.4.1 caption have displaced
+    radicals; Exercises 7.2-7.3 cite a stale "section 6.2.x".
+  Errata of the primary sources, likewise not banked as printed: DKMZ p. 17 says the disassortative case is "c_in >
+  c_out" (it is c_in < c_out; the notes have it right); HMRT's Eq. (12) in the fetched arXiv version lacks a factor
+  c0 (at Sigma = I it gives sigma^2 gamma, not Cor. 2's sigma^2/(gamma - 1)); AFUZ's printed Delta_alg ~ 0.9805
+  rho^2 is 3e-4 below LKZ Fig. 3 and the computed 0.980792 (both banked, the tolerance covering the spread).
+- KZ-series hazards (K1-K7). The notes are a guide, not a bank: they print few numbers, and three of the plan's
+  pointers were wrong (AFUZ is arXiv:1805.05857, not 1802.01535; the ASP paper is arXiv:1807.01296; the "Ch. 14
+  table" is the p. 208 table of Sec. 13.2.1). Bank keys removed in review because no independent route resolved them:
+  `cs_alpha_l1_rho0p4` (DMM Eq. (5) evaluated, an input, not a target), `coloring_c_d_q4`, `coloring_c_c_q4`,
+  `coloring_c_c_q3`, `coloring_regular_d_c_q3`; the values stay in the run output, labelled. Decisions on
+  first-order points use converged runs only (planted and random starts both converged, or the run is
+  undetermined); an undetermined run never feeds an asserted band. `unsupported:er-first-order` is data-dependent
+  (above). PRE-EXISTING, outside this series: `sk` 1RSB at h = 0 (`families/sk.py`) selects a q0 > 0 stationary
+  point by largest f (q0 = 0.2146 at beta = 2), not the textbook q0 = 0 Parisi solution; ASP (`ansatz=1rsb`)
+  reproduces what `sk_1rsb` returns and is also tested on the exact q0 = 0 branch, so ASP is validated against that
+  selection, which is an open physics question for the `sk` entry. The q = 5 c_d / c_c slow tests run close to the
+  2-minute cap on a loaded machine.
+- KZ NOTES, NOT IMPLEMENTED (the methods of the gap maps of 2026-11-23 that have no code after K7, found by searching
+  the package at K8; the per-task bullets above list the rest). Not built by any K1-K7 task: Curie-Weiss dynamics
+  (Metropolis / Glauber and the mean-field ODE, Exs. 1.4-1.5), the fully connected Potts model (Ex. 1.6), the Gibbs
+  variational principle as a computation (Sec. 1.3), the RFIM large-deviation free entropy at fixed magnetization
+  (Secs. 2.2.3, 2.3.1), the sparse Ising 3-spin model, independent sets and matchings by BP (Ex. 5.1), the fully
+  connected limit of Potts BP (Ex. 6.2; the RFIM c -> oo limit is checked instead), the sparse planted spin-glass game
+  (Sec. 11.2; the dense game is the Rademacher spike), relaxed BP (Sec. 16.2) and the GLM free entropy (Sec. 16.5,
+  (16.70)-(16.72)), the probit channel (Sec. 17.1), misspecified covariates and finite-N training errors (Sec. 18.1),
+  the random subcube model (Ex. 14.1), the maximum of Gaussians / two-sparse denoising (Ex. 15.3), the q = 10, c = 10
+  SBM case, a Gibbs sampler, finite-N diluted AMP and ASP (refused by name), the ER first-order 1RSB path (refused by
+  name).  Non-goals by design: the rigorous proofs as proofs (Guerra's interpolation, App. 1.C, Secs. 12.4-12.5; they
+  are cited behind `exact-by-literature` labels and Guerra's bound is computed for the RFIM) and the probability
+  appendix (Ch. 19).
 - Online learning (O1, `online/`, entry `online_perceptron`). Convention Biehl & Riegler 1994 (preprint
   read): |B| = 1, inputs i.i.d. N(0, 1), J <- J + (eta / N) F(h, b, Q) b xi, R = J . B, Q = J . J (BR's
   Q is |J|), alpha = examples / N, eps = arccos(R / sqrt Q) / pi against the TRUE teacher (the

@@ -13,7 +13,7 @@ flowchart LR
     end
     subgraph Composer
         COMP["compose.py<br/>nearest_entry, compose"]
-        CAT["catalog*.py<br/>38 CatalogEntry"]
+        CAT["catalog*.py<br/>48 CatalogEntry"]
         LA["derive*.py, gauss.py, ansatz.py<br/>level (a) steps"]
     end
     subgraph Engines
@@ -24,6 +24,7 @@ flowchart LR
         ONL["online/, learning/, dense_memory/"]
         SMP["montecarlo/, percolation/, numerics/"]
         SER["series/"]
+        KZN["meanfield/, rmt/, bayes/<br/>factor/, coloring/, linear/"]
     end
     subgraph Core
         CORE["core.py<br/>Step, State, Trace, Refusal"]
@@ -38,8 +39,8 @@ flowchart LR
     SPEC --> COMP
     COMP --> CAT
     COMP --> LA
-    CAT --> FAM & CAV & AMP & LAT & ONL & SMP & SER
-    FAM & CAV & AMP & LAT & ONL & SMP & SER & LA --> CORE
+    CAT --> FAM & CAV & AMP & LAT & ONL & SMP & SER & KZN
+    FAM & CAV & AMP & LAT & ONL & SMP & SER & KZN & LA --> CORE
     CORE --> RES
     RES --> REF
     RES --> TEX

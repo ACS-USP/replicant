@@ -18,6 +18,9 @@ theorem's formula or a rigorous bound. It does not certify the cited theorem its
 | `sk_bounds` (`bound`) | Guerra's RS and K-step bounds on the SK pressure, and a chain check of the package's own RS / 1RSB / K-RSB optimisers | `bounds/guerra.py`, `bounds/krsb.py`, `bounds/chain.py` |
 | percolation `cavity` routes | generating-function and k-core fixed points, birth points | `percolation/cavity.py`, `percolation/kcore.py` |
 | `percolation_lattice` (`exact`) | 2D thresholds, exponents, Cardy's formula, exact crossing polynomials | `percolation/exact2d.py`, `percolation/cardy.py`, `percolation/enumerate2d.py` |
+| `curie_weiss` (`exact`; K1) | Z_N by the binomial sum and its moments at finite N; the replica route solves Theorem 1 in balls (every root, interval Newton) | `meanfield/cw_exact.py`, `meanfield/curie_weiss.py` |
+| `random_matrix` (`replica`; K1) | the Wigner and Marchenko-Pastur Stieltjes transforms, densities and edges | `rmt/stieltjes.py` |
+| `scalar_denoising` (`exact`; K2) | the posteriors, and the MMSE and mutual information for the gaussian and +-1 priors (the run's rigor is a label of the prior: the Gauss-Bernoulli and sparse MMSE, I are binary64 quadrature) | `bayes/channels.py` |
 
 The certified routes refuse rather than round. Examples:
 - a radius that does not halve when the precision doubles (`no-solution:radius-stall`);
@@ -37,6 +40,9 @@ their stderr is in `errors`, and they are **never final**.
 | Population annealing (`population_annealing_mc`) | Machta's algorithm, 2D Ising torus or one SK / ±J matrix | `montecarlo/population.py`, `sk_metropolis.py` |
 | Percolation `sample` | union-find on finite graphs, Newman–Ziff sweeps, finite-size scaling, exact peeling | `percolation/sampling.py`, `lattice2d.py`, `fss2d.py`, `kcore_sample.py` |
 | Population dynamics | sparse RS / 1RSB populations | `cavity/` |
+| Factor-graph BP and populations (K3, K4, K7) | BP on sampled graphs from planted and random starts, population dynamics over a factor law, the q-group SBM populations, the coloring 1RSB and frozen-SP populations | `factor/`, `inference/sbm_q*.py`, `coloring/` |
+| Finite-N AMP, GAMP, convex solvers (K5, K6) | rectangular AMP and SVD, GAMP, LASSO AMP against coordinate descent, basis pursuit by LP | `inference/wishart.py`, `linear/` |
+| Exact small systems (K1-K3, K7) | Curie-Weiss Z_N, RFIM ground states by sorting, enumeration of factor graphs and colorings | `meanfield/`, `factor/enumerate.py`, `coloring/sample.py` |
 
 Shared statistics live in `montecarlo/stats.py`: tau_int, binning, the jackknife, Student-t bands,
 the equilibration diagnostic, chi^2 and z fits. The rules every sampled route follows:
@@ -49,7 +55,9 @@ the equilibration diagnostic, chi^2 and z fits. The rules every sampled route fo
 3. Per-run units, such as the Wolff sweep unit, are fixed once per run by a pilot chain, not
    estimated seed by seed.
 4. When a diagnostic fails, the affected values are labelled undetermined. An undetermined run
-   never feeds an asserted reference band.
+   never feeds an asserted reference band. A first-order point (Potts, the q-group SBM, the diluted spike)
+   is stated only when the planted and the random start both converged.
+5. A Bethe free entropy on a loopy finite graph is labelled an approximation; on a tree it is exact.
 
 ## Independent finite-N checks
 

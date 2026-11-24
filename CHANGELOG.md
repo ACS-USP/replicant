@@ -215,8 +215,45 @@ All notable changes to BootLoops are recorded here. The format follows
   interactions are refused `unsupported:interaction`; a finite-temperature free energy of the memory is not in the paper and is not
   claimed. `dense_memory/MAPPING_INFONCE.md` maps the model to InfoNCE (lam = 1/(tau d)) and states what it does not say about the
   critical n(d, tau) and the per-query threshold c(d) tau.
+- `replicant` (K1-K7): the methods of Krzakala & Zdeborova's lecture notes (*Statistical Physics Methods in Optimization
+  and Machine Learning*, June 9 2024), 10 new entries (48 in all) and generic layers. K1 (Ch. 1-3, `meanfield/`, `rmt/`):
+  `curie_weiss` (Theorem 1 in arb with every root, the cavity and field-theoretic toolboxes as disjoint code, Z_N by
+  the binomial sum, the rate functions, the corrected spinodal), `rfim` (RS, exact sorted ground states, Guerra's
+  bounds on each sample), `random_matrix` (Wigner and Wishart Stieltjes transforms by replica and cavity, against
+  eigvalsh). K2 (Ch. 7, 15, `bayes/`): one scalar channel with a prior registry, vectorised denoisers, MMSE and mutual
+  information (certified for the gaussian and +-1 priors), the Nishimori / Stein / I-MMSE validators; `scalar_denoising`,
+  `sparse_denoising` (Theorem 15 beside a REM route); `rem` `condensation=true` (participation ratio, its second
+  moment, the overlap law against exact finite-N quadrature and sampling). K3 (Ch. 4-6, `factor/`, `coloring/`):
+  factor-graph BP with the Bethe free entropy labelled exact on trees and an approximation on loops, population
+  dynamics over a factor law, enumeration; `potts_bethe`, `coloring`, and the route `cavity` of `rfim`. K4 (Ch. 10):
+  `sbm` with `q` groups (BP with the non-edge field, planted / random starts, the Bethe free entropy, the q = 5
+  first-order c_d, c_c by population dynamics against DKMZ's 12.84, 13.23, EM with a BIC group-count rule, the
+  non-backtracking spectrum). K5 (Ch. 8, 9, 11, 12): `spiked_wigner` with `prior=diluted_rademacher` (every SE fixed
+  point, the spinodals, the IT threshold, the hard phase, the tricritical point, against AFUZ and LKZ),
+  `spiked_wishart` (two-overlap SE, rectangular AMP, the BBP edge), ASP as `sk`'s amp `ansatz=1rsb`, the dense
+  spin-glass game as the Rademacher spike. K6 (Ch. 12, 16, 18, `linear/`): GAMP with a channel x prior interface and
+  its Bayes SE (reproducing `amp/gamp.py`), `lasso` (KZ Alg. 4 with the derived calibration lam = theta (alpha - b),
+  against coordinate descent and Bayati-Montanari), `compressed_sensing` (l1, Bayes-spinodal and IT boundaries), and
+  `ridge` `covariance`. K7 (Ch. 13-14): `coloring` `ansatz=1rsb` (the notes' regular frozen-SP closed form and the ER
+  survey population against ZK 2007 Tables I-II, the 1RSB cavity by Parisi-reweighted population dynamics, the
+  rigidity recursion) and `planted=true` (the planted coloring as the SBM with c_in = 0, BP from the planted start,
+  quiet planting), exhaustive small-N counts against the first moment and Bethe. Every check has a planted control;
+  statistical values carry 99% Student-t bands over named seeds; a run whose diagnostic fails is labelled
+  `undetermined`, never refused. The notes' misprints (the p. 33 spinodal, p. 18's g(m), Fig. 2.2.1's axis, (11.26),
+  (12.62), (12.97)-(12.100), (12.163)-(12.164) = (18.17)-(18.18), (12.173), (16.86), the p. 208 table's "c_col" = the
+  annealed thresholds and others) are not banked as printed; the GUIDE's KNOWN HAZARDS lists each with the corrected
+  form and the confirming route. Primaries fetched: GSV, DKMZ, KMMNSZZ, LKZ, BBP, AFUZ (arXiv:1805.05857, not the
+  plan's 1802.01535), ASP (arXiv:1807.01296), DMM, BM, KMSSZ, Rangan, HMRT, ZK; Wigner, Marchenko-Pastur and
+  Krzakala-Zdeborova 2009 were not, and nothing is banked from them. Existing entries keep their numbers (golden
+  values from a pre-K5 export; every old parameter set unchanged).
 
 ### Changed
+- `replicant` (documentation, K8): GUIDE (the K1 / K7 route summary, the catalog header with per-task counts, the
+  refusal rows, API paragraphs for `meanfield/`, `rmt/`, `bayes/`, `factor/`, `coloring/`, worked examples for every
+  K1-K7 entry run literally, the errata of the notes and of the primaries, the KZ-series hazards and what is not
+  implemented), README, `tools/README.md`, REFERENCES (each source of the series: read, fetched with its arXiv id, or
+  not fetched), the spec's as-built section and the wiki bundle (`docs/wiki/`); `compose.py`'s module docstring
+  (a rigor may be a callable of the values). No number or behaviour changed.
 - `replicant` (documentation and cleanup, O7): GUIDE (catalog, refusal table, routes, finality notes, hazards,
   every worked example re-run literally on a clean export), README, REFERENCES (every source of the four plans
   classified primary / secondary / abstract only) and the online spec's and three plans' as-built sections updated;
