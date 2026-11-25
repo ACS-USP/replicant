@@ -96,10 +96,69 @@ def _rademacher_prior():
 PRIORS = {"gaussian": _gauss_prior(), "rademacher": _rademacher_prior()}
 
 
-def _prior(name):
+_DILUTED = "diluted_rademacher"
+
+
+def _diluted_rho(rho):
+    """rho in (0, 1] as a float, else the precondition:rho refusal."""
+    bad = Refusal("precondition:rho", f"rho={rho!r}: the diluted prior needs a number in (0, 1]")
+    if isinstance(rho, bool) or rho is None:
+        raise bad
+    try:
+        r = float(rho)
+    except (TypeError, ValueError):
+        raise bad from None
+    if not (math.isfinite(r) and 0 < r <= 1):
+        raise bad
+    return r
+
+
+_DILUTED_CACHE = {}
+
+
+def diluted_prior(rho):
+    """Unit-variance diluted Rademacher prior x in {-a, 0, a}, a = 1/sqrt(rho), P(0) = 1 - rho (cached per rho).
+
+    Denoiser on y = gamma x + sqrt(gamma) G, in closed form with the exponentials divided through by e^{u},
+    u = |a y|:  F = a rho sinh(a y) / (rho cosh(a y) + (1 - rho) e^{gamma a^2 / 2}),  dF = Var[x | y] =
+    a^2 rho cosh(a y) / (same) - F^2.  Written in numpy only: nothing from bayes/ or spiked_diluted."""
+    r = _diluted_rho(rho)
+    if r in _DILUTED_CACHE:
+        return _DILUTED_CACHE[r]
+    a = 1 / math.sqrt(r)
+
+    def parts(y, g):
+        # numerator sinh and denominator D = rho cosh(a y) + (1 - rho) e^{g a^2/2} (and cosh), all divided by
+        # e^{m}, m = max(|a y|, g a^2/2): every exponent is <= 0, so nothing overflows
+        u = np.abs(a * np.asarray(y, dtype=float))
+        s = g * a * a / 2
+        m = np.maximum(u, s)
+        eu, e_u, es = np.exp(u - m), np.exp(-u - m), np.exp(s - m)
+        den = r * (eu + e_u) / 2 + (1 - r) * es
+        return a * r * (eu - e_u) / 2 / den, a * a * r * (eu + e_u) / 2 / den
+
+    def F(y, g):
+        return np.sign(y) * parts(y, g)[0]
+
+    def dF(y, g):
+        f, second = parts(y, g)
+        return np.maximum(second - f * f, 0.0)
+
+    def sample(rng, n):
+        mask = rng.random(n) < r
+        return a * mask * rng.choice(np.array([-1.0, 1.0]), size=n)
+
+    P = Prior(_DILUTED, np.array([-a, 0.0, a]), np.array([r / 2, 1 - r, r / 2]), F, dF, sample)
+    _DILUTED_CACHE[r] = P
+    return P
+
+
+def _prior(name, rho=None):
+    if name == _DILUTED:
+        return diluted_prior(rho)
     if not isinstance(name, str) or name not in PRIORS:
         raise Refusal("precondition:known-prior",
-                      f"prior={name!r}; known: {', '.join(PRIORS)} (zero mean, unit variance)")
+                      f"prior={name!r}; known: {', '.join(PRIORS)}, {_DILUTED} (zero mean, unit variance)")
     return PRIORS[name]
 
 
