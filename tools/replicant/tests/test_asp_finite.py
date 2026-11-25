@@ -204,3 +204,72 @@ def test_asp_finite_imports_nothing_from_asp():
     for fine in ("from . import sk", "from .sk import sk_matrix", "from ._stats import student_band",
                  "from ..core import Refusal", "from .asp_finite import _denoise"):
         assert _bad_imports(fine) == [], fine
+
+
+# ---- catalog wiring: sk amp route with ansatz=1rsb (wiring only; the physics is above) -------------------------
+def _cat_run(**kw):
+    from replicant.catalog import catalog
+    from replicant.compose import compose
+    return compose(catalog()["sk"].spec, "amp").run(**kw)
+
+
+def _cat_refusal(**kw):
+    from replicant.core import Refusal
+    try:
+        out = _cat_run(**kw)
+    except Refusal as r:
+        return r
+    raise AssertionError(f"expected Refusal, got {out!r}")
+
+
+_M_STR = repr(_m(2))
+_TINY = dict(beta=2, m=_M_STR, ansatz="1rsb", N=400, seeds=(0, 1, 2), iters=5)
+
+
+def test_sk_asp_catalog_finite():
+    """The 1rsb catalog route with N: q0_se_t, q1_se_t are the asp_trajectory entry iters (exact-by-literature, with
+    the plug-in note), q0_amp, q1_amp bands are statistical and not final; q0_asp, q1_asp stay.  Tiny N, wiring only."""
+    r = _cat_run(**_TINY)
+    v = r.values
+    tr = A.asp_trajectory(2, _m(2), iters=5)
+    assert v["q0_se_t"] == tr[5][0] and v["q1_se_t"] == tr[5][1], (v, tr[5])
+    assert v["N"] == 400 and v["seeds"] == [0, 1, 2] and v["iters"] == 5 and "asp_converged_fraction" in v
+    assert "q0_asp" in v and "q1_asp" in v
+    for k in ("q0_amp", "q1_amp"):
+        assert k in v and v[k + "_halfwidth99"] > 0 and k in r.errors and k in r.statistical, k
+        assert r.finality[k].state == "not-computed" and not r.finality[k].final, r.finality[k]
+    for k in ("q0_se_t", "q1_se_t"):
+        assert r.finality[k].state == "exact-by-literature", r.finality[k]
+        assert "plug-in" in r.finality[k].note, r.finality[k].note
+    assert r.final is False
+    d = _cat_run(**{k: x for k, x in _TINY.items() if k not in ("seeds", "iters")}).values
+    assert d["seeds"] == list(range(6)) and d["iters"] == 20 and d["start"] == [0.5, 0.95], d
+
+
+def test_sk_asp_catalog_start_from_cli_strings():
+    """start arrives from the CLI as decimal strings: converted, echoed as floats; a malformed or q0 > q1 pair is
+    precondition:start, raised before any matrix is sampled."""
+    r = _cat_run(**_TINY, start=("0.5", "0.95"))
+    assert r.values["start"] == [0.5, 0.95], r.values["start"]
+    assert r.values["q0_se_t"] == A.asp_trajectory(2, _m(2), start=(0.5, 0.95), iters=5)[5][0]
+    for bad in (("0.9", "0.5"), ("0.5",), ("a", "b")):
+        assert _cat_refusal(**_TINY, start=bad).reason == "precondition:start", bad
+    old, F.sk_matrix = F.sk_matrix, lambda *a, **k: (_ for _ in ()).throw(AssertionError("matrix sampled"))
+    try:
+        assert _cat_refusal(**_TINY, start=("0.9", "0.5")).reason == "precondition:start"
+    finally:
+        F.sk_matrix = old
+
+
+def test_sk_asp_catalog_refusals():
+    """law with 1rsb, and seeds / iters / start without N, are precondition:known-parameter; the retired refusal
+    name appears in no .py under tools/replicant."""
+    base = dict(beta=2, m=_M_STR, ansatz="1rsb")
+    assert _cat_refusal(**base, N=400, law="gaussian").reason == "precondition:known-parameter"
+    assert _cat_refusal(**base, law="gaussian").reason == "precondition:known-parameter"
+    for k, val in (("iters", 5), ("seeds", (0, 1)), ("start", ("0.5", "0.95"))):
+        r = _cat_refusal(**base, **{k: val})
+        assert r.reason == "precondition:known-parameter" and k in r.detail, (k, r)
+    needle = "unsupported:" + "asp-finite-n"
+    hits = [str(p) for p in PKG.rglob("*.py") if needle in p.read_text()]
+    assert hits == [], hits

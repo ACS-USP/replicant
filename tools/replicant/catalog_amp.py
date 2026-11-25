@@ -142,11 +142,16 @@ def _sk_ansatz(p):
                       "propagation)")
     if a == "rs" and p.get("m") is not None:
         raise Refusal("precondition:known-parameter", "m (the Parisi parameter) applies to ansatz=1rsb only")
+    if a == "rs" and p.get("start") is not None:
+        raise Refusal("precondition:known-parameter", "start (the ASP initial pair) applies to ansatz=1rsb only")
     if a == "1rsb":
-        stray = [k for k in ("N", "seeds", "iters", "law") if p.get(k) is not None]
+        if p.get("law") is not None:
+            raise Refusal("precondition:known-parameter", "law: ansatz=1rsb is Gaussian-J only (the ASP finite-N run "
+                          "samples Gaussian matrices)")
+        stray = [k for k in ("seeds", "iters", "start") if p.get(k) is not None] if p.get("N") is None else []
         if stray:
-            raise Refusal("unsupported:asp-finite-n", f"{', '.join(stray)}: ansatz=1rsb runs the ASP state "
-                          "evolution only (finite-N ASP is not implemented)")
+            raise Refusal("precondition:known-parameter", f"{', '.join(stray)}: finite-N parameters need N (the sk amp "
+                          "route with ansatz=1rsb and no N runs the ASP state evolution only, which reads beta, m, h)")
         if p.get("beta") is None or p.get("m") is None:
             raise Refusal("precondition:state-point", "the sk amp route with ansatz=1rsb needs beta and m")
     return Out({}, f"ansatz {a}")
@@ -165,21 +170,55 @@ _ASP_CITE = ("Krzakala & Zdeborova, lecture notes (June 9 2024), Sec. 12.2.5, Eq
              "Krzakala, Urbani & Zdeborova, arXiv:1807.01296, Sec. IV B")
 
 
+def _sk_asp_finite(p):
+    """Finite-N ASP (amp/asp_finite.py) against the ASP SE at the same t (amp/asp.py).  asp_trajectory runs first, so
+    a malformed start (the CLI hands decimal strings) is refused before any matrix is sampled."""
+    from .amp.asp import asp_trajectory
+    from .amp.asp_finite import asp_amp_ensemble
+    seeds, iters = _checks.seeds(p.get("seeds", SEEDS)), p.get("iters", 20)
+    beta, m, h = float(mp.mpf(p["beta"])), float(mp.mpf(p["m"])), float(mp.mpf(p.get("h", 0)))
+    tr = asp_trajectory(beta, m, h, start=p.get("start"), iters=iters)
+    start = tr[0]
+    ens = asp_amp_ensemble(p["N"], beta, m, h, seeds=seeds, iters=iters, start=start)
+    (q0_t, q1_t), b0, b1 = tr[iters], ens.bands["q0"], ens.bands["q1"]
+    frac = sum(bool(c) for c in ens.converged) / len(ens.converged)
+    vals = {**_band_values("q0_amp", b0), **_band_values("q1_amp", b1), "q0_se_t": q0_t, "q1_se_t": q1_t,
+            "N": p["N"], "seeds": list(seeds), "iters": iters, "start": list(start), "asp_converged_fraction": frac}
+    return Out(vals, f"ASP over seeds {list(seeds)}: q0 = {b0.mean:.6g} +- {b0.half_width:.3g}, q1 = {b1.mean:.6g} +- "
+               f"{b1.half_width:.3g} (99% Student-t, df = {b0.df}); ASP SE at t = {iters} from start {list(start)}: "
+               f"({q0_t:.6g}, {q1_t:.6g})",
+               errors={"q0_amp": b0.stderr, "q1_amp": b1.stderr}, statistical=("q0_amp", "q1_amp"),
+               notes=(ens.note,) if frac == 1 else (ens.note, f"asp_converged_fraction = {frac:.3g}: some seeds did not "
+                                                              "reach the tolerance within iters (labelled, not refused)"))
+
+
 def sk_amp_route():
     rs = lambda p: p.get("ansatz", "rs") == "rs"
     steps = [fstep("amp-ansatz", "AMP (rs) or approximate survey propagation (1rsb)", _sk_ansatz),
              fstep("amp-state-evolution", BM11, _sk_se, when=rs, skip="ansatz=1rsb (ASP)"),
              fstep("amp-finite-n", BM11 + " (finite-N iterates: statistical)", _sk_finite,
                    when=lambda p: rs(p) and has("N")(p), skip="no N given (finite-N AMP runs only with N)"),
-             fstep("asp-state-evolution", _ASP_CITE, _sk_asp, when=lambda p: not rs(p), skip="ansatz rs")]
+             fstep("asp-state-evolution", _ASP_CITE, _sk_asp, when=lambda p: not rs(p), skip="ansatz rs"),
+             fstep("asp-finite-n", _ASP_CITE + "; " + BM11 + " (finite-N iterates: statistical)", _sk_asp_finite,
+                   when=lambda p: not rs(p) and has("N")(p),
+                   skip="no N given (finite-N ASP runs only with N), or ansatz rs")]
     asp = Stability("not-computed", "1rsb-asp-se", _ASP_CITE,
                     "fixed point of ASP's state evolution at the given Parisi m: the 1RSB q0, q1 equations (the m "
                     "equation is not imposed); 1RSB is not the exact SK solution: physics-level, NOT final")
+    se_t = Stability("exact-by-literature", "asp-se", _ASP_CITE + "; " + BM11,
+                     "ASP state evolution at the finite t of the AMP runs, from the same start: SE at a fixed t for a "
+                     "Lipschitz AMP with deterministic q0, q1 (Bayati-Montanari 2011, Gaussian J).  The finite-N run "
+                     "uses the empirical q0^t, q1^t as plug-ins, not literally the theorem's deterministic-q "
+                     "algorithm; BM covers the deterministic-q f_t (Lipschitz)")
     fin = {"q_se": _sk_q_se, "q_se_t": _sk_q_se_t,
-           "q_amp": _stat("q_amp", "AMP on sampled matrices (amp/sk.py)"), "q0_asp": asp, "q1_asp": asp}
+           "q_amp": _stat("q_amp", "AMP on sampled matrices (amp/sk.py)"), "q0_asp": asp, "q1_asp": asp,
+           "q0_se_t": se_t, "q1_se_t": se_t,
+           "q0_amp": _stat("q0_amp", "ASP on sampled matrices (amp/asp_finite.py)"),
+           "q1_amp": _stat("q1_amp", "ASP on sampled matrices (amp/asp_finite.py)")}
     meta = ("se_converged", "se_fixed_points", "se_amp_converges", "N", "seeds", "iters",
-            "law", "q_amp_halfwidth99", "q_amp_runs", "amp_converged", "m", "asp_converged")
-    return AmpRoute(steps, SK_CAVEAT, ("beta", "h", "N", "seeds", "iters", "law", "ansatz", "m"), fin, meta)
+            "law", "q_amp_halfwidth99", "q_amp_runs", "amp_converged", "m", "asp_converged", "start",
+            "q0_amp_halfwidth99", "q1_amp_halfwidth99", "asp_converged_fraction")
+    return AmpRoute(steps, SK_CAVEAT, ("beta", "h", "N", "seeds", "iters", "law", "ansatz", "m", "start"), fin, meta)
 
 
 # ---- teacher-student -------------------------------------------------------------------
