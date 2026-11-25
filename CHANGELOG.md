@@ -7,6 +7,19 @@ All notable changes to BootLoops are recorded here. The format follows
 ## Unreleased
 
 ### Fixed
+- `replicant` (final-review fix wave of the finite-N checks): the diluted `spiked_wigner` spectral start's
+  `gamma_se_t` is the SE at the run's t from gamma_0 = lambda^2 - 1 (x^0 = sqrt(N lambda^2 (lambda^2 - 1)) phi_1 has
+  |x^0|^2/N = lambda^2 (lambda^2 - 1); checked: gamma_trace[0] is lambda^2 - 1 to rounding and the band of <x^0, x>/N
+  holds it), labelled exact-by-literature for every lambda > 1 (MV Thm 2 at fixed t, with the plug-in note); it was
+  the t -> oo fixed point, labelled exact whenever the phase was easy, which is wrong in the metastable easy window
+  (rho = 0.09, lambda = 1.0085: 0.0220 reported, 0.0184 at t = 30). `diluted_se_trajectory` sets only quadrature
+  noise in (-1e-15, 0) to 0; a more negative step is refused `precondition:snr` (it was clipped). The `catalog_amp`
+  docstring names the `asp-finite-n` step. Tests: the no-Onsager diluted control must miss by more than 3
+  half-widths; off-by-one checks at t = 1, 2 (diluted planted) and t = 1 (ASP q0) with SE(t - 1), SE(t + 1) outside
+  the band; a default-tier two-branch variant (N = 2000, margin 3, pilots 4.87-7.67); the spectral gamma_0 check; the
+  metastable probe point; the spectral band excludes 0. Planted / gaussian / rademacher values unchanged. Default tier
+  880 tests, 75.07 s (load averages 6.52 at the start, 6.45 at the end); slow tier 273 tests, full tier not re-timed
+  (last timed at 1a37a65).
 - `replicant` (parked items of the Krzakala-Zdeborova series): `coloring` ER clustering at q >= 4 is refused in the
   entry's first step, so a run with `N` no longer pays for K3's BP on graphs before the refusal
   (`coloring/rsb.refuse_er_first_order`, shared with `cluster_thresholds`); the `rfim` note reads `d =` on a regular
@@ -64,7 +77,8 @@ All notable changes to BootLoops are recorded here. The format follows
   parameters without `N`. Measured checks (pilot seeds disjoint from the test seeds): planted gamma0 = 1 at rho =
   0.08, lambda = 0.99, N = 3000, t = 4 inside the SE band with its no-Onsager control outside; two branches at rho =
   0.05, lambda = 0.95, N = 8000, separated by more than 10 summed half-widths; ASP at beta = 2, N = 2000, t = 10 inside
-  both bands with the no-Onsager and m = 0 controls outside. Existing gaussian / rademacher runs unchanged. Default
+  both bands with the no-Onsager and m = 0 controls outside. Existing gaussian / rademacher runs: values unchanged
+  (the same q at the same seeds; the ensemble's note text changed). Default
   tier 874 tests, 69.70 s (load averages 4.93 at the start, 3.64 at the end); slow tier 273 tests, full tier not
   re-timed (last timed at 1a37a65: 1120 passed, 48 min 04 s).
 - `replicant` (pinned directions): the perceptron family with fixed external directions at level (a), the joint

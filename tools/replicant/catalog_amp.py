@@ -1,6 +1,11 @@
 """Catalog route `amp` (E3b) for the `sk` and `teacher_student` entries: amp/ as a route.
 
-  sk_amp_route() -> AmpRoute     state evolution of SK AMP; finite-N AMP when N is given
+  sk_amp_route() -> AmpRoute     state evolution of SK AMP; finite-N AMP when N is given.  With
+                                 ansatz=1rsb: approximate survey propagation (ASP) at the given m,
+                                 its SE fixed point (asp-state-evolution) and, when N is given, finite-N
+                                 ASP (asp-finite-n, amp/asp_finite.py: bands q0_amp, q1_amp against the
+                                 SE at the same t, q0_se_t, q1_se_t; seeds 0-5, iters 20, start
+                                 (0.5, 0.95) by default)
   ts_amp_route() -> AmpRoute     state evolution of Bayes-optimal GAMP (gaussian prior);
                                  finite-N GAMP when N is given
 An AmpRoute carries the Steps, the honest caveat, the declared run parameters, the

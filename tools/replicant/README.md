@@ -230,7 +230,7 @@ sample`), and `--pdf` (with `--latex`) to compile the derivation.
 
 ## Test tiers
 
-- Default: `python3 tools/replicant/selftest.py` (874 tests, about 70 s (measured 69.70 s wall at 55fd208, under load: load averages 4.93 at the start and 3.64 at the end; the 850 before the finite-N checks took 62.92 s at load 3.4-4.5; the 841 tests of K8 took 60.57 s and 60.56 s on clean exports of bcc55fc at load 3.5-4.3); the 662 before the margin
+- Default: `python3 tools/replicant/selftest.py` (880 tests, about 75 s (measured 75.07 s wall in the finite-N fix wave, under load: load averages 6.52 at the start and 6.45 at the end; the 874 at 55fd208 took 69.70 s at load 4.93-3.64; the 850 before the finite-N checks took 62.92 s at load 3.4-4.5; the 841 tests of K8 took 60.57 s and 60.56 s on clean exports of bcc55fc at load 3.5-4.3); the 662 before the margin
   law and the pinned directions took 30.2 s cold on an idle machine after the v1 final fix wave). Also `python3 run_selftests.py replicant` from the repository root, with the venv activated (it runs
   the `python3` on PATH; without python-flint the certified lattice, bounds and percolation tests and the Monte
   Carlo exact targets fail, by design).
@@ -238,7 +238,7 @@ sample`), and `--pdf` (with `--latex`) to compile the derivation.
   population dynamics at reference sizes, the K-SAT and LDPC crossings, Monte Carlo and enumeration
   held-out routes, solver-based checks, the online simulations at N = 1000, the lattice, percolation and
   Monte Carlo checks at reference sizes, the KZ lecture-notes series at reference sizes: the q = 5 SBM and coloring
-  thresholds by population dynamics, the slow catalog RefChecks, one test per entry); 1147 tests (874 + 273 skipped by the default tier), about 48 minutes (last timed at 1a37a65, when it had 1120 tests: 1120 passed, 0 failed, 48 min 04 s wall, under load: load averages about 5.0 at the start and 6.1 at the end; not re-timed since); the K = 3 RSB test alone is about 7 minutes).
+  thresholds by population dynamics, the slow catalog RefChecks, one test per entry); 1153 tests (880 + 273 skipped by the default tier), about 48 minutes (last timed at 1a37a65, when it had 1120 tests: 1120 passed, 0 failed, 48 min 04 s wall, under load: load averages about 5.0 at the start and 6.1 at the end; not re-timed since); the K = 3 RSB test alone is about 7 minutes).
 - The held-out tests are `tests/test_heldout*.py` (helpers `tests/heldout_common.py`, `tests/heldout_mc.py`).
 - `@slow` is a plain function attribute honoured by `selftest.py` only. pytest ignores the
   marker and would run every test, slow ones included.

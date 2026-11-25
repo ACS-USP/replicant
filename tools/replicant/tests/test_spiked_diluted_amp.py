@@ -14,6 +14,7 @@ import mpmath as mp
 import numpy as np
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+from replicant.amp._stats import student_band
 from replicant.core import Refusal
 from replicant.inference import spiked as S
 from replicant.testing import slow
@@ -184,6 +185,27 @@ def test_diluted_se_trajectory_reaches_both_branches():
     _refuses(lambda: SD.diluted_se_trajectory(_LAM, _RHO, 1.0, 0), "precondition:positive-iters")
 
 
+def test_diluted_se_trajectory_clip_is_narrow():
+    """Final review M5: only quadrature noise, lambda^2 m in (-1e-15, 0), is set to 0; a more negative step is kept and
+    refused by the existing check (precondition:snr, channels.scalar_moments) at the next step or, for the last
+    entry, at the end.  Planted on SD._m (m = off for gamma >= 0, the real quadrature, which refuses, for gamma < 0):
+    off = -1e-20 is clipped to 0 at every step; off = -1e-6 is refused at iters = 3 and at iters = 1."""
+    from replicant.inference import spiked_diluted as SD
+    real = SD._m
+    zero = SD.diluted_se_trajectory(0.6, 0.05, 0.03, 300)
+    assert zero[-1] == 0.0 and min(zero) >= 0, zero[-3:]
+    for off, iters, refused in ((-1e-20, 3, False), (-1e-6, 3, True), (-1e-6, 1, True)):
+        SD._m = lambda r, g, off=off: real(r, g) if g < 0 else off
+        try:
+            if refused:
+                _refuses(lambda iters=iters: SD.diluted_se_trajectory(0.6, 0.05, 0.03, iters), "precondition:snr")
+            else:
+                assert SD.diluted_se_trajectory(0.6, 0.05, 0.03, iters)[1:] == [0.0] * iters
+        finally:
+            SD._m = real
+    assert SD._m is real
+
+
 def _planted(reaction):
     return S.spiked_amp_ensemble(_N, _LAM, "diluted_rademacher", seeds=_SEEDS, iters=_T, reaction=reaction, rho=_RHO,
                                  init="planted", gamma0=_STRONG)
@@ -207,11 +229,43 @@ def test_planted_amp_tracks_se_trajectory():
 
 
 def test_planted_amp_no_onsager_fails():
-    """The control: the same point and seeds with reaction=False; the SE gamma_4 lies outside the gamma_t band."""
+    """The control: the same point and seeds with reaction=False; the SE gamma_4 lies more than 3 half-widths from the
+    gamma_t band's mean.  The 3 was fixed from the pilot above (seeds 1000-1019, never the test seeds): offset 0.340
+    against an expected 10-seed half-width of about 0.065, a predicted ratio of about 5; observed on the test seeds
+    8.3 (final review M1: "outside the band", ratio > 1, was too weak to pin the control)."""
     from replicant.inference import spiked_diluted as SD
     gse = SD.diluted_se_trajectory(_LAM, _RHO, _STRONG, _T)[_T]
     b = _planted(False).bands["gamma_t"]
-    assert not _inside(gse, b), (gse, b)
+    assert abs(b.mean - gse) > 3 * b.half_width, (gse, b)
+
+
+def _trace_bands(lam, rho, gamma0, N, seeds, iters):
+    """99% Student-t bands of the empirical gamma_t at every t = 0..iters (planted runs, one matrix per seed, as
+    spiked_amp_ensemble draws them)."""
+    tr = []
+    for s in seeds:
+        Y, x0 = S.spiked_matrix(N, lam, "diluted_rademacher", s, rho=rho)
+        tr.append(S.spiked_amp(Y, "diluted_rademacher", snr=lam, iters=iters, seed=s, rho=rho, init="planted",
+                               gamma0=gamma0, x0=x0).gamma_trace)
+    return [student_band([g[t] for g in tr]) for t in range(iters + 1)]
+
+
+def test_planted_amp_tracks_se_at_the_right_t():
+    """Off-by-one power (final review M2): at rho = 0.08, lambda = 1.5 (easy phase), gamma0 = 0.05, the SE grows by a
+    factor of about 2.2 per step (diluted_se_trajectory: 0.05, 0.110362, 0.247996, 0.579596), so one step moves it by several
+    half-widths.  N = 2000, seeds 0-9: at t = 1 and t = 2 the band of gamma_t contains SE(t) and excludes SE(t - 1)
+    and SE(t + 1), so an index shift either way fails.  Pilots (seeds 100-109, 200-209, never the test seeds),
+    (SE(t-1), SE(t), SE(t+1)) - mean in half-widths: t = 1: (-8.39, -0.43, +17.72), (-8.99, +0.33, +21.58); t = 2:
+    (-3.05, -0.46, +5.80), (-4.64, +0.05, +11.36).  The gamma0 = 1, lambda = 0.99 point of
+    test_planted_amp_tracks_se_trajectory moves too slowly for this (pilot t = 2: SE(1) at +0.92 half-widths)."""
+    from replicant.inference import spiked_diluted as SD
+    lam, rho, g0 = 1.5, 0.08, 0.05
+    se = SD.diluted_se_trajectory(lam, rho, g0, 3)
+    bands = _trace_bands(lam, rho, g0, 2000, tuple(range(10)), 2)
+    for t in (1, 2):
+        b = bands[t]
+        assert _inside(se[t], b), (t, se[t], b)
+        assert not _inside(se[t - 1], b) and not _inside(se[t + 1], b), (t, se[t - 1:t + 2], b)
 
 
 def test_existing_priors_unchanged():
@@ -352,23 +406,89 @@ def test_diluted_catalog_refusals():
 
 def test_diluted_spectral_easy_phase():
     """lambda = 1.5 at rho = 0.08 (easy phase, one SE fixed point gamma = 2.18565), spectral start, N = 2000, the
-    default seeds 0-7 and iters 30: gamma_se_t (the SE fixed point) lies in the gamma_amp_t band, and it carries MV
-    Thm 2's label.  Pilots (seeds 100-107, 200-207): 2.31 +- 0.32, 2.17 +- 0.38."""
+    default seeds 0-7 and iters 30: gamma_se_t (the SE at t = 30 from gamma_0 = lambda^2 - 1 = 1.25, here equal to the
+    fixed point to 1e-9) lies in the gamma_amp_t band, the band excludes 0, and it carries MV Thm 2's label.  Pilots
+    (seeds 100-107, 200-207): 2.31 +- 0.32, 2.17 +- 0.38."""
+    from replicant.inference import spiked_diluted as SD
     r = _dil(rho=0.08, snr=1.5, N=2000)
     v = r.values
     assert v["init"] == "spectral" and v["gamma0"] is None and v["seeds"] == list(range(8)) and v["iters"] == 30
-    assert v["se_phase"] == "easy" and v["gamma_se_t"] == v["se_uninformative_gamma"]
+    assert v["gamma_se_t"] == SD.diluted_se_trajectory(1.5, 0.08, 1.5**2 - 1, 30)[30], v["gamma_se_t"]
+    assert v["se_phase"] == "easy" and abs(v["gamma_se_t"] - v["se_uninformative_gamma"]) < 1e-9
     assert abs(v["gamma_se_t"] - v["gamma_amp_t"]) <= v["gamma_amp_t_halfwidth99"], v
+    assert v["gamma_amp_t"] - v["gamma_amp_t_halfwidth99"] > 0, v
     f = r.finality["gamma_se_t"]
-    assert f.state == "exact-by-literature" and "MV Thm 2" in f.note, f
-    # in the hard phase the spectral start is refused below lambda = 1 and above it MV's conditions are not met
+    assert f.state == "exact-by-literature" and "MV Thm 2" in f.note and "fixed t" in f.note, f
+    assert "plug-in" in f.note and "same fixed point" not in f.note, f.note
+
+
+def test_spectral_start_is_gamma0_lambda2_minus_1():
+    """The spectral start x^0 = sqrt(N lambda^2 (lambda^2 - 1)) phi_1 is the scalar channel at gamma_0 = lambda^2 - 1
+    (the SE start that catalog_spiked_diluted uses for gamma_se_t): |x^0|^2 / N = lambda^2 (lambda^2 - 1) =
+    gamma_0^2 + gamma_0, so spiked_amp's gamma_trace[0] (_gamma_hat) is lambda^2 - 1 to rounding; and <x^0, x> / N,
+    which the channel puts at gamma_0 |x|^2 / N ~ gamma_0, has a 99% band (seeds 0-7) containing lambda^2 - 1 = 1.25.
+    lambda = 1.5, rho = 0.08, N = 2000.  The control: sqrt(1 - 1/lambda^2) = 0.745, the overlap of a sqrt(N)-normalised
+    top eigenvector (the start without the gamma_0 scaling), lies outside the band.  Pilots (seeds 100-107, 200-207,
+    300-307): 1.315 +- 0.143, 1.223 +- 0.195, 1.192 +- 0.171 (lambda^2 - 1 at -0.46, +0.14, +0.34 half-widths; the
+    control at -4.0, -2.4, -2.6); max |gamma_trace[0] - (lambda^2 - 1)| 2.0e-15.  Measured at N = 4000 before the
+    fix (seeds 100-107): rho = 0.08, lambda = 1.5: 1.269 +- 0.100; lambda = 1.2: 0.446 +- 0.080 (target 0.44);
+    rho = 1: 1.258 +- 0.023."""
+    from scipy.sparse.linalg import eigsh
+    lam, rho, N = 1.5, 0.08, 2000
+    ov = []
+    for s in range(8):
+        Y, x0 = S.spiked_matrix(N, lam, "diluted_rademacher", s, rho=rho)
+        r = S.spiked_amp(Y, "diluted_rademacher", snr=lam, iters=1, seed=s, rho=rho)
+        assert abs(r.gamma_trace[0] - (lam**2 - 1)) < 1e-12, r.gamma_trace[0]
+        # the same eigenvector spiked_amp computes (same v0), to read the start's overlap with the truth
+        _, vec = eigsh(Y, k=1, which="LA", v0=np.random.default_rng([s, 3]).normal(size=N), tol=1e-12)
+        x = math.sqrt(N * lam**2 * (lam**2 - 1)) * vec[:, 0]
+        assert abs(S._gamma_hat(x) - r.gamma_trace[0]) < 1e-12
+        ov.append(abs(float(x @ x0)) / N)
+    b = student_band(ov)
+    assert _inside(lam**2 - 1, b), b
+    assert not _inside(math.sqrt(1 - 1 / lam**2), b), b
+
+
+def test_diluted_spectral_metastable_easy_phase():
+    """Final review I1: rho = 0.09, lambda = 1.0085 is phase easy but metastable (SE fixed points uninformative
+    0.0220, informative 0.287; the Bayes one is the uninformative); the spectral start's SE from gamma_0 = lambda^2 -
+    1 = 0.0171 is at 0.0184 at t = 30, 16 % from the fixed point.  gamma_se_t is that trajectory value, labelled at
+    fixed t (MV Thm 2), not the t -> oo fixed point.  N = 200, seeds 0-1: wiring only."""
+    from replicant.inference import spiked_diluted as SD
+    lam, rho = 1.0085, 0.09
+    r = _dil(rho=rho, snr=lam, N=200, seeds=(0, 1))
+    v = r.values
+    assert v["se_phase"] == "easy" and v["se_metastable"], v
+    traj = SD.diluted_se_trajectory(lam, rho, lam**2 - 1, 30)
+    assert v["gamma_se_t"] == traj[30], (v["gamma_se_t"], traj[30])
+    assert abs(v["gamma_se_t"] - v["se_uninformative_gamma"]) > 0.1 * v["se_uninformative_gamma"], v
+    f = r.finality["gamma_se_t"]
+    assert f.state == "exact-by-literature" and "fixed t" in f.note and "same fixed point" not in f.note, f
+    # the hard phase above lambda = 1 is labelled the same way (the SE at t from the spectral start)
     hard = _dil(rho=0.08, snr=1.005, N=300, seeds=(0, 1), iters=3)
-    assert hard.values["se_phase"] == "hard" and not hard.finality["gamma_se_t"].final, hard.finality["gamma_se_t"]
+    assert hard.values["se_phase"] == "hard", hard.values["se_phase"]
+    assert hard.values["gamma_se_t"] == SD.diluted_se_trajectory(1.005, 0.08, 1.005**2 - 1, 3)[3]
+    assert hard.finality["gamma_se_t"].state == "exact-by-literature", hard.finality["gamma_se_t"]
 
 
-def _two_starts(snr, t):
-    kw = dict(rho=_R3, snr=snr, N=_N3, seeds=_SEEDS3, iters=t, init="planted")
+def _two_starts(snr, t, N=_N3, seeds=_SEEDS3):
+    kw = dict(rho=_R3, snr=snr, N=N, seeds=seeds, iters=t, init="planted")
     return _dil(gamma0=_W3, **kw), _dil(gamma0=1, **kw)
+
+
+def test_diluted_two_branches_small():
+    """The default-tier variant of test_diluted_two_branches_in_the_hard_phase (final review M3): the same point (rho =
+    0.05, lambda = 0.95, gamma0 0.03 and 1, t = 4) at N = 2000, seeds 0-11.  The band means differ by more than 3x
+    the summed half-widths (a lower margin than the slow test's 10, fixed before the run from pilots on seeds 100-111,
+    200-211, 300-311, 400-411, 500-511, never the test seeds: ratios 7.25, 4.99, 7.67, 5.89, 4.87; N = 2000 with ten
+    seeds gave 4.36-6.64, N = 3000 with eight 3.60-9.18), and each band contains its own gamma_se_t (it did in all
+    15 pilot blocks).  About 0.75 s."""
+    weak, strong = _two_starts(_HARD, 4, N=2000, seeds=tuple(range(12)))
+    (mw, hw), (ms, hs) = _band_of(weak, "gamma_amp_t"), _band_of(strong, "gamma_amp_t")
+    assert abs(ms - mw) > 3 * (hw + hs), (mw, hw, ms, hs)
+    for r, (m, h) in ((weak, (mw, hw)), (strong, (ms, hs))):
+        assert abs(r.values["gamma_se_t"] - m) <= h, (r.values["gamma_se_t"], m, h)
 
 
 @slow

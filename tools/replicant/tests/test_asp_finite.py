@@ -21,6 +21,7 @@ import numpy as np
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 from replicant.amp import asp as A
 from replicant.amp import asp_finite as F
+from replicant.amp._stats import student_band
 from replicant.families.sk import sk_1rsb
 from replicant.testing import slow
 
@@ -127,6 +128,21 @@ def test_asp_finite_tracks_se():
     assert _inside(ens.bands["q0"], se[0]), (ens.bands, se)
     assert _inside(ens.bands["q1"], se[1]), (ens.bands, se)
     assert len(ens.q0) == len(SEEDS) and ens.N == N and ens.iters == T
+
+
+def test_asp_finite_tracks_se_at_the_right_t():
+    """Off-by-one power (final review M2): at beta = 2, h = 0, the default start (0.5, 0.95), the SE q0 moves fast at
+    first (asp_trajectory q0: 0.5, 0.34657, 0.30492, ...), so at t = 1 the q0 band (N = 2000, seeds 0-5) contains
+    SE q0_1 and excludes q0_0 and q0_2: an index shift either way fails.  Pilots (seeds 100-105, 200-205, never the
+    test seeds), (SE(0), SE(1), SE(2)) - mean in half-widths: N = 2000: (+21.91, -0.08, -6.05), (+15.87, -0.07,
+    -4.39); N = 1000: (+12.30, +0.11, -3.20), (+16.39, +0.24, -4.14).  At t = 2 SE(3) was only -1.64 and -1.01
+    half-widths away (N = 2000), so t = 1 only."""
+    m = _m(2)
+    se = A.asp_trajectory(2, m, iters=2)
+    runs = [F.asp_amp(F.sk_matrix(N, s), 2, m, iters=1, seed=s) for s in SEEDS]
+    b = student_band([r.q0_trace[1] for r in runs])
+    assert _inside(b, se[1][0]), (b, se[1])
+    assert not _inside(b, se[0][0]) and not _inside(b, se[2][0]), (b, se)
 
 
 @slow

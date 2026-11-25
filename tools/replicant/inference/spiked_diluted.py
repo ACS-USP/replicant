@@ -317,7 +317,10 @@ def diluted_state_evolution(snr, rho, *, max_iter=20000) -> DilutedSE:
 def diluted_se_trajectory(snr, rho, gamma0, iters):
     """SE from a given start: gamma_0 = gamma0, gamma_{t+1} = lambda^2 m(gamma_t) (MV Eq. (2.24)), t = 0..iters, as a list
     of length iters + 1.  The fixed-t comparison for planted AMP (spiked_amp init="planted" starts at x^0 = gamma0 x +
-    sqrt(gamma0) g, the scalar channel at gamma0); the overlap at t is diluted_overlap(rho, gamma_t)."""
+    sqrt(gamma0) g, the scalar channel at gamma0); the overlap at t is diluted_overlap(rho, gamma_t).  A step whose
+    lambda^2 m lies in (-1e-15, 0) (quadrature noise near gamma = 0) is set to 0; a more negative one is kept, and the
+    next step's quadrature refuses it (precondition:snr, channels.scalar_moments' check; a negative last entry is
+    passed to the same check), so no wrong sign is returned."""
     lam, r = float(_spiked_snr(snr)), _rho(rho)
     if not lam > 0:
         raise Refusal("precondition:snr", f"snr = {snr!r}: the diluted prior needs a finite lambda > 0")
@@ -334,9 +337,13 @@ def diluted_se_trajectory(snr, rho, gamma0, iters):
         raise Refusal("precondition:positive-iters", f"iters = {iters!r} is not a positive int")
     lam2, out = lam * lam, [g]
     for _ in range(iters):
-        # m = E[E[X|y]^2] >= 0; near gamma = 0 the quadrature returns about -1e-27, clipped (else the next step refuses)
-        g = max(lam2 * _m(r, g), 0.0)
+        # m = E[E[X|y]^2] >= 0; near gamma = 0 the quadrature returns about -1e-27: only -1e-15 < g < 0 is set to 0
+        g = lam2 * _m(r, g)
+        if -1e-15 < g < 0:
+            g = 0.0
         out.append(g)
+    if g < 0:
+        _m(r, g)
     return out
 
 

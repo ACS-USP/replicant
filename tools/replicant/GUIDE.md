@@ -1904,7 +1904,7 @@ banked in `reference/perceptron.json` as independent targets. Honest limits:
   (default tier): time averages at N = 8 equal the exact spectrum means within 99% bands at four betas,
   and the planted acceptance rule (x0.8) and the reversed exchange sign are detected at every beta.
 
-ACCEPTANCE GATES: `python3 tools/replicant/selftest.py` (default tier: 874 tests, about 70 s (measured 69.70 s wall at 55fd208, under load: load averages 4.93 at the start and 3.64 at the end; the 850 before the finite-N checks took 62.92 s at load 3.4-4.5; the 841 tests of K8 took 60.57 s and 60.56 s on clean exports of bcc55fc at load 3.5-4.3); the 662 tests of the v1 final
+ACCEPTANCE GATES: `python3 tools/replicant/selftest.py` (default tier: 880 tests, about 75 s (measured 75.07 s wall in the finite-N fix wave, under load: load averages 6.52 at the start and 6.45 at the end; the 874 at 55fd208 took 69.70 s at load 4.93-3.64; the 850 before the finite-N checks took 62.92 s at load 3.4-4.5; the 841 tests of K8 took 60.57 s and 60.56 s on clean exports of bcc55fc at load 3.5-4.3); the 662 tests of the v1 final
 fix wave measured 30.2 s cold on an idle machine; also `python3 run_selftests.py replicant`, which runs the
 `python3` on PATH; run both from the activated project venv, which has python-flint) covers the core and refusal
 paths, the symbolic derivation against independent expressions, level agreement (a)=(b) for every family where both
@@ -1968,7 +1968,7 @@ validation on the four solved lattices (P1, P2), the k-core second routes at ext
 Monte Carlo at L = 8-32 and the z fits, Wang-Landau at L = 4-16, multicanonical and Ferrenberg-Swendsen runs
 against Kaufman, population annealing at 8 x 8, 16 x 16 and SK N = 18 (M1-M3), the 2RSB certified bound and the K =
 5 chain, the E11 Monte Carlo / enumeration held-out routes (about 4.6 min), the Hopfield replicon scans, the p-spin
-T -> 0 energy, solver-based composed and LaTeX checks, a PDF compile when a TeX engine is present) and takes 1147 tests (874 + 273 skipped by the default tier), about 48 minutes (last timed at 1a37a65, when it had 1120 tests: 1120 passed, 0 failed, 48 min 04 s wall, under load: load averages about 5.0 at the start and 6.1 at the end; not re-timed since: the 27 added tests are the finite-N checks of the diluted AMP and ASP); the K = 3 RSB test alone is about 7 minutes, the per-entry slow catalog RefChecks at most 85 s each;
+T -> 0 energy, solver-based composed and LaTeX checks, a PDF compile when a TeX engine is present) and takes 1153 tests (880 + 273 skipped by the default tier), about 48 minutes (last timed at 1a37a65, when it had 1120 tests: 1120 passed, 0 failed, 48 min 04 s wall, under load: load averages about 5.0 at the start and 6.1 at the end; not re-timed since: the 27 added tests are the finite-N checks of the diluted AMP and ASP); the K = 3 RSB test alone is about 7 minutes, the per-entry slow catalog RefChecks at most 85 s each;
 run it before merging a change to a family. The `@slow` marker is honoured by `selftest.py` only: pytest ignores it
 and would run everything. Level agreement between the derivation and the pipelines is a consistency check, not new
 evidence for the ansatz; the cavity route reproducing the replica RS equations is an independent derivation but NOT
@@ -2382,24 +2382,35 @@ KNOWN HAZARDS:
   notes' "as shown in ?" of Sec. 12.2.5), BBP arXiv:math/0403022, all fetched.
   Finite-N checks (the series after K5; `tests/test_spiked_diluted_amp.py`, `tests/test_asp_finite.py`).  The SE value
   compared with the finite-N run is the SE at the same fixed t from the same start (`diluted_se_trajectory`,
-  `asp_trajectory`): exact-by-literature (Bayati-Montanari 2011 for the Lipschitz iteration at fixed t; MV Thm 2 for the
-  spectral start's t -> oo limit), with the note that the run uses the empirical plug-ins (gamma_t from |x^t|^2/N, the
+  `asp_trajectory`): exact-by-literature (Bayati-Montanari 2011 for the Lipschitz iteration at fixed t; MV Thm 2 at
+  fixed t for the spectral start, whose SE start is gamma_0 = lambda^2 - 1, since x^0 = sqrt(N lambda^2 (lambda^2 - 1))
+  phi_1 has |x^0|^2/N = lambda^2 (lambda^2 - 1) = gamma_0^2 + gamma_0), with the note that the run uses the empirical plug-ins (gamma_t from |x^t|^2/N, the
   empirical q0^t, q1^t), not literally the theorem's SE-driven algorithm; the finite-N bands are not-computed
   (`amp-finite-N`), NOT final.  Bands are 99% Student-t over named seeds; N, t and the seeds were fixed from pilots on
   disjoint seeds before any test seed ran, the state points from the package's own SE.  Diluted, planted start gamma0 =
   1 (not LKZ's m_0 = 1): rho = 0.08, lambda = 0.99 (hard phase: spinodals dyn 0.980175, IT 0.985607, alg 1.009744; SE
   fixed points gamma = 0, 0.166568 (unstable), 0.425999), N = 3000, seeds 0-9, t = 4: the SE gamma_4 = 0.568907 and
   m(gamma_4) = 0.552438 lie in the bands of gamma_t and q; the control with the Onsager term removed (`reaction=False`)
-  misses gamma_4 by 0.340 (pilot sd 0.063), outside its band, asserted.  Two branches: rho = 0.05, lambda = 0.95 (dyn
+  misses gamma_4 by 0.340 (pilot sd 0.063), more than 3 half-widths (the 3 fixed from the pilot's predicted ratio of
+  about 5; 8.3 observed), asserted.  Off-by-one power: at rho = 0.08, lambda = 1.5, gamma0 = 0.05 (SE 0.05, 0.110362,
+  0.247996, 0.579596), N = 2000, seeds 0-9, the gamma_t band at t = 1 and t = 2 holds SE(t) and excludes SE(t - 1) and
+  SE(t + 1) (pilots at least 3.05 half-widths away); for ASP the q0 band at t = 1 (N = 2000, seeds 0-5) holds SE q0_1 =
+  0.34657 and excludes q0_0 = 0.5 and q0_2 = 0.30492 (pilots at least 4.39 half-widths away).  Two branches (slow): rho = 0.05, lambda = 0.95 (dyn
   0.849363, IT 0.864471, alg 1.002700; middle fixed point 0.0788588), N = 8000, seeds 0-19, t = 4, weak start gamma0 =
   0.03 (below it) against strong gamma0 = 1: the gamma_t band means differ by more than 10 times the summed half-widths
   (pilots 16.5 to 22.6; 10.8 at N = 3000, hence N = 8000) and each band holds its own SE value (0.0201559, 0.735357).
+  Its default-tier variant runs the same point at N = 2000, seeds 0-11, with a margin of 3 summed half-widths (pilots,
+  five blocks of 12 disjoint seeds: 4.87 to 7.67) and the same own-SE check.
   Negative control (slow): rho = 0.05, lambda = 0.6 (below dyn, away from it), N = 8000, seeds 0-19, t = 8: both starts end on the uninformative branch
   (SE 8.43655e-06, 4.99340e-04), and the same criterion is asserted to fail at the hard point.  Spectral start: rho =
-  0.08, lambda = 1.5, N = 2000, seeds 0-7, 30 iterations: the SE fixed point 2.18565 lies in the gamma_t band (pilots
-  2.31 +- 0.32, 2.17 +- 0.38); in the hard phase above lambda = 1 MV's conditions are not met and `gamma_se_t` is
-  not-computed.  The gaussian / rademacher runs are unchanged (q lists equal to those captured before the planted
-  start).  ASP, beta = 2, h = 0, m = `sk_1rsb`'s 0.28184, start (0.5, 0.95), N = 2000, seeds 0-5, t = 10: the SE
+  0.08, lambda = 1.5, N = 2000, seeds 0-7, 30 iterations: the SE at t = 30 from gamma_0 = 1.25 (equal to the fixed
+  point 2.18565 to 1e-9) lies in the gamma_t band, which excludes 0 (pilots 2.31 +- 0.32, 2.17 +- 0.38).  `gamma_se_t`
+  is the SE at t for every lambda > 1, not the t -> oo fixed point: at rho = 0.09, lambda = 1.0085 (phase easy but
+  metastable: fixed points 0.0220 and 0.287) it is 0.0184 at t = 30, 16 % below the fixed point.  The start itself is
+  checked: spiked_amp's gamma_trace[0] is lambda^2 - 1 to rounding, and the band of <x^0, x>/N (lambda = 1.5, N = 2000,
+  seeds 0-7) holds lambda^2 - 1 and excludes sqrt(1 - 1/lambda^2), the overlap without the gamma_0 scaling.  The
+  gaussian / rademacher runs give the same values at the same seeds (q lists equal to those captured before the planted
+  start; only the ensemble's note text changed).  ASP, beta = 2, h = 0, m = `sk_1rsb`'s 0.28184, start (0.5, 0.95), N = 2000, seeds 0-5, t = 10: the SE
   (0.24430, 0.61477) lies inside both bands (pilots, seeds 100-105: 0.24840 +- 0.01561, 0.61564 +- 0.00586; N 1000-3000
   and t 5-20 all inside, at most 0.66 half-widths off); likewise beta = 3 (SE (0.31040, 0.80139)) and beta = 2 at h = 0.3
   (m = 0.37564, SE (0.43955, 0.63992)).  Controls, asserted to fail by more than 10 half-widths: no Onsager term (q0,

@@ -14,11 +14,14 @@ Chosen by prior=diluted_rademacher (inference/spiked_diluted.py states the conve
                  fetched here (LM Thm 1 covers q and the matrix MMSE 1 - q^2), so they are not-computed
   rho, snr, N    finite-N Bayes AMP over named seeds (default 0-7, iters 30): q_amp, overlap_amp, mmse_amp,
                  matrix_mmse_amp and gamma_amp_t (the empirical gamma at the last t), each with <key>_halfwidth99, and
-                 gamma_se_t, the SE at the same t from the same start.  init=spectral (default, lambda > 1): gamma_se_t
-                 is the SE fixed point reached from the uninformative start (MV Thm 2's t -> oo limit).  init=planted
-                 with gamma0 (any lambda > 0): x^0 = gamma0 x + sqrt(gamma0) g, gamma_se_t =
-                 diluted_se_trajectory(snr, rho, gamma0, iters)[iters].  The run uses the empirical plug-in gamma_t
-                 (inference/spiked.py _gamma_hat), not literally the theorem's SE-driven algorithm.
+                 gamma_se_t, the SE at the same t from the same start, diluted_se_trajectory(snr, rho, gamma_0,
+                 iters)[iters].  init=spectral (default, lambda > 1): x^0 = sqrt(N lambda^2 (lambda^2 - 1)) phi_1, so
+                 |x^0|^2 / N = lambda^2 (lambda^2 - 1) and gamma_0 = lambda^2 - 1 (the scalar channel x^0 = gamma_0 x
+                 + sqrt(gamma_0) g; _gamma_hat gives exactly that).  init=planted with gamma0 (any lambda > 0): x^0 =
+                 gamma0 x + sqrt(gamma0) g, gamma_0 = gamma0.  Both are SE values at the fixed t, not its t -> oo
+                 limit (which, in a metastable easy phase, the spectral start may still be far from).  The run uses
+                 the empirical plug-in gamma_t (inference/spiked.py _gamma_hat), not literally the theorem's SE-driven
+                 algorithm.
 """
 from .catalog import Out, RefCheck, Stability, fstep
 from .csp import _checks
@@ -112,11 +115,12 @@ def _finite(p):
     ens = S.spiked_amp_ensemble(p["N"], p["snr"], DILUTED, seeds=seeds, iters=iters, rho=p["rho"], init=init,
                                 gamma0=p.get("gamma0"))
     if init == "planted":
-        gse = SD.diluted_se_trajectory(p["snr"], p["rho"], ens.gamma0, iters)[iters]
-        src = f"diluted_se_trajectory from gamma0 = {ens.gamma0:.6g} at t = {iters}"
+        g0, start = ens.gamma0, f"gamma0 = {ens.gamma0:.6g}"
     else:
-        gse = SD.diluted_state_evolution(p["snr"], p["rho"]).uninformative.gamma
-        src = "the SE fixed point reached from the uninformative start (MV Thm 2's t -> oo limit)"
+        g0 = ens.snr**2 - 1
+        start = f"the spectral start's gamma_0 = lambda^2 - 1 = {g0:.6g}"
+    gse = SD.diluted_se_trajectory(p["snr"], p["rho"], g0, iters)[iters]
+    src = f"diluted_se_trajectory from {start} at t = {iters}"
     vals = {"rho": SD._rho(p["rho"]), "N": p["N"], "seeds": list(seeds), "iters": iters, "init": init,
             "gamma0": ens.gamma0, "amp_converged_fraction": sum(ens.converged) / len(seeds), "gamma_se_t": gse}
     for k, name in _AMP.items():
@@ -173,16 +177,13 @@ def _se_t(v):
                          "SE at the fixed t from gamma_0 = gamma0: the N -> oo limit of the iterate's empirical "
                          "statistics at fixed t, for a Lipschitz denoiser (the diluted prior has bounded support) and "
                          f"a start x^0 = gamma0 x + sqrt(gamma0) g independent of the noise W given x; {_PLUG}")
-    if v.get("snr", 0) > 1 and v.get("se_status") == "determined" and v.get("se_phase") == "easy":
-        return Stability("exact-by-literature", "amp-se", MV,
-                         "MV Thm 2, Eqs. (2.24), (2.28)-(2.29): the N -> oo then t -> oo limit of Bayes AMP with "
-                         "spectral start (lambda > 1; F Lipschitz: bounded support) is the SE fixed point reached from "
-                         "the uninformative start; here both SE starts reach the same fixed point (phase easy), so it "
-                         "is also the Bayes one; gamma_se_t is that t -> oo limit, the run stops at a finite t; "
-                         f"{_PLUG}")
-    return Stability("not-computed", "amp-se", MV, "MV Thm 2 needs lambda > 1, and here the SE has more than one "
-                     "stable fixed point (or was undetermined): the spectral start's limit is the uninformative "
-                     "one, not shown to be reached at this t: NOT final")
+    if v.get("snr", 0) > 1:
+        return Stability("exact-by-literature", "amp-se", f"{MV}; {BM}",
+                         "SE at the fixed t from the spectral start's gamma_0 = lambda^2 - 1 (x^0 = sqrt(N lambda^2 "
+                         "(lambda^2 - 1)) phi_1, |x^0|^2 / N = lambda^2 (lambda^2 - 1)): MV Thm 2, Eqs. (2.24), "
+                         "(2.28)-(2.29), the N -> oo limit at fixed t of Bayes AMP with spectral start (lambda > 1; F "
+                         f"Lipschitz: the diluted prior has bounded support), not the t -> oo fixed point; {_PLUG}")
+    return Stability("not-computed", "amp-se", MV, "MV Thm 2 needs lambda > 1 for the spectral start: NOT final")
 
 
 def finality():
