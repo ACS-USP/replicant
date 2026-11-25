@@ -16,6 +16,7 @@ import numpy as np
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 from replicant.core import Refusal
 from replicant.inference import spiked as S
+from replicant.testing import slow
 
 
 def _refuses(fn, reason):
@@ -260,3 +261,142 @@ def test_planted_start_imports_nothing_from_se():
     bad = ("def _planted_start(x0, g, s):\n    from .spiked_diluted import diluted_overlap\n    return x0\n"
            "def spiked_amp(Y):\n    return _planted_start(Y, 1, 0)\n")
     assert _audit(bad, "spiked_amp"), "planted start importing spiked_diluted not flagged"
+
+
+# ---- Task 3: catalog wiring (spiked_wigner, prior=diluted_rademacher, N given) and the two-branch tests -------------
+# State points, fixed from the package's own SE (spiked_diluted) before any test-seed run:
+#   rho = 0.05: dyn 0.849363, IT 0.864471, alg 1.002700 (diluted_spinodals, diluted_it_threshold).
+#   Hard phase proper: lambda = 0.95 in (0.8645, 1.0027): SE fixed points gamma = 0 (stable), 0.0788588 (unstable, the
+#   middle one), 0.727772 (stable).  Weak start gamma0 = 0.03 (below 0.0788588), strong gamma0 = 1.
+#   SE at t = 4 (diluted_se_trajectory): weak 0.0201559, strong 0.735357; the SE gap 0.715.
+#   Negative control: lambda = 0.6 (phase impossible, one SE fixed point gamma = 0; 0.6 / dyn = 0.71, far below dyn).
+#   SE at t = 8: weak 8.43655e-06, strong 4.99340e-04 (both decaying to the uninformative fixed point 0).
+# Pilots (seeds 100-119, 200-219, 300-319; never the test seeds 0-19), N = 8000, 20 seeds:
+#   two-branch, t = 4: separation / summed half-widths 16.7, 16.5, 22.6; each band held its own SE in every block.
+#   At N = 3000 (seeds 100-119) the ratio was 10.8 (no margin), so N = 8000; at t >= 15 (N = 3000) weak runs escaped
+#   (a seed's |x|^2 / N fluctuation puts the effective lambda above alg), so t = 4.
+#   negative control, t = 8: the strong band 5.1e-4 +- 6.5e-5, 4.6e-4 +- 5.0e-5, 5.2e-4 +- 5.7e-5, below the weak
+#   start 0.03 by > 50x; each band held its own SE in every block.
+#   lambda = 0.7 was not used: at N = 3000 seed 407 lingered at gamma ~ 0.2 for 20 steps (|x|^2 / N = 1.15, effective
+#   lambda 0.81, near dyn) and at N = 8000 the strong band of seeds 200-219 missed its SE at t = 8.
+#   The ruled "SE values closer than the summed half-widths" form is NOT used for the negative control: in 20 pilot
+#   blocks (lambda = 0.6, N = 3000, 10 seeds, t = 12 and t = 22) it held in 4; below dyn both SE values decay
+#   geometrically to 0 and the bands shrink with them, so the two transients stay resolved at every fixed t (see
+#   the Task 3 report).
+_R3, _HARD, _BELOW, _W3 = 0.05, 0.95, 0.6, 0.03
+_N3, _SEEDS3 = 8000, tuple(range(20))
+
+
+def _sw():
+    from replicant.catalog import catalog
+    from replicant.compose import compose
+    return compose(catalog()["spiked_wigner"].spec, "amp")
+
+
+def _dil(**kw):
+    return _sw().run(prior="diluted_rademacher", **kw)
+
+
+def _band_of(r, key):
+    """(mean, half-width) of a catalog band."""
+    return r.values[key], r.values[f"{key}_halfwidth99"]
+
+
+def test_diluted_catalog_planted_runs_below_one():
+    """Review focus 3: init=planted at lambda = 0.95 < 1 (hard phase, rho = 0.05) runs on the catalog; gamma_se_t is
+    the SE at t from gamma0 (exact-by-literature, fixed t), the amp bands are statistical, NOT final."""
+    from replicant.catalog import catalog
+    from replicant.inference import spiked_diluted as SD
+    st, _ = catalog()["spiked_wigner"].execute("amp", prior="diluted_rademacher", rho=_R3, snr=_HARD, N=400,
+                                                init="planted", gamma0=1, seeds=(0, 1, 2), iters=4)
+    v = st["values"]
+    assert v["init"] == "planted" and v["gamma0"] == 1.0 and v["N"] == 400 and v["seeds"] == [0, 1, 2]
+    assert v["iters"] == 4 and 0 <= v["amp_converged_fraction"] <= 1
+    assert v["gamma_se_t"] == SD.diluted_se_trajectory(_HARD, _R3, 1.0, 4)[4]
+    for k in ("q_amp", "overlap_amp", "mmse_amp", "matrix_mmse_amp", "gamma_amp_t"):
+        assert math.isfinite(v[k]) and v[f"{k}_halfwidth99"] > 0, k
+    r = _dil(rho=_R3, snr=_HARD, N=400, init="planted", gamma0=1, seeds=(0, 1, 2), iters=4)
+    f = r.finality
+    assert f["gamma_se_t"].final and f["gamma_se_t"].state == "exact-by-literature", f["gamma_se_t"]
+    assert "plug-in" in f["gamma_se_t"].note
+    for k in ("q_amp", "overlap_amp", "mmse_amp", "matrix_mmse_amp", "gamma_amp_t"):
+        assert not f[k].final and f[k].ansatz == "amp-finite-N", (k, f[k])
+    assert "gamma_amp_t" in r.statistical and "gamma_se_t" not in r.statistical, r.statistical
+
+
+def test_diluted_catalog_refusals():
+    """N needs snr and rho; the finite-N knobs need N; gamma0 needs init=planted; the spectral start needs lambda > 1;
+    init / gamma0 are refused on the plain priors.  The old refusal name appears in no .py file of the package."""
+    from pathlib import Path
+    from replicant.catalog import catalog
+    e = catalog()["spiked_wigner"]
+    ex = lambda **kw: e.execute("amp", **kw)
+    d = dict(prior="diluted_rademacher")
+    _refuses(lambda: ex(**d, rho=_R3, N=100), "precondition:state-point")
+    _refuses(lambda: ex(**d, snr=_HARD, N=100), "precondition:rho")
+    _refuses(lambda: ex(**d, rho=_R3, snr=1.5, N=100, gamma0=1), "precondition:known-parameter")
+    _refuses(lambda: ex(**d, rho=_R3, snr=1.5, N=100, init="spectral", gamma0=1), "precondition:known-parameter")
+    for k, val in (("init", "planted"), ("gamma0", 1), ("seeds", (0, 1)), ("iters", 5)):
+        _refuses(lambda k=k, val=val: ex(**d, rho=_R3, snr=_HARD, **{k: val}), "precondition:known-parameter")
+    _refuses(lambda: ex(**d, rho=_R3, snr=0.95, N=100), "precondition:snr-above-one")
+    _refuses(lambda: ex(**d, rho=_R3, snr=_HARD, N=100, init="planted"), "precondition:gamma0")
+    _refuses(lambda: ex(**d, rho=_R3, snr=_HARD, N=100, init="warm", gamma0=1), "precondition:known-parameter")
+    _refuses(lambda: ex(**d, rho=_R3, snr=_HARD, N=100, init="warm"), "precondition:known-init")
+    for k, val in (("init", "planted"), ("gamma0", 1)):
+        _refuses(lambda k=k, val=val: ex(snr=2, N=100, **{k: val}), "precondition:known-parameter")
+    old = "unsupported:" + "diluted-finite-n"
+    pkg = Path(__file__).resolve().parents[1]
+    hits = [str(p) for p in pkg.rglob("*.py") if old in p.read_text()]
+    assert hits == [], hits
+
+
+def test_diluted_spectral_easy_phase():
+    """lambda = 1.5 at rho = 0.08 (easy phase, one SE fixed point gamma = 2.18565), spectral start, N = 2000, the
+    default seeds 0-7 and iters 30: gamma_se_t (the SE fixed point) lies in the gamma_amp_t band, and it carries MV
+    Thm 2's label.  Pilots (seeds 100-107, 200-207): 2.31 +- 0.32, 2.17 +- 0.38."""
+    r = _dil(rho=0.08, snr=1.5, N=2000)
+    v = r.values
+    assert v["init"] == "spectral" and v["gamma0"] is None and v["seeds"] == list(range(8)) and v["iters"] == 30
+    assert v["se_phase"] == "easy" and v["gamma_se_t"] == v["se_uninformative_gamma"]
+    assert abs(v["gamma_se_t"] - v["gamma_amp_t"]) <= v["gamma_amp_t_halfwidth99"], v
+    f = r.finality["gamma_se_t"]
+    assert f.state == "exact-by-literature" and "MV Thm 2" in f.note, f
+    # in the hard phase the spectral start is refused below lambda = 1 and above it MV's conditions are not met
+    hard = _dil(rho=0.08, snr=1.005, N=300, seeds=(0, 1), iters=3)
+    assert hard.values["se_phase"] == "hard" and not hard.finality["gamma_se_t"].final, hard.finality["gamma_se_t"]
+
+
+def _two_starts(snr, t):
+    kw = dict(rho=_R3, snr=snr, N=_N3, seeds=_SEEDS3, iters=t, init="planted")
+    return _dil(gamma0=_W3, **kw), _dil(gamma0=1, **kw)
+
+
+@slow
+def test_diluted_two_branches_in_the_hard_phase():
+    """rho = 0.05, lambda = 0.95 (hard phase proper), N = 8000, seeds 0-19, t = 4 (state points and pilots above the
+    Task 3 block).  The weak (gamma0 = 0.03) and strong (gamma0 = 1) planted starts end on different branches: the
+    gamma_amp_t band means differ by more than 10x the summed half-widths (margin fixed before the run), and each band
+    contains its own gamma_se_t (weak 0.0201559, strong 0.735357)."""
+    weak, strong = _two_starts(_HARD, 4)
+    (mw, hw), (ms, hs) = _band_of(weak, "gamma_amp_t"), _band_of(strong, "gamma_amp_t")
+    assert abs(ms - mw) > 10 * (hw + hs), (mw, hw, ms, hs)
+    for r, (m, h) in ((weak, (mw, hw)), (strong, (ms, hs))):
+        assert abs(r.values["gamma_se_t"] - m) <= h, (r.values["gamma_se_t"], m, h)
+    assert abs(weak.values["gamma_se_t"] - 0.0201559) < 1e-6 and abs(strong.values["gamma_se_t"] - 0.735357) < 1e-6
+
+
+@slow
+def test_diluted_negative_control_below_dyn():
+    """rho = 0.05, lambda = 0.6 (far below dyn 0.849), N = 8000, seeds 0-19, t = 8.  Both starts end on the same
+    (uninformative) branch: each band contains its own gamma_se_t (weak 8.43655e-06, strong 4.99340e-04), and the
+    strong start's whole band lies below the weak start's gamma0 = 0.03, i.e. it has fallen into the basin the weak
+    start began in.  The same criterion fails at the hard point (strong band near 0.735), asserted here on the
+    library at N = 3000, seeds 0-9, so the control can fail."""
+    weak, strong = _two_starts(_BELOW, 8)
+    (mw, hw), (ms, hs) = _band_of(weak, "gamma_amp_t"), _band_of(strong, "gamma_amp_t")
+    for r, (m, h) in ((weak, (mw, hw)), (strong, (ms, hs))):
+        assert abs(r.values["gamma_se_t"] - m) <= h, (r.values["gamma_se_t"], m, h)
+    assert ms + hs < _W3, (ms, hs)
+    hard = S.spiked_amp_ensemble(3000, _HARD, "diluted_rademacher", seeds=tuple(range(10)), iters=8, rho=_R3,
+                                 init="planted", gamma0=1.0).bands["gamma_t"]
+    assert not hard.mean + hard.half_width < _W3, hard

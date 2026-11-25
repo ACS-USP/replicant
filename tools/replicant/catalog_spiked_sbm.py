@@ -8,7 +8,8 @@ check that the SE root is its global minimum).  Run parameters:
   snr           SE at lambda = snr: gamma_se, q_se, overlap_se, mmse_se, matrix_mmse_se
   snr, N        Bayes AMP on N x N matrices over named seeds (default 0-7, iters 30): q_amp,
                 overlap_amp, mmse_amp, matrix_mmse_amp (mean +- stderr, 99% t half-width)
-  prior         gaussian | rademacher | diluted_rademacher (with rho: catalog_spiked_diluted.py, K5)
+  prior         gaussian | rademacher | diluted_rademacher (with rho: catalog_spiked_diluted.py, K5;
+                there also N with init = spectral | planted and gamma0, and gamma_amp_t, gamma_se_t)
 sbm: two groups, edge probability a/N inside, b/N across (inference/sbm.py).  Route `cavity`:
 BP on the graph is the cavity method; the Kesten-Stigum line is the instability of its
 factorized fixed point (DKMZ Sec. IV.A).  Run parameters:
@@ -182,7 +183,7 @@ def spiked_wigner():
                  "rank-one spiked Wigner: Bayes-optimal SE, threshold lambda_c = 1 for the plain priors (prior=diluted_rademacher: "
                  "SE fixed points, spinodals, IT threshold, hard phase), finite-N Bayes AMP",
                  default_route="amp", finality=fin, meta=meta,
-                 parameters={"amp": ("snr", "prior", "N", "seeds", "iters") + D.PARAMS})
+                 parameters={"amp": ("snr", "prior", "N", "seeds", "iters", "init", "gamma0") + D.PARAMS})
 
 
 # ---- stochastic block model ----------------------------------------------------------------------

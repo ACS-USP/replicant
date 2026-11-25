@@ -12,10 +12,18 @@ Chosen by prior=diluted_rademacher (inference/spiked_diluted.py states the conve
                  se_uninformative_gamma).  On the gaussian / rademacher path overlap_se and mmse_se are Bayes AMP's
                  performance (MV Thm 2); here they are the RS fixed point's sqrt(q) and 1 - q, covered by no theorem
                  fetched here (LM Thm 1 covers q and the matrix MMSE 1 - q^2), so they are not-computed
-Finite-N AMP (N, seeds, iters) is not implemented for this prior and is refused.
+  rho, snr, N    finite-N Bayes AMP over named seeds (default 0-7, iters 30): q_amp, overlap_amp, mmse_amp,
+                 matrix_mmse_amp and gamma_amp_t (the empirical gamma at the last t), each with <key>_halfwidth99, and
+                 gamma_se_t, the SE at the same t from the same start.  init=spectral (default, lambda > 1): gamma_se_t
+                 is the SE fixed point reached from the uninformative start (MV Thm 2's t -> oo limit).  init=planted
+                 with gamma0 (any lambda > 0): x^0 = gamma0 x + sqrt(gamma0) g, gamma_se_t =
+                 diluted_se_trajectory(snr, rho, gamma0, iters)[iters].  The run uses the empirical plug-in gamma_t
+                 (inference/spiked.py _gamma_hat), not literally the theorem's SE-driven algorithm.
 """
 from .catalog import Out, RefCheck, Stability, fstep
+from .csp import _checks
 from .core import Refusal
+from .inference import spiked as S
 from .inference import spiked_diluted as SD
 
 LKZ = ("Lesieur, Krzakala & Zdeborova, J. Stat. Mech. (2017) 073403, arXiv:1701.00858, Sec. IV C, Eqs. (33), "
@@ -24,7 +32,15 @@ AFUZ = "Antenucci, Franz, Urbani & Zdeborova, PRX 9, 011020 (2019), arXiv:1805.0
 KZ = ("Krzakala & Zdeborova, Statistical Physics Methods in Optimization and Machine Learning, lecture notes "
       "(June 9 2024), Ex. 8.2")
 LM = ("Lelarge & Miolane, Probab. Theory Relat. Fields 173, 859 (2019), arXiv:1611.03888, Thm 1 (bounded priors)")
+MV = ("Montanari & Venkataramanan, Ann. Statist. 49, 321 (2021), arXiv:1711.01682, Thm 2, "
+      "Eqs. (2.24), (2.28)-(2.29), Prop. 2.2, Cor. 2.3")
+BM = ("Bayati & Montanari, IEEE Trans. Inf. Theory 57, 764 (2011), arXiv:1001.3448, Thm 4; "
+      "Bolthausen, Commun. Math. Phys. 325, 333 (2014), arXiv:1201.2891")
 PARAMS = ("rho",)
+FINITE = ("seeds", "iters", "init", "gamma0")
+_SEEDS = tuple(range(8))
+_AMP = {"q": "q_amp", "overlap": "overlap_amp", "mse": "mmse_amp", "matrix_mse": "matrix_mmse_amp",
+        "gamma_t": "gamma_amp_t"}
 DILUTED = SD.PRIOR
 
 
@@ -33,17 +49,25 @@ def is_diluted(p):
 
 
 def stray(p):
-    """Without the diluted prior, rho is refused; with it, the finite-N knobs are."""
+    """Without the diluted prior, rho, init and gamma0 are refused; with it, N needs snr and rho, the finite-N knobs
+    need N, and gamma0 needs init=planted."""
     if not is_diluted(p):
-        if p.get("rho") is not None:
-            raise Refusal("precondition:known-parameter", f"rho applies to prior={DILUTED} only")
+        bad = [k for k in ("rho", "init", "gamma0") if p.get(k) is not None]
+        if bad:
+            raise Refusal("precondition:known-parameter", f"{', '.join(bad)}: apply to prior={DILUTED} only")
         return
-    bad = [k for k in ("N", "seeds", "iters") if p.get(k) is not None]
-    if bad:
-        raise Refusal("unsupported:diluted-finite-n", f"{', '.join(bad)}: finite-N AMP is not implemented for the "
-                      f"{DILUTED} prior (its SE, fixed points and thresholds are)")
+    if p.get("N") is None:
+        bad = [k for k in FINITE if p.get(k) is not None]
+        if bad:
+            raise Refusal("precondition:known-parameter", f"{', '.join(bad)}: finite-N parameters need N (and snr, "
+                          "rho)")
+    elif p.get("snr") is None:
+        raise Refusal("precondition:state-point", "finite-N AMP needs snr (and N, rho)")
     if p.get("snr") is not None and p.get("rho") is None:
         raise Refusal("precondition:rho", f"snr with prior={DILUTED} needs rho")
+    if p.get("gamma0") is not None and p.get("init") != "planted":
+        raise Refusal("precondition:known-parameter", "gamma0 applies to init=planted only (the spectral start is "
+                      "x^0 = sqrt(N lambda^2 (lambda^2 - 1)) phi_1)")
 
 
 def _tri(p):
@@ -83,6 +107,27 @@ def _se(p):
                 "mmse_se": se.mmse, "matrix_mmse_se": se.matrix_mmse, "se_bayes": se.bayes}, se.note)
 
 
+def _finite(p):
+    seeds, iters, init = _checks.seeds(p.get("seeds", _SEEDS)), p.get("iters", 30), p.get("init", "spectral")
+    ens = S.spiked_amp_ensemble(p["N"], p["snr"], DILUTED, seeds=seeds, iters=iters, rho=p["rho"], init=init,
+                                gamma0=p.get("gamma0"))
+    if init == "planted":
+        gse = SD.diluted_se_trajectory(p["snr"], p["rho"], ens.gamma0, iters)[iters]
+        src = f"diluted_se_trajectory from gamma0 = {ens.gamma0:.6g} at t = {iters}"
+    else:
+        gse = SD.diluted_state_evolution(p["snr"], p["rho"]).uninformative.gamma
+        src = "the SE fixed point reached from the uninformative start (MV Thm 2's t -> oo limit)"
+    vals = {"rho": SD._rho(p["rho"]), "N": p["N"], "seeds": list(seeds), "iters": iters, "init": init,
+            "gamma0": ens.gamma0, "amp_converged_fraction": sum(ens.converged) / len(seeds), "gamma_se_t": gse}
+    for k, name in _AMP.items():
+        vals.update({name: ens.bands[k].mean, f"{name}_halfwidth99": ens.bands[k].half_width})
+    b = ens.bands["gamma_t"]
+    return Out(vals, f"Bayes AMP ({init} start) over seeds {list(seeds)}: gamma_t = {b.mean:.6g} +- "
+               f"{b.half_width:.3g} (99% Student-t, df = {b.df}); gamma_se_t = {gse:.6g} ({src})",
+               errors={name: ens.bands[k].stderr for k, name in _AMP.items()},
+               statistical=tuple(_AMP.values()), notes=(ens.note,))
+
+
 def _when(rho, snr=None):
     return lambda p: is_diluted(p) and (p.get("rho") is not None) == rho and (snr is None or
                                                                             (p.get("snr") is not None) == snr)
@@ -94,7 +139,9 @@ def steps():
             fstep("diluted-thresholds", f"{LKZ}; {AFUZ}; {KZ}", _thresholds, when=_when(True),
                   skip="not the diluted prior, or no rho"),
             fstep("diluted-state-evolution", f"{LKZ}, Sec. IV C 1 (both starts, free-entropy decision); {LM}", _se,
-                  when=_when(True, True), skip="needs the diluted prior, rho and snr")]
+                  when=_when(True, True), skip="needs the diluted prior, rho and snr"),
+            fstep("diluted-amp-finite-n", f"{MV}; {BM} (finite-N iterates: statistical)", _finite,
+                  when=lambda p: is_diluted(p) and p.get("N") is not None, skip="needs the diluted prior and N")]
 
 
 def _phys(note):
@@ -108,6 +155,34 @@ def _bayes(v):
                          "RS free entropy; this run found that maximiser (the lower RS potential, DAM Eq. (9)) among "
                          "the converged uninformative and informative SE limits; not at the IT point itself")
     return Stability("not-computed", "rs", LM, "UNDETERMINED: the two SE starts did not both converge (or tie)")
+
+
+_PLUG = ("the finite-N run uses the empirical plug-in gamma_t (|x^t|^2 / N = gamma_t^2 + gamma_t, inference/spiked.py "
+         "_gamma_hat), not literally the theorem's algorithm, whose gamma_t comes from SE")
+
+
+def _stat():
+    return Stability("not-computed", "amp-finite-N", f"{MV}; {BM}",
+                     "statistical: finite-N mean +- stderr over the named seeds (99% Student-t half-width in "
+                     f"<key>_halfwidth99), never certified; {_PLUG}: NOT final")
+
+
+def _se_t(v):
+    if v.get("init") == "planted":
+        return Stability("exact-by-literature", "amp-se", BM,
+                         "SE at the fixed t from gamma_0 = gamma0: the N -> oo limit of the iterate's empirical "
+                         "statistics at fixed t, for a Lipschitz denoiser (the diluted prior has bounded support) and "
+                         f"a start x^0 = gamma0 x + sqrt(gamma0) g independent of the noise W given x; {_PLUG}")
+    if v.get("snr", 0) > 1 and v.get("se_status") == "determined" and v.get("se_phase") == "easy":
+        return Stability("exact-by-literature", "amp-se", MV,
+                         "MV Thm 2, Eqs. (2.24), (2.28)-(2.29): the N -> oo then t -> oo limit of Bayes AMP with "
+                         "spectral start (lambda > 1; F Lipschitz: bounded support) is the SE fixed point reached from "
+                         "the uninformative start; here both SE starts reach the same fixed point (phase easy), so it "
+                         "is also the Bayes one; gamma_se_t is that t -> oo limit, the run stops at a finite t; "
+                         f"{_PLUG}")
+    return Stability("not-computed", "amp-se", MV, "MV Thm 2 needs lambda > 1, and here the SE has more than one "
+                     "stable fixed point (or was undetermined): the spectral start's limit is the uninformative "
+                     "one, not shown to be reached at this t: NOT final")
 
 
 def finality():
@@ -126,11 +201,12 @@ def finality():
                             "the RS fixed point's vector quantity (sqrt(q), 1 - q) at the Bayes fixed point: LM Thm 1 "
                             "covers the free entropy and the matrix MMSE, not a cosine or a vector MSE (the posterior "
                             "mean of a sign-symmetric prior is 0); in the hard phase it is not AMP's performance: NOT "
-                            "final") for k in ("overlap_se", "mmse_se")}}
+                            "final") for k in ("overlap_se", "mmse_se")},
+            **{k: _stat() for k in _AMP.values()}, "gamma_se_t": _se_t}
 
 
 META = ("rho", "first_order", "first_order_status", "first_order_status_note", "se_fixed_points", "se_stable", "se_phase", "se_metastable", "se_uninformative_gamma",
-        "se_informative_gamma", "se_status", "se_status_note")
+        "se_informative_gamma", "se_status", "se_status_note", "init", "gamma0", "gamma_amp_t_halfwidth99")
 
 
 def refs():
@@ -144,4 +220,4 @@ def refs():
     return out
 
 
-__all__ = ["DILUTED", "META", "PARAMS", "finality", "is_diluted", "refs", "steps", "stray"]
+__all__ = ["DILUTED", "FINITE", "META", "PARAMS", "finality", "is_diluted", "refs", "steps", "stray"]
