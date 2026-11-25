@@ -629,7 +629,8 @@ mmse = 1 - q the sign-resolved vector MSE, matrix_mmse = 1 - q^2; `bayes`: the r
 minimum of the RS potential); `spiked_threshold(prior)` -> mpf; `spiked_potential(snr, gamma,
 prior)`; `scalar_mmse(prior, gamma)`; `spiked_matrix(N, snr, prior, seed, rho=None)` -> (Y, x);
 `spiked_amp(Y, prior, *, snr, iters, seed, init="spectral"|"planted", reaction, tol, rho, gamma0, x0)` ->
-`AMPResult(xhat, x, gamma_trace, increments, converged, ...)` (spectral start: `seed` seeds the eigensolver, lambda > 1;
+`AMPResult(xhat, x, gamma_trace, increments, converged, ...)` (spectral start: `seed` seeds the eigensolver, lambda > 1,
+f_{-1} = x^0/lambda by MV App. A.2's convention (the planted start keeps f_{-1} = 0);
 planted start: x^0 = gamma0 x0 + sqrt(gamma0) g, g from default_rng([seed, 4]), the truth `x0` required, any lambda > 0;
 `gamma_trace[0]` is the empirical gamma of x^0); `amp_metrics(xhat, x0)`;
 `spiked_amp_ensemble(N, snr, prior, *, seeds, iters, reaction, rho, init, gamma0)` -> `AMPEnsemble(q, overlap, mse,
@@ -1904,7 +1905,7 @@ banked in `reference/perceptron.json` as independent targets. Honest limits:
   (default tier): time averages at N = 8 equal the exact spectrum means within 99% bands at four betas,
   and the planted acceptance rule (x0.8) and the reversed exchange sign are detected at every beta.
 
-ACCEPTANCE GATES: `python3 tools/replicant/selftest.py` (default tier: 880 tests, about 75 s (measured 75.07 s wall in the finite-N fix wave, under load: load averages 6.52 at the start and 6.45 at the end; the 874 at 55fd208 took 69.70 s at load 4.93-3.64; the 850 before the finite-N checks took 62.92 s at load 3.4-4.5; the 841 tests of K8 took 60.57 s and 60.56 s on clean exports of bcc55fc at load 3.5-4.3); the 662 tests of the v1 final
+ACCEPTANCE GATES: `python3 tools/replicant/selftest.py` (default tier: 882 tests, about 80 s (measured 79.48 s wall after the spectral first-step fix, under load: load averages 3.94 at the start and 5.21 at the end; the 880 of the finite-N fix wave took 75.07 s at load 6.52-6.45; the 874 at 55fd208 took 69.70 s at load 4.93-3.64; the 850 before the finite-N checks took 62.92 s at load 3.4-4.5; the 841 tests of K8 took 60.57 s and 60.56 s on clean exports of bcc55fc at load 3.5-4.3); the 662 tests of the v1 final
 fix wave measured 30.2 s cold on an idle machine; also `python3 run_selftests.py replicant`, which runs the
 `python3` on PATH; run both from the activated project venv, which has python-flint) covers the core and refusal
 paths, the symbolic derivation against independent expressions, level agreement (a)=(b) for every family where both
@@ -1952,7 +1953,7 @@ the Wishart SE against its Gaussian closed form and small rectangular AMP, ASP a
 values (K5); GAMP against amp/gamp, the LASSO against Bayati-Montanari's formulas and coordinate descent, the l1
 boundary by two routes, ridge with a covariance against HMRT's definitions and all 14 ridge keys (K6); the
 colorability table, the rigidity scaling, the planted coloring's SBM link and small-N counts against the first
-moment and Bethe (K7), each with planted errors. `--full` adds 273 `@slow` tests (the KZ series at reference sizes:
+moment and Bethe (K7), each with planted errors. `--full` adds 274 `@slow` tests (the KZ series at reference sizes:
 the q = 5 SBM c_d, c_c by population dynamics, the finite-N BP pair, the non-backtracking bank and EM; the
 colorability, clustering and regular 1RSB tables by population dynamics, the planted-BP threshold at N = 5000 and
 the KS test of coloring BP on graphs; the slow catalog RefChecks, one @slow test per entry (coloring split by
@@ -1968,7 +1969,7 @@ validation on the four solved lattices (P1, P2), the k-core second routes at ext
 Monte Carlo at L = 8-32 and the z fits, Wang-Landau at L = 4-16, multicanonical and Ferrenberg-Swendsen runs
 against Kaufman, population annealing at 8 x 8, 16 x 16 and SK N = 18 (M1-M3), the 2RSB certified bound and the K =
 5 chain, the E11 Monte Carlo / enumeration held-out routes (about 4.6 min), the Hopfield replicon scans, the p-spin
-T -> 0 energy, solver-based composed and LaTeX checks, a PDF compile when a TeX engine is present) and takes 1153 tests (880 + 273 skipped by the default tier), about 48 minutes (last timed at 1a37a65, when it had 1120 tests: 1120 passed, 0 failed, 48 min 04 s wall, under load: load averages about 5.0 at the start and 6.1 at the end; not re-timed since: the 27 added tests are the finite-N checks of the diluted AMP and ASP); the K = 3 RSB test alone is about 7 minutes, the per-entry slow catalog RefChecks at most 85 s each;
+T -> 0 energy, solver-based composed and LaTeX checks, a PDF compile when a TeX engine is present) and takes 1156 tests (882 + 274 skipped by the default tier), about 48 minutes (last timed at 1a37a65, when it had 1120 tests: 1120 passed, 0 failed, 48 min 04 s wall, under load: load averages about 5.0 at the start and 6.1 at the end; not re-timed since: the 36 added tests are the finite-N checks of the diluted AMP and ASP and the spectral first-step checks); the K = 3 RSB test alone is about 7 minutes, the per-entry slow catalog RefChecks at most 85 s each;
 run it before merging a change to a family. The `@slow` marker is honoured by `selftest.py` only: pytest ignores it
 and would run everything. Level agreement between the derivation and the pipelines is a consistency check, not new
 evidence for the ansatz; the cavity route reproducing the replica RS equations is an independent derivation but NOT
@@ -2299,7 +2300,14 @@ KNOWN HAZARDS:
   function and Psi'' < 0 at gamma = 0 for lambda > 1: the code minimises. Rademacher <= Gaussian
   (MMSE): the linear estimator achieves 1/(1 + gamma) for every unit-variance prior and the SE map is
   monotone. AMP: spectral start (MV Thm 2 needs lambda > 1), gamma_t estimated from |x^t|^2/N (MV
-  use the SE gamma_t: a plug-in, so AMP never calls the SE code). At N = 2000 the per-matrix spread
+  use the SE gamma_t: a plug-in, so AMP never calls the SE code). The spectral start's first Onsager term uses
+  f_{-1} = x^0/lambda (x^0 as used, with the (2.20) scaling), the convention of the proof of MV Theorem 1 (App. A.2:
+  E{L f(X~_{-1}; -1)} = 1/lambda); Sec. 6's all-zeros f_{-1} is for the general algorithm, whose start is independent
+  of W, and the planted start keeps it.  With a linear f_0(x) = s x, Y f_0(x^0) -> s (lambda + 1/lambda) x^0 while SE
+  needs lambda s x^0; b_0 f_{-1} = s x^0/lambda is the difference.  Until the spectral first-step fix the package used
+  f_{-1} = 0, and the run missed MV's SE at small t (rademacher, lambda = 1.5, N = 2000, seeds 0-9, t = 1: SE(1) =
+  1.399143 at -23 half-widths of a band near 2.02; the fixed run holds it).  At t = 30 the transient has died out: the
+  bands below are the same to the printed digits before and after the fix.  At N = 2000 the per-matrix spread
   of q_hat is about 0.03; with seeds 0-31 (slow test) the 99% band at lambda = 1.5 is 0.5524 +- 0.0174
   (bank 0.5556), at 2 0.7514 +- 0.0126 (0.75); without the Onsager term 0.6176 +- 0.0154 and 0.7763
   +- 0.0117, with it halved 0.5983 +- 0.0155: all three exclude the bank, the no-Onsager control at
@@ -2409,8 +2417,16 @@ KNOWN HAZARDS:
   metastable: fixed points 0.0220 and 0.287) it is 0.0184 at t = 30, 16 % below the fixed point.  The start itself is
   checked: spiked_amp's gamma_trace[0] is lambda^2 - 1 to rounding, and the band of <x^0, x>/N (lambda = 1.5, N = 2000,
   seeds 0-7) holds lambda^2 - 1 and excludes sqrt(1 - 1/lambda^2), the overlap without the gamma_0 scaling.  The
-  gaussian / rademacher runs give the same values at the same seeds (q lists equal to those captured before the planted
-  start; only the ensemble's note text changed).  ASP, beta = 2, h = 0, m = `sk_1rsb`'s 0.28184, start (0.5, 0.95), N = 2000, seeds 0-5, t = 10: the SE
+  gaussian / rademacher spectral runs changed by design in the spectral first-step fix (f_{-1} = x^0/lambda, MV App.
+  A.2; it was 0): the q literals of `test_existing_priors_spectral_literals` are those of the corrected first step,
+  the pre-fix literals are reproduced bit-identically with the private hook `_spectral_first_step = False`, and the
+  SE / threshold keys are unchanged.  Fixed t for the spectral start (`test_spectral_amp_tracks_se_at_fixed_t`):
+  rademacher, lambda = 1.5 (SE from gamma_0 = 1.25: 1.399143, 1.480700, 1.521457), N = 2000, seeds 0-39: the
+  gamma_trace band at t = 1 holds SE(1) and excludes SE(0), SE(2); at t = 2 it holds SE(2) and excludes SE(1) (SE(3)
+  is 1.4 half-widths away in the pilots and is not asserted); pilots on seeds 300-339, 400-439, 500-539.  The control
+  with f_{-1} = 0 (seeds 0-9) misses SE(1) by more than 5 half-widths (pilots 15.9 to 21.9), asserted.  Diluted (slow):
+  rho = 0.08, lambda = 1.2 (SE 0.44, 0.643990, 0.871498, 1.053433), N = 2000, seeds 0-39: t = 1 holds SE(1) and
+  excludes SE(0), SE(2); t = 2 holds SE(2) (a step is 1.3-2.7 half-widths there, so no exclusion).  ASP, beta = 2, h = 0, m = `sk_1rsb`'s 0.28184, start (0.5, 0.95), N = 2000, seeds 0-5, t = 10: the SE
   (0.24430, 0.61477) lies inside both bands (pilots, seeds 100-105: 0.24840 +- 0.01561, 0.61564 +- 0.00586; N 1000-3000
   and t 5-20 all inside, at most 0.66 half-widths off); likewise beta = 3 (SE (0.31040, 0.80139)) and beta = 2 at h = 0.3
   (m = 0.37564, SE (0.43955, 0.63992)).  Controls, asserted to fail by more than 10 half-widths: no Onsager term (q0,

@@ -82,6 +82,11 @@ The finite-N checks series added finite-N parameters to the two K5 entries: `spi
 gamma_0 = `gamma0` for `planted`, gamma_0 = lambda^2 - 1 for `spectral`, not the t -> oo fixed point),
 and the `sk` amp route with `ansatz=1rsb` takes `N`, `seeds`, `iters`, `start` (`q0_amp`, `q1_amp` against `q0_se_t`, `q1_se_t`); the
 two `unsupported:` refusals that stated this gap are gone; `precondition:gamma0` and `precondition:x0` are new.
+The spectral start of `spiked_wigner`'s Bayes AMP (every prior) takes its first Onsager term with
+f_{-1} = x^0/lambda, the convention of the proof of Montanari-Venkataramanan's Theorem 1 (App. A.2); it used
+f_{-1} = 0 (Sec. 6's choice for the general algorithm, whose start does not depend on the noise), and the run then
+missed the state evolution at small t. The planted start keeps f_{-1} = 0. Finite-N spectral values changed at small
+t; at the default 30 iterations they agree with the old ones to the printed digits.
 In the final-review fix wave `rfim`'s cavity route took the regular degree as `d` (as `potts_bethe` and
 `coloring`; `c` on a regular graph keeps its old meaning), and `coloring`'s ER clustering at q >= 4 (first-order)
 became an up-front refusal, `unsupported:er-first-order`, before any population runs.

@@ -7,6 +7,17 @@ All notable changes to BootLoops are recorded here. The format follows
 ## Unreleased
 
 ### Fixed
+- `replicant` (spectral first step): the spectral start of `spiked_wigner`'s Bayes AMP (`inference/spiked.py`, every
+  prior) takes its first Onsager term with f_{-1} = x^0/lambda (x^0 with MV's (2.20) scaling), the convention of the
+  proof of MV Theorem 1 (App. A.2, E{L f(X~_{-1}; -1)} = 1/lambda); it was 0 (Sec. 6's choice for the general
+  algorithm), and the run missed MV's SE at small t (rademacher, lambda = 1.5, N = 2000, t = 1: -23 half-widths).
+  The planted start keeps f_{-1} = 0; `reaction=False` drops this term too. Finite-N spectral values change at small
+  t (none banked; at t = 30 the same to the printed digits). Tests: fixed-t spectral bands at t = 1, 2 hold SE(t) and
+  exclude the neighbours (rademacher lambda = 1.5, seeds 0-39; diluted rho = 0.08, lambda = 1.2, slow), the f_{-1} = 0
+  control asserted to miss by more than 5 half-widths (private hook `_spectral_first_step`); the q literals are
+  recaptured (`test_existing_priors_spectral_literals`; the old ones reproduced with the hook), the 58953a7 golden
+  test checks the finite-N keys under the hook and every other key unchanged. Default tier 882 tests, 79.48 s (load
+  averages 3.94 at the start, 5.21 at the end); slow tier 274 tests, full tier not re-timed (last timed at 1a37a65).
 - `replicant` (final-review fix wave of the finite-N checks): the diluted `spiked_wigner` spectral start's
   `gamma_se_t` is the SE at the run's t from gamma_0 = lambda^2 - 1 (x^0 = sqrt(N lambda^2 (lambda^2 - 1)) phi_1 has
   |x^0|^2/N = lambda^2 (lambda^2 - 1); checked: gamma_trace[0] is lambda^2 - 1 to rounding and the band of <x^0, x>/N
