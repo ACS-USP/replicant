@@ -6,6 +6,15 @@ All notable changes to BootLoops are recorded here. The format follows
 
 ## Unreleased
 
+### Changed
+- `replicant` (default-tier timing): two t -> oo pilots move to `@slow`: the 3000-step end of `asp_trajectory`
+  (`test_asp_trajectory_ends_at_fixed_point`; its start and q0 = 0 checks stay in the default tier as
+  `test_asp_trajectory_start_and_q0_zero`) and the t = 30 spectral easy-phase band (`test_diluted_spectral_easy_phase`;
+  the spectral wiring and label stay through `test_diluted_spectral_metastable_easy_phase`). The fixed-t comparisons and
+  the planted controls stay in the default tier. Default tier 881 tests, 78.39 s wall (75.0 s user CPU; load averages
+  8.36 at the start, 9.58 at the end); slow tier 276; 1157 in all. A per-test single-thread timing put the default
+  tier at 77 s of CPU: the cost is the tests, not the load, and the two pilots were 2.2 s of it.
+
 ### Fixed
 - `replicant` (spectral first step): the spectral start of `spiked_wigner`'s Bayes AMP (`inference/spiked.py`, every
   prior) takes its first Onsager term with f_{-1} = x^0/lambda (x^0 with MV's (2.20) scaling), the convention of the

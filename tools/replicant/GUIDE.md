@@ -1905,7 +1905,7 @@ banked in `reference/perceptron.json` as independent targets. Honest limits:
   (default tier): time averages at N = 8 equal the exact spectrum means within 99% bands at four betas,
   and the planted acceptance rule (x0.8) and the reversed exchange sign are detected at every beta.
 
-ACCEPTANCE GATES: `python3 tools/replicant/selftest.py` (default tier: 882 tests, about 80 s (measured 79.48 s wall after the spectral first-step fix, under load: load averages 3.94 at the start and 5.21 at the end; the 880 of the finite-N fix wave took 75.07 s at load 6.52-6.45; the 874 at 55fd208 took 69.70 s at load 4.93-3.64; the 850 before the finite-N checks took 62.92 s at load 3.4-4.5; the 841 tests of K8 took 60.57 s and 60.56 s on clean exports of bcc55fc at load 3.5-4.3); the 662 tests of the v1 final
+ACCEPTANCE GATES: `python3 tools/replicant/selftest.py` (default tier: 881 tests, about 80 s (measured 78.39 s wall after two t -> oo pilots moved to `@slow`, under heavy load: load averages 8.36 at the start and 9.58 at the end; 75.0 s user CPU; the 882 after the spectral first-step fix took 79.48 s at load 3.94-5.21; the 880 of the finite-N fix wave took 75.07 s at load 6.52-6.45; the 874 at 55fd208 took 69.70 s at load 4.93-3.64; the 850 before the finite-N checks took 62.92 s at load 3.4-4.5; the 841 tests of K8 took 60.57 s and 60.56 s on clean exports of bcc55fc at load 3.5-4.3); the 662 tests of the v1 final
 fix wave measured 30.2 s cold on an idle machine; also `python3 run_selftests.py replicant`, which runs the
 `python3` on PATH; run both from the activated project venv, which has python-flint) covers the core and refusal
 paths, the symbolic derivation against independent expressions, level agreement (a)=(b) for every family where both
@@ -1953,7 +1953,7 @@ the Wishart SE against its Gaussian closed form and small rectangular AMP, ASP a
 values (K5); GAMP against amp/gamp, the LASSO against Bayati-Montanari's formulas and coordinate descent, the l1
 boundary by two routes, ridge with a covariance against HMRT's definitions and all 14 ridge keys (K6); the
 colorability table, the rigidity scaling, the planted coloring's SBM link and small-N counts against the first
-moment and Bethe (K7), each with planted errors. `--full` adds 274 `@slow` tests (the KZ series at reference sizes:
+moment and Bethe (K7), each with planted errors. `--full` adds 276 `@slow` tests (the KZ series at reference sizes:
 the q = 5 SBM c_d, c_c by population dynamics, the finite-N BP pair, the non-backtracking bank and EM; the
 colorability, clustering and regular 1RSB tables by population dynamics, the planted-BP threshold at N = 5000 and
 the KS test of coloring BP on graphs; the slow catalog RefChecks, one @slow test per entry (coloring split by
@@ -1969,7 +1969,7 @@ validation on the four solved lattices (P1, P2), the k-core second routes at ext
 Monte Carlo at L = 8-32 and the z fits, Wang-Landau at L = 4-16, multicanonical and Ferrenberg-Swendsen runs
 against Kaufman, population annealing at 8 x 8, 16 x 16 and SK N = 18 (M1-M3), the 2RSB certified bound and the K =
 5 chain, the E11 Monte Carlo / enumeration held-out routes (about 4.6 min), the Hopfield replicon scans, the p-spin
-T -> 0 energy, solver-based composed and LaTeX checks, a PDF compile when a TeX engine is present) and takes 1156 tests (882 + 274 skipped by the default tier), about 49 minutes (last timed at ff1e62e: 1156 passed, 0 failed, 48 min 52 s (2931.87 s) wall, load averages 3.72 at the start and 3.38 at the end; the 1a37a65 timing, 1120 tests in 48 min 04 s, predates the 36 tests of the finite-N checks of the diluted AMP and ASP and the spectral first-step checks); the K = 3 RSB test alone is about 7 minutes, the per-entry slow catalog RefChecks at most 85 s each;
+T -> 0 energy, solver-based composed and LaTeX checks, a PDF compile when a TeX engine is present) and takes 1157 tests (881 + 276 skipped by the default tier), about 49 minutes (last timed at ff1e62e, before the two pilots moved (the same tests): 1156 passed, 0 failed, 48 min 52 s (2931.87 s) wall, load averages 3.72 at the start and 3.38 at the end; the 1a37a65 timing, 1120 tests in 48 min 04 s, predates the 36 tests of the finite-N checks of the diluted AMP and ASP and the spectral first-step checks); the K = 3 RSB test alone is about 7 minutes, the per-entry slow catalog RefChecks at most 85 s each;
 run it before merging a change to a family. The `@slow` marker is honoured by `selftest.py` only: pytest ignores it
 and would run everything. Level agreement between the derivation and the pipelines is a consistency check, not new
 evidence for the ansatz; the cavity route reproducing the replica RS equations is an independent derivation but NOT

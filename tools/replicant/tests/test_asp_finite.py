@@ -55,15 +55,24 @@ def _ens(beta, h, n, iters, reaction=True, start=None):
                               reaction=reaction)
 
 
+def test_asp_trajectory_start_and_q0_zero():
+    """t = 0 is the start (default (0.5, 0.95)); a start with q0 = 0 keeps q0 = 0 at every step (h = 0)."""
+    m = _m(2)
+    tr = A.asp_trajectory(2, m, iters=3)
+    assert len(tr) == 4 and tr[0] == (0.5, 0.95), tr[:2]
+    zero = A.asp_trajectory(2, m, start=(0.0, 0.9), iters=5)
+    assert all(q0 == 0.0 for q0, _ in zero), zero
+
+
+@slow
 def test_asp_trajectory_ends_at_fixed_point():
-    """t = 0 is the start (default (0.5, 0.95)); the last of 3000 steps of _map is asp_fixed_point's (q0, q1)."""
+    """The last of 3000 steps of _map is asp_fixed_point's (q0, q1) to 1e-12.  A t -> oo pilot, not the fixed-t
+    statement: @slow since the default-tier timing pass (about 1.6 s); the fixed-t tests stay in the default tier."""
     m = _m(2)
     tr = A.asp_trajectory(2, m, iters=3000)
     assert len(tr) == 3001 and tr[0] == (0.5, 0.95), tr[:2]
     fp = A.asp_fixed_point(2, m)
     assert abs(tr[-1][0] - fp.q0) < 1e-12 and abs(tr[-1][1] - fp.q1) < 1e-12, (tr[-1], fp)
-    zero = A.asp_trajectory(2, m, start=(0.0, 0.9), iters=5)
-    assert all(q0 == 0.0 for q0, _ in zero), zero
 
 
 def _points():

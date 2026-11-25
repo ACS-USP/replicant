@@ -426,11 +426,14 @@ def test_diluted_catalog_refusals():
     assert hits == [], hits
 
 
+@slow
 def test_diluted_spectral_easy_phase():
     """lambda = 1.5 at rho = 0.08 (easy phase, one SE fixed point gamma = 2.18565), spectral start, N = 2000, the
     default seeds 0-7 and iters 30: gamma_se_t (the SE at t = 30 from gamma_0 = lambda^2 - 1 = 1.25, here equal to the
     fixed point to 1e-9) lies in the gamma_amp_t band, the band excludes 0, and it carries MV Thm 2's label.  Pilots
-    (seeds 100-107, 200-207): 2.31 +- 0.32, 2.17 +- 0.38."""
+    (seeds 100-107, 200-207): 2.31 +- 0.32, 2.17 +- 0.38.  A comparison at the fixed point (t = 30): @slow since the
+    default-tier timing pass (about 0.6 s); the spectral wiring and label stay in the default tier through
+    test_diluted_spectral_metastable_easy_phase, the fixed-t comparison through test_spectral_amp_tracks_se_at_fixed_t."""
     from replicant.inference import spiked_diluted as SD
     r = _dil(rho=0.08, snr=1.5, N=2000)
     v = r.values
