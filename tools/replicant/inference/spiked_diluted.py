@@ -314,6 +314,32 @@ def diluted_state_evolution(snr, rho, *, max_iter=20000) -> DilutedSE:
                      meta, uni, inf)
 
 
+def diluted_se_trajectory(snr, rho, gamma0, iters):
+    """SE from a given start: gamma_0 = gamma0, gamma_{t+1} = lambda^2 m(gamma_t) (MV Eq. (2.24)), t = 0..iters, as a list
+    of length iters + 1.  The fixed-t comparison for planted AMP (spiked_amp init="planted" starts at x^0 = gamma0 x +
+    sqrt(gamma0) g, the scalar channel at gamma0); the overlap at t is diluted_overlap(rho, gamma_t)."""
+    lam, r = float(_spiked_snr(snr)), _rho(rho)
+    if not lam > 0:
+        raise Refusal("precondition:snr", f"snr = {snr!r}: the diluted prior needs a finite lambda > 0")
+    bad = Refusal("precondition:gamma0", f"gamma0 = {gamma0!r}: the start needs a finite number > 0")
+    if isinstance(gamma0, bool) or gamma0 is None:
+        raise bad
+    try:
+        g = float(gamma0)
+    except (TypeError, ValueError):
+        raise bad from None
+    if not (math.isfinite(g) and g > 0):
+        raise bad
+    if isinstance(iters, bool) or not isinstance(iters, int) or iters < 1:
+        raise Refusal("precondition:positive-iters", f"iters = {iters!r} is not a positive int")
+    lam2, out = lam * lam, [g]
+    for _ in range(iters):
+        # m = E[E[X|y]^2] >= 0; near gamma = 0 the quadrature returns about -1e-27, clipped (else the next step refuses)
+        g = max(lam2 * _m(r, g), 0.0)
+        out.append(g)
+    return out
+
+
 # ---- thresholds ---------------------------------------------------------------------------------------------------
 def diluted_it_threshold(rho):
     """lambda_IT: Psi of the lowest and the highest stable fixed point coincide (brentq between the spinodals)."""
@@ -370,6 +396,6 @@ def diluted_tricritical(bracket=(0.085, 0.11)):
 
 __all__ = ["DilutedSE", "FixedPoint", "PRIOR", "Spinodals", "Start", "Tricritical", "clear_caches",
            "diluted_it_threshold", "diluted_mutual_info", "diluted_overlap", "diluted_overlap_slope",
-           "diluted_potential",
+           "diluted_potential", "diluted_se_trajectory",
            "diluted_first_order", "diluted_spinodals", "diluted_state_evolution", "diluted_tricritical", "lkz_from_snr", "notes_from_snr",
            "snr_from_lkz", "snr_from_notes"]

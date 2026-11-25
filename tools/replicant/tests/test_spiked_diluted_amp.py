@@ -145,3 +145,118 @@ def test_prior_refusals():
         _refuses(lambda rho=rho: S._prior("diluted_rademacher", rho), "precondition:rho")
     assert S._prior("diluted_rademacher", 0.08) is S.diluted_prior(0.08)
     assert S._prior("rademacher") is S.PRIORS["rademacher"]
+
+
+# ---- Task 2: the planted start and the diluted SE trajectory --------------------------------------------------------
+# State point, fixed from the package's own SE (spiked_diluted) before any finite-N test run:
+#   rho = 0.08: dyn 0.980175, IT 0.985607, alg 1.009744 (diluted_spinodals, diluted_it_threshold): the hard phase proper
+#   is lambda in (0.9856, 1.0097).  lambda = 0.99 (lambda^2 = 0.9801): SE fixed points gamma = 0 (stable), 0.166568
+#   (unstable, the middle one), 0.425999 (stable); phase hard.  Weak start gamma0 = 0.05 (below 0.166568), strong
+#   gamma0 = 1.  SE from gamma0 = 1 (diluted_se_trajectory): 1, 0.768867, 0.666765, 0.607702, 0.568907 at t = 0..4;
+#   m(gamma_4) = 0.552438.
+# Why this point and not rho = 0.05, lambda = 0.95 (wider window): pilots at N = 3000, t = 4 on seeds 1000-1039
+# (rho = 0.05) and 1000-1019 (rho = 0.08), never 0-9, gave a per-seed sd of gamma_t about 0.095 at both points (driven
+# by |x|^2 / N, sd sqrt((1 - rho) / (rho N))), but a no-Onsager offset from SE of 0.137 at rho = 0.05 against 0.340
+# (sd 0.063) here: with 10 seeds the control's expected 99% half-width is about 0.065, a margin of 5.  The planted
+# run's mean offset from SE was -0.008 (se 0.02): no resolved finite-N bias.  N = 3000, 10 seeds: about 1 s per run.
+_RHO, _LAM, _WEAK, _STRONG = 0.08, 0.99, 0.05, 1.0
+_N, _SEEDS, _T = 3000, tuple(range(10)), 4
+
+
+def test_diluted_se_trajectory_reaches_both_branches():
+    """At rho = 0.08, lambda = 0.99 (hard phase): from gamma0 = 0.05 the SE trajectory tends to the uninformative
+    fixed point (gamma = 0), from gamma0 = 1 to the informative one (0.425999), within 1e-8 at t = 2000."""
+    from replicant.inference import spiked_diluted as SD
+    se = SD.diluted_state_evolution(_LAM, _RHO)
+    assert se.phase == "hard" and se.uninformative.gamma == 0.0
+    mid = [f.gamma for f in se.fixed_points if not f.stable]
+    assert len(mid) == 1 and _WEAK < mid[0], (mid, _WEAK)
+    weak = SD.diluted_se_trajectory(_LAM, _RHO, _WEAK, 2000)
+    strong = SD.diluted_se_trajectory(_LAM, _RHO, _STRONG, 2000)
+    assert len(weak) == len(strong) == 2001 and weak[0] == _WEAK and strong[0] == _STRONG
+    assert abs(weak[-1] - se.uninformative.gamma) < 1e-8, weak[-1]
+    assert abs(strong[-1] - se.informative.gamma) < 1e-8, (strong[-1], se.informative.gamma)
+    # gamma_{t+1} = lambda^2 m(gamma_t), checked on one step
+    assert abs(strong[1] - _LAM**2 * SD.diluted_overlap(_RHO, _STRONG)) < 1e-15
+    _refuses(lambda: SD.diluted_se_trajectory(_LAM, _RHO, 0, 5), "precondition:gamma0")
+    _refuses(lambda: SD.diluted_se_trajectory(_LAM, _RHO, float("nan"), 5), "precondition:gamma0")
+    _refuses(lambda: SD.diluted_se_trajectory(_LAM, _RHO, 1.0, 0), "precondition:positive-iters")
+
+
+def _planted(reaction):
+    return S.spiked_amp_ensemble(_N, _LAM, "diluted_rademacher", seeds=_SEEDS, iters=_T, reaction=reaction, rho=_RHO,
+                                 init="planted", gamma0=_STRONG)
+
+
+def _inside(v, band):
+    return abs(v - band.mean) <= band.half_width
+
+
+def test_planted_amp_tracks_se_trajectory():
+    """Planted AMP from gamma0 = 1 at rho = 0.08, lambda = 0.99, N = 3000, seeds 0-9, t = 4 (fixed t: MV Thm 2 is the
+    N -> oo statement at fixed t).  The SE gamma_4 = 0.568907 (diluted_se_trajectory) lies in the 99% Student-t band of
+    the empirical gamma_t, and the SE overlap m(gamma_4) = E[x F(x^t; gamma_t)] = 0.552438 in the band of q."""
+    from replicant.inference import spiked_diluted as SD
+    gse = SD.diluted_se_trajectory(_LAM, _RHO, _STRONG, _T)[_T]
+    ens = _planted(True)
+    assert ens.init == "planted" and ens.gamma0 == _STRONG and len(ens.gamma_t) == len(_SEEDS)
+    assert "planted" in ens.note and "plug-in" in ens.note
+    assert _inside(gse, ens.bands["gamma_t"]), (gse, ens.bands["gamma_t"])
+    assert _inside(SD.diluted_overlap(_RHO, gse), ens.bands["q"]), (SD.diluted_overlap(_RHO, gse), ens.bands["q"])
+
+
+def test_planted_amp_no_onsager_fails():
+    """The control: the same point and seeds with reaction=False; the SE gamma_4 lies outside the gamma_t band."""
+    from replicant.inference import spiked_diluted as SD
+    gse = SD.diluted_se_trajectory(_LAM, _RHO, _STRONG, _T)[_T]
+    b = _planted(False).bands["gamma_t"]
+    assert not _inside(gse, b), (gse, b)
+
+
+def test_existing_priors_unchanged():
+    """q lists captured on HEAD 75d283b before the planted start was added (seeds=(0,) alone is refused
+    precondition:two-samples by the band, so seeds (0, 1); 15 significant digits)."""
+    e = S.spiked_amp_ensemble(400, 1.5, "rademacher", seeds=(0, 1), iters=10)
+    assert [float(f"{v:.15g}") for v in e.q] == [0.590866685596371, 0.76416572163114], e.q
+    e = S.spiked_amp_ensemble(400, 1.5, "gaussian", seeds=(0, 1), iters=10)
+    assert [float(f"{v:.15g}") for v in e.q] == [0.607332003383008, 0.680652909498955], e.q
+    assert e.init == "spectral" and e.gamma0 is None
+
+
+def test_planted_refusals():
+    Y, x0 = S.spiked_matrix(50, _LAM, "diluted_rademacher", 0, rho=_RHO)
+    kw = dict(snr=_LAM, iters=3, seed=0, rho=_RHO)
+    _refuses(lambda: S.spiked_amp(Y, "diluted_rademacher", init="planted", x0=x0, **kw), "precondition:gamma0")
+    for bad in (0, -1, float("nan"), float("inf"), True, "x"):
+        _refuses(lambda bad=bad: S.spiked_amp(Y, "diluted_rademacher", init="planted", x0=x0, gamma0=bad, **kw),
+                 "precondition:gamma0")
+    _refuses(lambda: S.spiked_amp(Y, "diluted_rademacher", init="planted", gamma0=1.0, **kw), "precondition:x0")
+    _refuses(lambda: S.spiked_amp(Y, "diluted_rademacher", init="planted", gamma0=1.0, x0=x0[:10], **kw),
+             "precondition:x0")
+    Yg, xg = S.spiked_matrix(50, 2, "gaussian", 0)
+    _refuses(lambda: S.spiked_amp(Yg, "gaussian", snr=2, iters=3, seed=0, gamma0=1.0), "precondition:known-parameter")
+    _refuses(lambda: S.spiked_amp(Yg, "gaussian", snr=2, iters=3, seed=0, x0=xg), "precondition:known-parameter")
+    _refuses(lambda: S.spiked_amp(Yg, "gaussian", snr=0.9, iters=3, seed=0), "precondition:snr-above-one")
+    _refuses(lambda: S.spiked_amp(Yg, "gaussian", snr=2, iters=3, seed=0, init="warm"), "precondition:known-init")
+    _refuses(lambda: S.spiked_amp_ensemble(50, 2, "gaussian", seeds=(0, 1), iters=3, gamma0=1.0),
+             "precondition:known-parameter")
+    _refuses(lambda: S.spiked_amp_ensemble(50, 0.9, "gaussian", seeds=(0, 1), iters=3), "precondition:snr-above-one")
+    _refuses(lambda: S.spiked_amp_ensemble(50, 0.9, "gaussian", seeds=(0, 1), iters=3, init="planted"),
+             "precondition:gamma0")
+    # planted runs below lambda = 1 (no eigsh) and its first gamma is the empirical one of x^0
+    r = S.spiked_amp(Y, "diluted_rademacher", init="planted", x0=x0, gamma0=1.0, **kw)
+    g = np.random.default_rng([0, 4]).normal(size=50)
+    assert r.gamma_trace[0] == S._gamma_hat(1.0 * x0 + 1.0 * g)
+    ens = S.spiked_amp_ensemble(50, 0.9, "gaussian", seeds=(0, 1), iters=3, init="planted", gamma0=0.5)
+    assert isinstance(ens.bands["gamma_t"], S.Band) and len(ens.gamma_t) == 2
+
+
+def test_planted_start_imports_nothing_from_se():
+    """AST audit of the planted start and of the finite-N entry points (everything they reach), with a failing control."""
+    src = inspect.getsource(S)
+    for root in ("_planted_start", "spiked_amp", "spiked_amp_ensemble", "spiked_matrix"):
+        assert f"def {root}(" in src, root
+        assert _audit(src, root) == [], (root, _audit(src, root))
+    bad = ("def _planted_start(x0, g, s):\n    from .spiked_diluted import diluted_overlap\n    return x0\n"
+           "def spiked_amp(Y):\n    return _planted_start(Y, 1, 0)\n")
+    assert _audit(bad, "spiked_amp"), "planted start importing spiked_diluted not flagged"

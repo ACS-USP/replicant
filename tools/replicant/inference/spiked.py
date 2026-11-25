@@ -1,5 +1,5 @@
 """Rank-one spiked Wigner model: Bayes-optimal state evolution, the RS potential, the threshold,
-and finite-N Bayes AMP with spectral initialisation.
+and finite-N Bayes AMP with spectral or planted initialisation.
 
 Model (Montanari & Venkataramanan, Ann. Statist. 49, 321 (2021), arXiv:1711.01682, Eq. (2.1)):
     Y = (lambda / N) x x^T + W,   W ~ GOE(N): W_ij ~ N(0, 1/N) for i < j, W_ii ~ N(0, 2/N),
@@ -37,7 +37,9 @@ AMP (MV Eqs. (2.20)-(2.21), Bayes AMP): x^0 = sqrt(N lambda^2 (lambda^2 - 1)) ph
     x^{t+1} = Y f_t(x^t) - b_t f_{t-1}(x^{t-1}),  f_t = lambda F(.; gamma_t),  b_t = <f_t'(x^t)>,
 f_{-1} = 0, estimate xhat^t = F(x^t; gamma_t).  MV Theorem 2 takes gamma_t from SE; here gamma_t is
 estimated from the iterate (|x^t|^2 / N -> gamma_t^2 + gamma_t), so AMP does not call this
-module's SE: a consistent plug-in, not literally the theorem's algorithm.  `reaction=False` drops
+module's SE: a consistent plug-in, not literally the theorem's algorithm.  Planted start (init="planted", any lambda > 0, no eigsh): x^0 = gamma0 x + sqrt(gamma0) g with the
+truth x and g ~ N(0, 1) from default_rng([seed, 4]), the scalar channel at gamma0, so SE starts at gamma_0 = gamma0
+(spiked_diluted.diluted_se_trajectory; this module does not call it).  `reaction=False` drops
 the Onsager term (non-linear power iteration, the positive control).  Finite-N values are
 statistical (99% Student-t bands over named seeds), never certified.
 """
@@ -305,13 +307,21 @@ def spiked_threshold(prior="gaussian"):
 
 
 # ---- finite N --------------------------------------------------------------------------------
-def spiked_matrix(N, snr, prior, seed):
-    """(Y, x): W ~ GOE(N) from default_rng([seed, 1]), x ~ prior from default_rng([seed, 2])."""
+def _amp_prior(prior, rho):
+    """The finite-N prior: rho is the diluted prior's parameter and is refused with any other prior."""
+    if rho is not None and prior != _DILUTED:
+        raise Refusal("precondition:known-parameter", f"rho = {rho!r} applies to prior {_DILUTED} only, not {prior!r}")
+    return _prior(prior, rho)
+
+
+def spiked_matrix(N, snr, prior, seed, rho=None):
+    """(Y, x): W ~ GOE(N) from default_rng([seed, 1]), x ~ prior (with rho for diluted_rademacher) from
+    default_rng([seed, 2])."""
     if isinstance(N, bool) or not isinstance(N, int) or N < 10:
         raise Refusal("precondition:size", f"N={N!r} must be an int >= 10")
     seed = _checks.seed(seed)
     lam = float(_snr(snr))
-    P = _prior(prior)
+    P = _amp_prior(prior, rho)
     A = np.random.default_rng([seed, 1]).normal(size=(N, N)) / math.sqrt(N)
     W = (A + A.T) / math.sqrt(2)
     x = P.sample(np.random.default_rng([seed, 2]), N)
@@ -330,6 +340,8 @@ class AMPResult:
     seed: int = 0
     reaction: bool = True
     label: str = "statistical"
+    init: str = "spectral"
+    gamma0: object = None
 
 
 def _check_Y(Y):
@@ -347,25 +359,72 @@ def _gamma_hat(x):
     return (-1 + math.sqrt(1 + 4 * float(x @ x) / x.size)) / 2
 
 
-def spiked_amp(Y, prior, *, snr, iters, seed, init="spectral", reaction=True, tol=1e-12) -> AMPResult:
-    """Bayes AMP on Y (module docstring); `seed` seeds the eigensolver's start vector."""
-    from scipy.sparse.linalg import eigsh
+def _gamma0(gamma0):
+    """gamma0 as a finite float > 0, else precondition:gamma0."""
+    bad = Refusal("precondition:gamma0", f"gamma0 = {gamma0!r}: the planted start needs a finite number > 0 "
+                  "(x^0 = gamma0 x + sqrt(gamma0) g)")
+    if isinstance(gamma0, bool) or gamma0 is None:
+        raise bad
+    try:
+        g = float(gamma0)
+    except (TypeError, ValueError):
+        raise bad from None
+    if not (math.isfinite(g) and g > 0):
+        raise bad
+    return g
+
+
+def _check_init(init, lam, gamma0, x0=None):
+    """The start's preconditions; returns gamma0 as a float for the planted start, None for the spectral one."""
+    if init == "spectral":
+        if gamma0 is not None or x0 is not None:
+            raise Refusal("precondition:known-parameter", "gamma0 and x0 apply to init='planted' only; the spectral "
+                          "start is x^0 = sqrt(N lambda^2 (lambda^2 - 1)) phi_1")
+        if lam <= 1:
+            raise Refusal("precondition:snr-above-one", f"lambda = {lam}: {_SPECTRAL}")
+        return None
+    if init == "planted":
+        g = _gamma0(gamma0)
+        if lam <= 0:
+            raise Refusal("precondition:snr", "the planted start needs lambda > 0")
+        return g
+    raise Refusal("precondition:known-init", f"init={init!r}; supported: 'spectral' (MV Eq. (2.20)) and 'planted' "
+                  "(x^0 = gamma0 x + sqrt(gamma0) g, the scalar channel at gamma0, given the truth x); a start "
+                  "independent of Y and x has zero overlap for these zero-mean priors, so SE would stay at gamma = 0")
+
+
+def _planted_start(x0, gamma0, seed):
+    """x^0 = gamma0 x0 + sqrt(gamma0) g, g ~ N(0, 1)^N from default_rng([seed, 4]): the scalar channel
+    y = gamma X + sqrt(gamma) G at gamma = gamma0 (SE's gamma_0 = gamma0, independent of W given x0)."""
+    g = np.random.default_rng([seed, 4]).normal(size=x0.size)
+    return gamma0 * x0 + math.sqrt(gamma0) * g
+
+
+def spiked_amp(Y, prior, *, snr, iters, seed, init="spectral", reaction=True, tol=1e-12, rho=None, gamma0=None,
+               x0=None) -> AMPResult:
+    """Bayes AMP on Y (module docstring).  init="spectral": `seed` seeds the eigensolver's start vector (lambda > 1).
+    init="planted": x^0 = gamma0 x0 + sqrt(gamma0) g with the truth x0 and g from default_rng([seed, 4]); no eigsh,
+    any lambda > 0.  gammas[0] is the empirical gamma of x^0 in both cases."""
     Y = _check_Y(Y)
-    P = _prior(prior)
+    P = _amp_prior(prior, rho)
     lam = float(_snr(snr))
     seed = _checks.seed(seed)
     if isinstance(iters, bool) or not isinstance(iters, int) or iters < 1:
         raise Refusal("precondition:positive-iters", f"iters={iters!r} is not a positive int")
-    if init != "spectral":
-        raise Refusal("precondition:known-init", f"init={init!r}; supported: 'spectral' "
-                      "(MV Eq. (2.20)); a start independent of Y has zero overlap for these "
-                      "zero-mean priors, so SE would stay at gamma = 0")
-    if lam <= 1:
-        raise Refusal("precondition:snr-above-one", f"lambda = {lam}: {_SPECTRAL}")
+    g0 = _check_init(init, lam, gamma0, x0)
     N = Y.shape[0]
-    v0 = np.random.default_rng([seed, 3]).normal(size=N)
-    _, vec = eigsh(Y, k=1, which="LA", v0=v0, tol=1e-12)
-    x = math.sqrt(N * lam**2 * (lam**2 - 1)) * vec[:, 0]
+    if init == "planted":
+        if x0 is None:
+            raise Refusal("precondition:x0", "init='planted' needs x0, the planted truth of Y")
+        x0 = np.asarray(x0, dtype=float)
+        if x0.shape != (N,) or not np.all(np.isfinite(x0)):
+            raise Refusal("precondition:x0", f"x0 has shape {x0.shape}; need a finite vector of length N = {N}")
+        x = _planted_start(x0, g0, seed)
+    else:
+        from scipy.sparse.linalg import eigsh
+        v0 = np.random.default_rng([seed, 3]).normal(size=N)
+        _, vec = eigsh(Y, k=1, which="LA", v0=v0, tol=1e-12)
+        x = math.sqrt(N * lam**2 * (lam**2 - 1)) * vec[:, 0]
     f_old = np.zeros(N)
     gam = _gamma_hat(x)
     gammas, incs, xhat = [gam], [], P.F(x, gam)
@@ -379,7 +438,7 @@ def spiked_amp(Y, prior, *, snr, iters, seed, init="spectral", reaction=True, to
         incs.append(float((new - xhat) @ (new - xhat) / N))
         xhat = new
         gammas.append(gam)
-    return AMPResult(xhat, x, gammas, incs, bool(incs[-1] < tol), lam, prior, seed, reaction)
+    return AMPResult(xhat, x, gammas, incs, bool(incs[-1] < tol), lam, prior, seed, reaction, init=init, gamma0=g0)
 
 
 def amp_metrics(xhat, x0):
@@ -398,7 +457,7 @@ class AMPEnsemble:
     mse: list
     matrix_mse: list
     converged: list
-    bands: dict                  # key -> amp._stats.Band (99% Student-t)
+    bands: dict                  # key -> amp._stats.Band (99% Student-t); gamma_t included
     seeds: tuple
     N: int
     snr: float
@@ -407,30 +466,42 @@ class AMPEnsemble:
     reaction: bool
     label: str = "statistical"
     note: str = ""
+    gamma_t: list = None         # each run's empirical gamma at t = iters (gamma_trace[-1])
+    init: str = "spectral"
+    gamma0: object = None
+    rho: object = None
 
 
-def spiked_amp_ensemble(N, snr, prior, *, seeds, iters, reaction=True) -> AMPEnsemble:
-    """One fresh (W, x) per named seed; 99% Student-t bands of the sign-free metrics."""
+def spiked_amp_ensemble(N, snr, prior, *, seeds, iters, reaction=True, rho=None, init="spectral",
+                        gamma0=None) -> AMPEnsemble:
+    """One fresh (W, x) per named seed; 99% Student-t bands of the sign-free metrics and of the empirical gamma_t.
+    init="planted" starts each run from its own truth x (spiked_matrix's) at gamma0."""
     seeds = _checks.seeds(seeds)
     lam = float(_snr(snr))
-    _prior(prior)
-    if lam <= 1:
-        raise Refusal("precondition:snr-above-one", f"lambda = {lam}: {_SPECTRAL}")
+    _amp_prior(prior, rho)
+    g0 = _check_init(init, lam, gamma0)
     runs = []
     for s in seeds:
-        Y, x0 = spiked_matrix(N, snr, prior, s)
-        r = spiked_amp(Y, prior, snr=snr, iters=iters, seed=s, reaction=reaction)
-        runs.append((amp_metrics(r.xhat, x0), r.converged))
-    cols = {k: [m[k] for m, _ in runs] for k in ("q", "overlap", "mse", "matrix_mse")}
+        Y, x0 = spiked_matrix(N, snr, prior, s, rho=rho)
+        r = spiked_amp(Y, prior, snr=snr, iters=iters, seed=s, reaction=reaction, rho=rho, init=init,
+                       gamma0=g0, x0=x0 if init == "planted" else None)
+        runs.append((amp_metrics(r.xhat, x0), r.converged, r.gamma_trace[-1]))
+    cols = {k: [m[k] for m, _, _ in runs] for k in ("q", "overlap", "mse", "matrix_mse")}
+    gam = [g for _, _, g in runs]
     bands = {k: student_band(v) for k, v in cols.items()}
-    note = (f"statistical: Bayes AMP (spectral start, empirical gamma_t) on {len(seeds)} matrices, "
-            f"N = {N}, t = {iters}, seeds {list(seeds)}; 99% Student-t bands; MV Theorem 2 is the "
-            "N -> oo statement at fixed t (with SE gamma_t)" +
+    bands["gamma_t"] = student_band(gam)
+    start = ("spectral start x^0 = sqrt(N lambda^2 (lambda^2 - 1)) phi_1" if init == "spectral" else
+             f"planted start x^0 = gamma0 x + sqrt(gamma0) g at gamma0 = {g0:.6g} (the truth x of each matrix)")
+    note = (f"statistical: Bayes AMP ({start}) on {len(seeds)} matrices, N = {N}, t = {iters}, seeds {list(seeds)}"
+            + (f", prior {prior} rho = {rho}" if rho is not None else "") +
+            "; 99% Student-t bands; gamma_t is the empirical plug-in (|x^t|^2 / N = gamma_t^2 + gamma_t), not SE's: "
+            "MV Theorem 2 is the N -> oo statement at fixed t (with SE gamma_t)" +
             ("" if reaction else "; reaction=False: NO Onsager term (power iteration), the control"))
     return AMPEnsemble(cols["q"], cols["overlap"], cols["mse"], cols["matrix_mse"],
-                       [c for _, c in runs], bands, seeds, N, lam, prior, iters, reaction, note=note)
+                       [c for _, c, _ in runs], bands, seeds, N, lam, prior, iters, reaction, note=note,
+                       gamma_t=gam, init=init, gamma0=g0, rho=rho)
 
 
 __all__ = ["AMPEnsemble", "AMPResult", "Band", "PRIORS", "Prior", "SEResult", "amp_metrics",
-           "scalar_mmse", "scalar_overlap", "spiked_amp", "spiked_amp_ensemble", "spiked_matrix", "spiked_potential",
+           "diluted_prior", "scalar_mmse", "scalar_overlap", "spiked_amp", "spiked_amp_ensemble", "spiked_matrix", "spiked_potential",
            "spiked_state_evolution", "spiked_threshold"]
