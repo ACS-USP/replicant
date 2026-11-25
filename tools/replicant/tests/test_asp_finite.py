@@ -172,18 +172,35 @@ def test_asp_finite_q0_zero_start():
         assert abs(r.q1_trace[t] - se[t][1]) < 1e-9, (t, r.q1_trace[t], se[t])
 
 
-def test_asp_finite_imports_nothing_from_asp():
-    """amp/asp_finite.py imports neither amp/asp.py nor families/ (AST audit)."""
-    tree = ast.parse((PKG / "amp" / "asp_finite.py").read_text())
-    found = []                                  # (absolute-ish module path, imported name)
-    for node in ast.walk(tree):
+def _imports(src):
+    """(module path with leading dots, imported name) for every import statement in src."""
+    found = []
+    for node in ast.walk(ast.parse(src)):
         if isinstance(node, ast.ImportFrom):
             base = ("." * node.level) + (node.module or "")
             found += [(base, a.name) for a in node.names]
         elif isinstance(node, ast.Import):
             found += [(a.name, "") for a in node.names]
-    assert found, "no imports parsed"
-    bad = [(mod, name) for mod, name in found
-           if "famil" in mod or "famil" in name or "sk_1rsb" in name
-           or mod.split(".")[-1] == "asp" or (name == "asp" and mod.rstrip(".").split(".")[-1] in ("", "amp"))]
-    assert not bad, (bad, found)
+    return found
+
+
+def _bad_imports(src):
+    """The imports in src that reach amp/asp.py or families/ (sk_1rsb included)."""
+    return [(mod, name) for mod, name in _imports(src)
+            if "famil" in mod or "famil" in name or "sk_1rsb" in name
+            or mod.split(".")[-1] == "asp"
+            or (name == "asp" and mod.rstrip(".").split(".")[-1] in ("", "amp"))]
+
+
+def test_asp_finite_imports_nothing_from_asp():
+    """amp/asp_finite.py imports neither amp/asp.py nor families/ (AST audit).  Controls: each planted import of
+    asp.py or families/ is flagged; the legitimate .sk, ._stats and ..core imports are not."""
+    src = (PKG / "amp" / "asp_finite.py").read_text()
+    assert _imports(src), "no imports parsed"
+    assert _bad_imports(src) == [], _bad_imports(src)
+    for planted in ("from .asp import _map", "from . import asp", "from ..amp import asp", "import replicant.amp.asp",
+                    "from ..families.sk import sk_1rsb", "from .. import families"):
+        assert _bad_imports(src + "\n" + planted + "\n"), planted
+    for fine in ("from . import sk", "from .sk import sk_matrix", "from ._stats import student_band",
+                 "from ..core import Refusal", "from .asp_finite import _denoise"):
+        assert _bad_imports(fine) == [], fine
