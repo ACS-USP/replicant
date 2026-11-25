@@ -17,6 +17,11 @@ mpmath, scipy.special and replicant.core).
   ising_thresholds()                              -> Thresholds(alpha_it, alpha_amp)
   asp.asp_fixed_point(beta, m, h)                 -> ASPResult(q0, q1): approximate survey propagation's
                                                      SE, the 1RSB q equations at fixed Parisi m (K5)
+  asp.asp_trajectory(beta, m, h, *, start, iters) -> [(q0_t, q1_t)]: that SE at each fixed t
+  asp_finite.asp_amp(J, beta, m, *, h, iters, seed, start, reaction) -> ASPAMPResult (finite-N ASP,
+                                                     independent of asp.py: AST audit in tests)
+  asp_finite.asp_amp_ensemble(N, beta, m, h, *, seeds, iters, start, reaction) -> ASPAMPEnsemble
+                                                     (99% t bands of q0, q1 at the last t)
 See amp/gamp.py and amp/gamp_se.py for the perceptron (Bayes-optimal only on the
 Nishimori line; GAMP SE for GLMs is a claim, Barbier et al. 2019 Claim 1), and amp/sk.py
 for the SK conventions and validity statement (SE is a theorem for Gaussian J at each

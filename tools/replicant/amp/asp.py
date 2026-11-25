@@ -15,6 +15,8 @@ U x V grid of step 0.1 / grid over [-10, 10], cosh^m reweighting in log space, a
 The notes' (12.63)-(12.65) write x where E_U sqrt(q0) U is meant; nothing else is changed.
 
   asp_fixed_point(beta, m, h=0, *, start=None, tol=1e-14, max_iter=5000, grid=1) -> ASPResult(q0, q1, ...)
+  asp_trajectory(beta, m, h=0, *, start=None, iters, grid=1) -> [(q0_t, q1_t), t = 0..iters] (the SE at a fixed t,
+      the target of the finite-N run in amp/asp_finite.py)
 start: (q0, q1), default (0.5, 0.95) (an informative start; at h = 0, q0 = 0 is itself a fixed point of the q0 map
 because <tanh> is odd in U, so a start with q0 = 0 stays on that branch).  converged False (never a Refusal) when
 |step| > tol after max_iter.
@@ -78,8 +80,8 @@ def _num(x, name, reason, ok):
     return v
 
 
-def asp_fixed_point(beta, m, h=0, *, start=None, tol=1e-14, max_iter=5000, grid=1) -> ASPResult:
-    """Iterate the ASP state evolution (module docstring) to a fixed point (q0, q1) at fixed Parisi m."""
+def _checked(beta, m, h, grid, start):
+    """The argument checks shared by asp_fixed_point and asp_trajectory: (beta, m, h, q0, q1)."""
     b = _num(beta, "beta", "precondition:beta", lambda v: v > 0)
     mm = _num(m, "m", "precondition:parisi-m", lambda v: 0 < v <= 1)
     hh = _num(h, "h", "precondition:field", lambda v: True)
@@ -96,13 +98,24 @@ def asp_fixed_point(beta, m, h=0, *, start=None, tol=1e-14, max_iter=5000, grid=
             raise Refusal("precondition:start", f"start = {start!r}: need a pair (q0, q1) of numbers ({exc})")
     if not 0 <= q0 <= q1 <= 1:
         raise Refusal("precondition:start", f"start = {start!r}: need 0 <= q0 <= q1 <= 1")
-    q0_start = q0
+    return b, mm, hh, q0, q1
+
+
+def _step(b, mm, hh, q0, q1, z, w, hold_q0_zero):
+    n0, n1 = _map(b, mm, hh, q0, q1, z, w)
+    if hold_q0_zero:
+        n0 = 0.0                                  # the exact q0 = 0 branch (its map value is 0 up to rounding)
+    return n0, n1
+
+
+def asp_fixed_point(beta, m, h=0, *, start=None, tol=1e-14, max_iter=5000, grid=1) -> ASPResult:
+    """Iterate the ASP state evolution (module docstring) to a fixed point (q0, q1) at fixed Parisi m."""
+    b, mm, hh, q0, q1 = _checked(beta, m, h, grid, start)
+    hold = start is not None and q0 == 0 and hh == 0
     z, w = _grid(grid)
     ok, it = False, 0
     for it in range(1, max_iter + 1):
-        n0, n1 = _map(b, mm, hh, q0, q1, z, w)
-        if start is not None and q0_start == 0 and hh == 0:
-            n0 = 0.0                              # the exact q0 = 0 branch (its map value is 0 up to rounding)
+        n0, n1 = _step(b, mm, hh, q0, q1, z, w, hold)
         ok = abs(n0 - q0) <= tol and abs(n1 - q1) <= tol
         q0, q1 = n0, n1
         if ok:
@@ -112,4 +125,21 @@ def asp_fixed_point(beta, m, h=0, *, start=None, tol=1e-14, max_iter=5000, grid=
     return ASPResult(b, mm, hh, q0, q1, ok, it, note)
 
 
-__all__ = ["ASPResult", "asp_fixed_point"]
+def asp_trajectory(beta, m, h=0, *, start=None, iters, grid=1) -> list:
+    """The ASP state evolution at fixed Parisi m as a trajectory: [(q0_t, q1_t) for t = 0..iters], t = 0 the start
+    (default (0.5, 0.95)), each step one _map; argument checks and the held q0 = 0 branch (h = 0, start q0 = 0) as in
+    asp_fixed_point.  It is the SE target at a fixed t for amp/asp_finite.py (which does not import this module):
+    the finite-N x^t has variance q0_t, and q1_t is the q1 used in f_t."""
+    b, mm, hh, q0, q1 = _checked(beta, m, h, grid, start)
+    if isinstance(iters, bool) or not isinstance(iters, int) or iters < 1:
+        raise Refusal("precondition:positive-iters", f"iters = {iters!r} is not a positive int")
+    hold = start is not None and q0 == 0 and hh == 0
+    z, w = _grid(grid)
+    out = [(q0, q1)]
+    for _ in range(iters):
+        q0, q1 = _step(b, mm, hh, q0, q1, z, w, hold)
+        out.append((q0, q1))
+    return out
+
+
+__all__ = ["ASPResult", "asp_fixed_point", "asp_trajectory"]
