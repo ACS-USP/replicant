@@ -22,8 +22,8 @@ calculation for a nearby model.
   - `statistical`: sampled values over named seeds.
 - A LaTeX writer that turns any run, refusals included, into a derivation appendix.
 - A battery runner without pytest:
-  - default tier, 850 tests, about 63 s (measured 62.92 s under load after the final-review fix wave);
-  - `--full` adds 270 `@slow` tests (1120 in all), about 48 minutes (timed at 1120 tests: 48 min 04 s under load).
+  - default tier, 874 tests, about 70 s (measured 69.70 s at 55fd208 under load; 62.92 s for the 850 before the finite-N checks);
+  - `--full` adds 273 `@slow` tests (1147 in all), about 48 minutes (last timed at 1120 tests: 48 min 04 s under load; not re-timed since).
 
 ## Pages
 

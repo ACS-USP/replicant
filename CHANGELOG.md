@@ -52,6 +52,21 @@ All notable changes to BootLoops are recorded here. The format follows
   `test_lattice_geom_entries.py`) under the ~400-line convention; default tier 752 tests.
 
 ### Added
+- `replicant` (finite-N checks of K5): finite-N Bayes AMP for `spiked_wigner` with `prior=diluted_rademacher` (parameters `N`, `seeds`, `iters`, `init` = `spectral` | `planted`, `gamma0`; values
+  `q_amp`, `overlap_amp`, `mmse_amp`, `matrix_mmse_amp`, `gamma_amp_t` with `<key>_halfwidth99`, and `gamma_se_t`) and
+  finite-N approximate survey propagation for the `sk` amp route with `ansatz=1rsb` (`amp/asp_finite.py`; `N`, `seeds`, `iters`, `start`; `q0_amp`, `q1_amp` against `q0_se_t`, `q1_se_t`). New library
+  functions: `spiked.diluted_prior`, `spiked_amp(init="planted", gamma0, x0, rho)`, `spiked_amp_ensemble(rho, init,
+  gamma0)` with a `gamma_t` band, `spiked_diluted.diluted_se_trajectory`, `asp.asp_trajectory`, `asp_finite.asp_amp`,
+  `asp_amp_ensemble`. The SE value at the same fixed t is exact-by-literature with a note that the run uses empirical
+  plug-ins; the finite-N bands are statistical, NOT final. The two `unsupported:` refusals that stated
+  these gaps are removed (the cases now run); new `precondition:gamma0`, `precondition:x0`, and
+  `precondition:known-parameter` for `init` / `gamma0` / `rho` off the diluted prior, `law` with 1rsb and finite-N
+  parameters without `N`. Measured checks (pilot seeds disjoint from the test seeds): planted gamma0 = 1 at rho =
+  0.08, lambda = 0.99, N = 3000, t = 4 inside the SE band with its no-Onsager control outside; two branches at rho =
+  0.05, lambda = 0.95, N = 8000, separated by more than 10 summed half-widths; ASP at beta = 2, N = 2000, t = 10 inside
+  both bands with the no-Onsager and m = 0 controls outside. Existing gaussian / rademacher runs unchanged. Default
+  tier 874 tests, 69.70 s (load averages 4.93 at the start, 3.64 at the end); slow tier 273 tests, full tier not
+  re-timed (last timed at 1a37a65: 1120 passed, 48 min 04 s).
 - `replicant` (pinned directions): the perceptron family with fixed external directions at level (a), the joint
   pair problem of random documents (maximal margin of a pair {i, j} of unit vectors of overlap c against n - 2
   iid Gaussian documents). Constraint `margin kappa pinned directions` (the composer no longer refuses it) with the

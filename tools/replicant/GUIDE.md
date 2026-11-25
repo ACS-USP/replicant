@@ -206,6 +206,20 @@ CLI (from `tools/`):
     `se_uninformative_gamma` 0 (AMP's limit), Bayes `gamma_se` 0.425999, `q_se` 0.434649, `matrix_mmse_se` 0.811080.
     `python3 -m replicant run spiked_wishart --route amp --param alpha=4 --param snr=1` -> `lambda_c` 0.707107,
     `sigma_edge` 3, `sigma_top` 3.162278, `m_u_se` 0.6, `m_v_se` 0.375 (not-computed).
+  - Finite-N checks of the K5 AMP and ASP (statistical, NOT final; each run about 2 s).  `python3 -m replicant run
+    spiked_wigner --route amp --param prior=diluted_rademacher --param rho=0.08 --param snr=0.99 --param N=3000 --param
+    init=planted --param gamma0=1 --param seeds=0,1,2,3,4,5,6,7,8,9 --param iters=4` (the hard phase, the planted start,
+    lambda < 1) -> `gamma_se_t` 0.568907 (`diluted_se_trajectory` from gamma0 = 1 at t = 4, exact-by-literature), against
+    `gamma_amp_t` 0.525487 +- 0.0674 (99% Student-t, df = 9) inside the band; `q_amp` 0.496610 +- 0.0845, `overlap_amp`
+    0.705818 +- 0.0567, `mmse_amp` 0.481390 +- 0.0655, `matrix_mmse_amp` 0.694418 +- 0.0611, `amp_converged_fraction` 0
+    (t = 4 stops far from a fixed point: labelled, not refused).  The same with `init=spectral` is refused
+    `precondition:snr-above-one` (lambda = 0.99), and `gamma0` without `init=planted` `precondition:known-parameter`.
+    `python3 -m replicant run sk --route amp --param beta=2 --param ansatz=1rsb --param m=0.28184264455161934 --param
+    N=2000 --param seeds=0,1,2,3,4,5 --param iters=10` -> `q0_amp` 0.250016 +- 0.00756, `q1_amp` 0.615173 +- 0.00429,
+    against `q0_se_t` 0.244305, `q1_se_t` 0.614770 (the ASP state evolution at t = 10 from the default start (0.5, 0.95),
+    exact-by-literature), both inside the bands; `q0_asp` 0.214631, `q1_asp` 0.619201 (the t -> oo fixed point, 245 steps)
+    are not reached at t = 10, `asp_converged_fraction` 0; with `law=gaussian` the run is refused
+    `precondition:known-parameter`.
   - `python3 -m replicant run lasso --param alpha=0.5 --param rho=0.1 --param lam=0.05 --param sigma2=0.01` -> `risk`
     0.0120677, `tau2` 0.0441354, `threshold` 0.246642, `kappa` 1.174014 (exact-by-literature, BM Thm 1.5), `b` 0.297277
     (not-computed); `--route amp` gives the same `risk_se`, `threshold_se`.  `python3 -m replicant run compressed_sensing
@@ -613,11 +627,16 @@ Clopper-Pearson). Example: `bec_map_threshold(3, 6)` -> 0.488150884192.
 fixed_points, bayes, potential, note)` (binary64; q = gamma*/lambda^2, overlap = sqrt(q) the cosine,
 mmse = 1 - q the sign-resolved vector MSE, matrix_mmse = 1 - q^2; `bayes`: the root is the global
 minimum of the RS potential); `spiked_threshold(prior)` -> mpf; `spiked_potential(snr, gamma,
-prior)`; `scalar_mmse(prior, gamma)`; `spiked_matrix(N, snr, prior, seed)` -> (Y, x);
-`spiked_amp(Y, prior, *, snr, iters, seed)` -> `AMPResult(xhat, x, gamma_trace, increments,
-converged, ...)` (spectral start; `seed` seeds the eigensolver); `amp_metrics(xhat, x0)`;
-`spiked_amp_ensemble(N, snr, prior, *, seeds, iters, reaction)` -> `AMPEnsemble(q, overlap, mse,
-matrix_mse, converged, bands, ...)` (99% Student-t `Band`s); `spiked.PRIORS` (the denoiser hook;
+prior)`; `scalar_mmse(prior, gamma)`; `spiked_matrix(N, snr, prior, seed, rho=None)` -> (Y, x);
+`spiked_amp(Y, prior, *, snr, iters, seed, init="spectral"|"planted", reaction, tol, rho, gamma0, x0)` ->
+`AMPResult(xhat, x, gamma_trace, increments, converged, ...)` (spectral start: `seed` seeds the eigensolver, lambda > 1;
+planted start: x^0 = gamma0 x0 + sqrt(gamma0) g, g from default_rng([seed, 4]), the truth `x0` required, any lambda > 0;
+`gamma_trace[0]` is the empirical gamma of x^0); `amp_metrics(xhat, x0)`;
+`spiked_amp_ensemble(N, snr, prior, *, seeds, iters, reaction, rho, init, gamma0)` -> `AMPEnsemble(q, overlap, mse,
+matrix_mse, converged, bands, gamma_t, init, gamma0, note, ...)` (99% Student-t `Band`s; `bands["gamma_t"]` is the band of
+the empirical gamma at the last t; a planted run starts each seed from its own truth); `spiked.diluted_prior(rho)` (the
+unit-variance diluted Rademacher denoiser, closed form, log-sum-exp stable; `Prior.F`, `dF`, `sample`), also
+`spiked._prior("diluted_rademacher", rho)`; `spiked.PRIORS` (the denoiser hook;
 `Prior(name, nodes, weights, F, dF, sample)`). `sbm.sbm_kesten_stigum(a, b, q=2)` -> `KSResult(a, b,
 mean_degree, margin, detectable, impossibility_proved)`; `sbm_ks_line(c)` -> `KSLine(c, a, b,
 ratio)`; `sbm_sample(N, a, b, seed)` -> `SBMGraph(N, a, b, seed, labels, edges)`; `sbm_bp(graph, a, b,
@@ -650,7 +669,8 @@ third_modulus, assignment)`. Example: `sbm_q_ks_line(4, 16).ratio` -> 2.33333333
 mmse, matrix_mmse, fixed_points (FixedPoint(gamma, q, stable, slope, potential)), bayes, potential, note, phase,
 metastable, uninformative, informative (Start(gamma0, gamma, raw, iters, converged)))` (Bayes values None when
 undetermined); `diluted_spinodals(rho)` -> `Spinodals(rho, gamma_alg, gamma_dyn, snr_alg, snr_dyn)` or None;
-`diluted_it_threshold(rho)`; `diluted_tricritical()` -> `Tricritical(rho, gamma, snr)`; `diluted_overlap`,
+`diluted_it_threshold(rho)`; `diluted_se_trajectory(snr, rho, gamma0, iters)` -> the list gamma_0 = gamma0, ..., gamma_iters of
+the SE map gamma_{t+1} = lambda^2 m(gamma_t) (`precondition:gamma0`); `diluted_tricritical()` -> `Tricritical(rho, gamma, snr)`; `diluted_overlap`,
 `diluted_overlap_slope`, `diluted_mutual_info`, `diluted_potential`; `snr_from_lkz` / `lkz_from_snr` / `snr_from_notes`
 / `notes_from_snr`.  `wishart.bbp_threshold(alpha)`, `bbp_top_singular(snr, alpha)`, `bbp_edge_scale(n, alpha)`,
 `wishart_se(snr, alpha, prior_u, prior_v, *, iters, init_snr)` -> `WishartSE(m_u, m_v, trajectory, converged, ...)`,
@@ -658,7 +678,11 @@ undetermined); `diluted_spinodals(rho)` -> `Spinodals(rho, gamma_alg, gamma_dyn,
 `informative_start(x, prior, init_snr, seed)`, `wishart_amp(Y, prior_u, prior_v, *, snr, iters, v_init)` ->
 `WishartAMP(u_hats, v_hats, ...)`.  `spin_glass_game.game_snr(beta)` (= beta), `game_snr_lm(beta)` (= beta^2),
 `game_matrix(N, beta, seed)`.  `asp.asp_fixed_point(beta, m, h=0, *, start, tol, max_iter, grid)` -> `ASPResult(q0, q1,
-converged, iterations, note)`.  Example: `diluted_spinodals(0.08).snr_dyn ** -2` -> 1.04086011494.
+converged, iterations, note)`; `asp.asp_trajectory(beta, m, h=0, *, start=(0.5, 0.95), iters)` -> the list of (q0, q1)
+from the start, `iters + 1` entries (`precondition:start`, `precondition:positive-iters`);
+`from replicant.amp import asp_finite` : `asp_amp(J, beta, m, *, h, iters, seed, start, reaction, tol)` -> `ASPAMPResult`,
+`asp_amp_ensemble(N, beta, m, h=0, *, seeds, iters, start, reaction, tol)` -> `ASPAMPEnsemble(q0, q1, converged, bands, ...)`
+(Gaussian J from `amp/sk.py`; imports nothing from `amp/asp.py` or `families/`).  Example: `diluted_spinodals(0.08).snr_dyn ** -2` -> 1.04086011494.
 `from replicant.linear import gamp, se, lasso, cs` (K6; A is M x N with i.i.d. N(0, 1/N) entries, alpha = M/N; priors
 are `bayes.channels.Prior`s): `gamp.Channel(name, **p)` (`awgn` with `Delta` (default 1), `sign`);
 `gamp.gamp(A, y, channel, prior, *, iters, seed, teacher=None, variance="derivative"|"nishimori", tol)` ->
@@ -1449,8 +1473,12 @@ non-negative integers, else `precondition:named-seeds`, e.g. `--param seeds=1`),
 (`gaussian`|`pm_one`; with `pm_one` every SE value is `not-computed`: SE is proved for Gaussian J only);
 a finite-N parameter without `N` is refused `precondition:known-parameter` ("need N"); `ansatz` (`rs` default |
 `1rsb`, K5: approximate survey propagation, `amp/asp.py`, with the Parisi `m` in (0, 1] required: `q0_asp`, `q1_asp`;
-finite-N parameters are refused `unsupported:asp-finite-n`, `m` without 1rsb `precondition:known-parameter`, another
-ansatz `precondition:known-ansatz`); `pspin` and `ising_pspin`: `p` (default 3), `beta`; `perceptron` replica: `alpha`, `kappa` (default 0), and the margin-law parameters `kappa_law` (`constant` | `gaussian` | `mixture`; absent = the catalog's constant kappa), `kappa_s` (gaussian: the scale s >= 0 of kappa_l = kappa + s g; required), `kappa_weights` and `kappa_values` (mixture: comma lists `0.5,0.5`, weights >= 0 summing to 1 to 1e-12; `kappa` is then not read and is refused); a parameter the chosen law does not read, or a law parameter without `kappa_law`, is refused `precondition:supported-margin-law`; `perceptron` rsb: `kappa`, `ansatz` (`1rsb` default |
+with `N`, finite-N ASP (`amp/asp_finite.py`) over `seeds` (default 0-5), `iters` (default 20) and `start` (the initial
+pair (q0, q1) with 0 <= q0 <= q1 <= 1, default (0.5, 0.95), `--param start=0.5,0.95`; malformed or q0 > q1:
+`precondition:start`): `q0_amp`, `q1_amp` with `<key>_halfwidth99` and `asp_converged_fraction`, against `q0_se_t`,
+`q1_se_t`, the ASP state evolution at the same t from the same start; `seeds`, `iters`, `start` without `N`, and
+`law` with 1rsb (the run samples Gaussian J), are refused `precondition:known-parameter`, as is `start` with rs;
+`m` without 1rsb `precondition:known-parameter`, another ansatz `precondition:known-ansatz`); `pspin` and `ising_pspin`: `p` (default 3), `beta`; `perceptron` replica: `alpha`, `kappa` (default 0), and the margin-law parameters `kappa_law` (`constant` | `gaussian` | `mixture`; absent = the catalog's constant kappa), `kappa_s` (gaussian: the scale s >= 0 of kappa_l = kappa + s g; required), `kappa_weights` and `kappa_values` (mixture: comma lists `0.5,0.5`, weights >= 0 summing to 1 to 1e-12; `kappa` is then not read and is refused); a parameter the chosen law does not read, or a law parameter without `kappa_law`, is refused `precondition:supported-margin-law`; `perceptron` rsb: `kappa`, `ansatz` (`1rsb` default |
 `krsb` | `frsb`), `levels` (`krsb` 2..5, default 2; `frsb` 3..5, default 3; `1rsb` has one); `perceptron`
 cavity: `alpha`, `kappa`, `variables` (`spherical`; `ising` is refused `not-implemented:cavity-ising`);
 `teacher_student`: `alpha`, `learning` (`gibbs`|`bayes`); `teacher_student` amp: `alpha`, `learning`
@@ -1582,8 +1610,12 @@ regular; needs ansatz=1rsb), `m` (Parisi m in [0, 1]: the ER 1RSB population of 
 on planted graphs instead of K3's random-start step.  Unknown values are refused (`unsupported:ansatz`,
 `unsupported:thresholds`, `precondition:planted`, `precondition:ansatz` for thresholds / m / pop under ansatz=rs).
 `spiked_wigner` with `prior=diluted_rademacher` (K5): `rho` (the non-zero fraction in (0, 1]; absent: the tricritical
-point), `snr` (needs `rho`: every SE fixed point, both starts, the phase); `N`, `seeds`, `iters` are refused
-`unsupported:diluted-finite-n`; `rho` with another prior `precondition:known-parameter`.  `spiked_wishart` (amp):
+point), `snr` (needs `rho`: every SE fixed point, both starts, the phase); `N` (needs `snr` and `rho`: finite-N Bayes
+AMP), `seeds` (default 0-7), `iters` (default 30), `init` (`spectral` default, lambda > 1, else `precondition:snr-above-one`
+| `planted`, any lambda > 0: x^0 = gamma0 x + sqrt(gamma0) g) and `gamma0` (a finite number > 0, required with
+`init=planted`, else `precondition:gamma0`; with the spectral start `precondition:known-parameter`); those four need
+`N` (`precondition:known-parameter`), and `rho`, `init`, `gamma0` with another prior are refused likewise.
+`spiked_wishart` (amp):
 `alpha` (= m/n, required), `snr`, `prior_u`, `prior_v` (unit-variance bayes/channels names, default gaussian), and for
 finite-N AMP and SVD `N` (= n; alpha N an int; needs `snr`), `seeds` (default 0-7), `iters` (default 20), `init_snr`
 (default 0.3: the informative start E[v | sqrt(init_snr) v + z]); those three need `N`.
@@ -1634,9 +1666,9 @@ re-runs the entry's banked comparisons) and its JSON (`target`, `spec`, `route`,
 | `precondition:integer-k-at-least-3`, `:positive-alpha`, `:enough-variables`, `:named-seeds` | XORSAT (`csp/`): K not an integer >= 3 (K = 2 is not implemented), alpha <= 0 or non-numeric, N < max(12, 4K) (a finite-N check that small tests nothing), an empty or malformed seed list (seeds must be non-negative integers; the detail names the offending value) |
 | `precondition:integer-k-at-least-2`, `:exhaustive-size`, `:damping`, `:iterations`, `:population-size`, `:runs`, `:sweeps`, `:burn-in`, `:crossing-grid`, `unsupported:sp-rule` | K-SAT (`csp/ksat.py`, `csp/sp.py`): K not an integer >= 2 (the zero-survey tangency `ksat_sp_support_threshold` needs K >= 3: `precondition:integer-k-at-least-3`), N > 22 for exhaustive counts, damping outside [0, 1), iters < 1, pop < 100, runs < 2, sweeps < 4, burn_in < max(2, sweeps // 2), fewer than three crossing densities (or `crossing` for K != 3), an SP rule name not in `sp.SP_UPDATES`; also `:positive-alpha`, `:enough-variables` (N < K) and `:named-seeds` as for XORSAT. `no-solution:bracket` / `no-convergence:equilibration` from `ksat_sp_crossing`: the mean Sigma does not change sign on the grid, a run's line is not decreasing, the population is trivial, or still drifting at a grid point |
 | `precondition:degree-pair`, `:variable-degree-at-least-3`, `:erasure-probability`, `:enough-variables`, `:socket-count`, `:named-seeds`, `unsupported:degree-pair` | LDPC on the BEC (`inference/`): (l, r) not integers with 2 <= l < r (the design rate 1 - l/r must be positive); a threshold asked for l = 2 (eps(x) has no interior minimum: the BP threshold is the stability limit 1/(r - 1), not implemented); eps not a number in [0, 1]; N not an integer >= max(100, r); N l not divisible by r (the configuration model needs equal socket counts); malformed seeds as for XORSAT; a name not in `inference/ldpc.DEGREE_PAIRS`. `no-solution:bracket` / `:audit`: eps(x) not unimodal on its grid, or the trial entropy without exactly one sign change on (x_BP, 1) |
-| `precondition:snr`, `:known-prior`, `:snr-above-one`, `:size`, `:square-matrix`, `:symmetric-matrix`, `:finite-matrix`, `:positive-iters`, `:known-init`, `:named-seeds`, `ambiguous:several-fixed-points` | spiked Wigner (`inference/spiked.py`): lambda not a finite number >= 0 (bools refused); a prior not in `spiked.PRIORS`; finite-N AMP at lambda <= 1 (the spectral start of MV Thm 2 needs lambda > 1); N not an int >= 10; Y not N x N, not symmetric or not finite; iters < 1; an init other than `spectral`; malformed seeds as for XORSAT; more than one nontrivial SE fixed point (none for these two priors) |
+| `precondition:snr`, `:known-prior`, `:snr-above-one`, `:size`, `:square-matrix`, `:symmetric-matrix`, `:finite-matrix`, `:positive-iters`, `:known-init`, `:gamma0`, `:x0`, `:named-seeds`, `ambiguous:several-fixed-points` | spiked Wigner (`inference/spiked.py`): lambda not a finite number >= 0 (bools refused); a prior not in `spiked.PRIORS`; finite-N AMP with the spectral start at lambda <= 1 (the start of MV Thm 2 needs lambda > 1; the planted start runs at any lambda > 0); N not an int >= 10; Y not N x N, not symmetric or not finite; iters < 1; an init other than `spectral` or `planted`; gamma0 (`:gamma0`) not a finite number > 0 or missing with the planted start; x0 (`:x0`) missing or not a finite vector of length N; malformed seeds as for XORSAT; more than one nontrivial SE fixed point (none for these two priors) |
 | `precondition:group-count`, `:affinity`, `:group-sizes`, `:edge-probability`, `:size`, `:sbm-graph`, `:init`, `:positive-iters`, `:damping`, `:tolerance`, `:population`, `:eigen-count`, `:graph`, `:start`, `:state-point`, `:known-parameter`, `no-transition:ks-line` | K4 block model with q groups (`inference/sbm_q.py`, `sbm_q_pd.py`, `sbm_learn.py`, `nonbacktracking.py`; `sbm` with `q`): q not an int >= 2; c_in, c_out not finite numbers >= 0 or both 0; group sizes not q probabilities; max c_ab/N > 1; N not an int >= 10; BP / EM given something other than an `SBMqGraph` or labels beyond q; init other than planted / random; iters < 1, damping outside [0, 1), tol <= 0; pop, sweeps, measure not positive ints or measure > sweeps; k not a positive int < 2N - 2; a graph without edges; an EM start other than spectral / random; with `q`: `a`, `b` (use c_in, c_out), c with c_in, no c_in nor c, N without c_out, finite-N parameters without N, pop / sweeps off the c_in line; without `q`: any of c_in, c_out, init, learn, pop, sweeps, damping; `sbm_q_ks_line` with no KS point (c <= 1). A BP / EM / population run that does not converge or does not show the first-order pair is labelled undetermined, never refused |
-| `precondition:rho`, `:snr`, `:gamma`, `:positive-iters`, `:alpha`, `:unit-variance`, `:known-prior`, `:size`, `:matrix`, `:start`, `:beta`, `:parisi-m`, `:field`, `:grid`, `:known-ansatz`, `:known-parameter`, `:state-point`, `unsupported:critical-structure`, `unsupported:diluted-finite-n`, `unsupported:asp-finite-n`, `no-transition:first-order`, `no-transition:tricritical` | K5 (`inference/spiked_diluted.py`, `wishart.py`, `spin_glass_game.py`, `amp/asp.py`; `spiked_wigner` with the diluted prior, `spiked_wishart`, `sk` amp with `ansatz=1rsb`): rho outside (0, 1] or missing for the diluted prior, rho with another prior; lambda not finite or (diluted) not > 0; alpha not > 0; a Wishart prior with E x^2 != 1 or unknown; n not an int >= 10 or alpha n not an int; Y not a finite 2-d array, v_init of the wrong shape; beta <= 0, m outside (0, 1], a start not 0 <= q0 <= q1 <= 1; an amp ansatz other than rs / 1rsb, m with rs, 1rsb without beta and m; D(gamma) with other than one minimum then one maximum; finite-N AMP for the diluted prior or for ASP (not implemented); the IT threshold or tricritical point asked where there is no first-order transition. An SE (diluted, Wishart) or ASP iteration that does not converge is labelled UNDETERMINED / not converged, never refused |
+| `precondition:rho`, `:snr`, `:gamma`, `:positive-iters`, `:alpha`, `:unit-variance`, `:known-prior`, `:size`, `:matrix`, `:start`, `:beta`, `:parisi-m`, `:field`, `:grid`, `:known-ansatz`, `:known-parameter`, `:state-point`, `:gamma0`, `unsupported:critical-structure`, `no-transition:first-order`, `no-transition:tricritical` | K5 (`inference/spiked_diluted.py`, `wishart.py`, `spin_glass_game.py`, `amp/asp.py`; `spiked_wigner` with the diluted prior, `spiked_wishart`, `sk` amp with `ansatz=1rsb`): rho outside (0, 1] or missing for the diluted prior, rho with another prior; lambda not finite or (diluted) not > 0; alpha not > 0; a Wishart prior with E x^2 != 1 or unknown; n not an int >= 10 or alpha n not an int; Y not a finite 2-d array, v_init of the wrong shape; beta <= 0, m outside (0, 1], a start not 0 <= q0 <= q1 <= 1; an amp ansatz other than rs / 1rsb, m with rs, 1rsb without beta and m; D(gamma) with other than one minimum then one maximum; gamma0 not a finite number > 0 (or missing with `init=planted`), an init or gamma0 or rho off the diluted prior, finite-N parameters without N, a diluted finite-N run without snr, `law` with 1rsb, `start` with rs or off 0 <= q0 <= q1 <= 1, iters < 1 in `asp_trajectory`; the IT threshold or tricritical point asked where there is no first-order transition. An SE (diluted, Wishart) or ASP iteration that does not converge is labelled UNDETERMINED / not converged, never refused |
 | `precondition:degree-parameters`, `unsupported:q`, `unsupported:disassortative`, `no-transition:ks-line`, `:size`, `:edge-probability`, `:sbm-graph`, `:positive-iters`, `:damping`, `:named-seeds` | block model (`inference/sbm.py`): a, b not finite numbers >= 0 or a + b = 0; q != 2; BP with a < b (the field equation is not monotone; BP did not converge at a = 0.5, b = 5.5); `sbm_ks_line(c)` with c <= 1 (tau <= c on the line); N not an int >= 10; a/N or b/N > 1; `sbm_bp` given something other than an `SBMGraph`; iters < 1; damping outside [0, 1); malformed seeds |
 | `precondition:gamma`, `:lambda`, `:sigma2`, `:signal`, `:gamma-not-one`, `:size`, `:named-seeds`, `:two-samples`, `:two-sizes`, `no-solution:bracket` | ridge (`learning/`): gamma not a finite number > 0; lam, sigma2 or signal not a finite number >= 0 (bools refused; the RS saddle point needs lam > 0; `optimal_lambda` needs signal > 0); the ridgeless limit at gamma = 1 (it diverges for sigma2 > 0, and HMRT state it for gamma != 1 only); n or p not an int >= 10; malformed seeds as for XORSAT; a band from fewer than two seeds; a 1/n extrapolation from one size; `argmin_lambda` with its minimum at an end of the search interval |
 | `unsupported:interaction`, `unsupported:ensemble`, `unsupported:ensemble-rho`, `unsupported:ensemble-dynamics`, `no-solution:no-retrieval`, `:no-basin`, `:level-beyond-support`, `:no-threshold`, `:bracket`, `check:zeta-code`, `:block-count`, `:rem-functional`, `:rem-reduction`, `:minimised-functional`, `:convexity` | dense associative memory (`dense_memory/`, `derive_dense_memory.py`): a polynomial or other non-exponential interaction; binary patterns given to the continuous entry; a rho != 1 with Ising neurons; the gradient descent for binary neurons; no retrieval at any lam (alpha above the hard-max cap); cos(theta_c) >= 1; a level above the largest overlap; a threshold not reached by alpha = 60; a bisection bracket that does not change sign; the derivation's own checks (sympy zeta against the code, the block count, the REM functional, the Derrida reduction, the minimised 1RSB functional against the closed form, convexity of the functional) |
@@ -1872,7 +1904,7 @@ banked in `reference/perceptron.json` as independent targets. Honest limits:
   (default tier): time averages at N = 8 equal the exact spectrum means within 99% bands at four betas,
   and the planted acceptance rule (x0.8) and the reversed exchange sign are detected at every beta.
 
-ACCEPTANCE GATES: `python3 tools/replicant/selftest.py` (default tier: 850 tests, about 63 s (measured 62.92 s wall in the working tree after the final-review fix wave, under load: load averages 3.4-4.5; the 841 tests of K8 took 60.57 s and 60.56 s on clean exports of bcc55fc at load 3.5-4.3); the 662 tests of the v1 final
+ACCEPTANCE GATES: `python3 tools/replicant/selftest.py` (default tier: 874 tests, about 70 s (measured 69.70 s wall at 55fd208, under load: load averages 4.93 at the start and 3.64 at the end; the 850 before the finite-N checks took 62.92 s at load 3.4-4.5; the 841 tests of K8 took 60.57 s and 60.56 s on clean exports of bcc55fc at load 3.5-4.3); the 662 tests of the v1 final
 fix wave measured 30.2 s cold on an idle machine; also `python3 run_selftests.py replicant`, which runs the
 `python3` on PATH; run both from the activated project venv, which has python-flint) covers the core and refusal
 paths, the symbolic derivation against independent expressions, level agreement (a)=(b) for every family where both
@@ -1936,7 +1968,7 @@ validation on the four solved lattices (P1, P2), the k-core second routes at ext
 Monte Carlo at L = 8-32 and the z fits, Wang-Landau at L = 4-16, multicanonical and Ferrenberg-Swendsen runs
 against Kaufman, population annealing at 8 x 8, 16 x 16 and SK N = 18 (M1-M3), the 2RSB certified bound and the K =
 5 chain, the E11 Monte Carlo / enumeration held-out routes (about 4.6 min), the Hopfield replicon scans, the p-spin
-T -> 0 energy, solver-based composed and LaTeX checks, a PDF compile when a TeX engine is present) and takes 1120 tests, about 48 minutes (timed at 1a37a65: 1120 passed, 0 failed, 48 min 04 s wall, under load: load averages about 5.0 at the start and 6.1 at the end); the K = 3 RSB test alone is about 7 minutes, the per-entry slow catalog RefChecks at most 85 s each;
+T -> 0 energy, solver-based composed and LaTeX checks, a PDF compile when a TeX engine is present) and takes 1147 tests (874 + 273 skipped by the default tier), about 48 minutes (last timed at 1a37a65, when it had 1120 tests: 1120 passed, 0 failed, 48 min 04 s wall, under load: load averages about 5.0 at the start and 6.1 at the end; not re-timed since: the 27 added tests are the finite-N checks of the diluted AMP and ASP); the K = 3 RSB test alone is about 7 minutes, the per-entry slow catalog RefChecks at most 85 s each;
 run it before merging a change to a family. The `@slow` marker is honoured by `selftest.py` only: pytest ignores it
 and would run everything. Level agreement between the derivation and the pipelines is a consistency check, not new
 evidence for the ansatz; the cavity route reproducing the replica RS equations is an independent derivation but NOT
@@ -2348,6 +2380,34 @@ KNOWN HAZARDS:
   0.9612, 0.008935, consistent with truncation).  Sources: LKZ arXiv:1701.00858, AFUZ arXiv:1805.05857 (the plan's
   pointer arXiv:1802.01535 is an unrelated statistics paper), Antenucci-Krzakala-Urbani-Zdeborova arXiv:1807.01296 (the
   notes' "as shown in ?" of Sec. 12.2.5), BBP arXiv:math/0403022, all fetched.
+  Finite-N checks (the series after K5; `tests/test_spiked_diluted_amp.py`, `tests/test_asp_finite.py`).  The SE value
+  compared with the finite-N run is the SE at the same fixed t from the same start (`diluted_se_trajectory`,
+  `asp_trajectory`): exact-by-literature (Bayati-Montanari 2011 for the Lipschitz iteration at fixed t; MV Thm 2 for the
+  spectral start's t -> oo limit), with the note that the run uses the empirical plug-ins (gamma_t from |x^t|^2/N, the
+  empirical q0^t, q1^t), not literally the theorem's SE-driven algorithm; the finite-N bands are not-computed
+  (`amp-finite-N`), NOT final.  Bands are 99% Student-t over named seeds; N, t and the seeds were fixed from pilots on
+  disjoint seeds before any test seed ran, the state points from the package's own SE.  Diluted, planted start gamma0 =
+  1 (not LKZ's m_0 = 1): rho = 0.08, lambda = 0.99 (hard phase: spinodals dyn 0.980175, IT 0.985607, alg 1.009744; SE
+  fixed points gamma = 0, 0.166568 (unstable), 0.425999), N = 3000, seeds 0-9, t = 4: the SE gamma_4 = 0.568907 and
+  m(gamma_4) = 0.552438 lie in the bands of gamma_t and q; the control with the Onsager term removed (`reaction=False`)
+  misses gamma_4 by 0.340 (pilot sd 0.063), outside its band, asserted.  Two branches: rho = 0.05, lambda = 0.95 (dyn
+  0.849363, IT 0.864471, alg 1.002700; middle fixed point 0.0788588), N = 8000, seeds 0-19, t = 4, weak start gamma0 =
+  0.03 (below it) against strong gamma0 = 1: the gamma_t band means differ by more than 10 times the summed half-widths
+  (pilots 16.5 to 22.6; 10.8 at N = 3000, hence N = 8000) and each band holds its own SE value (0.0201559, 0.735357).
+  Negative control (slow): lambda = 0.6 (below dyn, away from it), t = 8: both starts end on the uninformative branch
+  (SE 8.43655e-06, 4.99340e-04), and the same criterion is asserted to fail at the hard point.  Spectral start: rho =
+  0.08, lambda = 1.5, N = 2000, seeds 0-7, 30 iterations: the SE fixed point 2.18565 lies in the gamma_t band (pilots
+  2.31 +- 0.32, 2.17 +- 0.38); in the hard phase above lambda = 1 MV's conditions are not met and `gamma_se_t` is
+  not-computed.  The gaussian / rademacher runs are unchanged (q lists equal to those captured before the planted
+  start).  ASP, beta = 2, h = 0, m = `sk_1rsb`'s 0.28184, start (0.5, 0.95), N = 2000, seeds 0-5, t = 10: the SE
+  (0.24430, 0.61477) lies inside both bands (pilots, seeds 100-105: 0.24840 +- 0.01561, 0.61564 +- 0.00586; N 1000-3000
+  and t 5-20 all inside, at most 0.66 half-widths off); likewise beta = 3 (SE (0.31040, 0.80139)) and beta = 2 at h = 0.3
+  (m = 0.37564, SE (0.43955, 0.63992)).  Controls, asserted to fail by more than 10 half-widths: no Onsager term (q0,
+  pilot gap 118 half-widths) and m = 0 in f and f' (q1, 35.7).  From start (0, 0.9) at h = 0 every q0 is exactly 0
+  (f = 0) and the band is (0, 0).  AST audits: the diluted denoiser and the planted start import nothing from `bayes/` or
+  `spiked_diluted.py`; `asp_finite.py` imports nothing from `amp/asp.py` or `families/`; each audit has planted
+  failing controls.  The finite-N ASP at t = 10 below the AT line does not converge to the fixed point, so
+  `asp_converged_fraction` is 0 and the comparison is at t, not at the fixed point.
   Errata and readings: the notes' (12.97)-(12.100) put V* inside g_u and U* inside g_v; the signal reaching u is U*
   (LKZ (195)-(196); derived in inference/wishart.py); (12.98)'s closing parenthesis is misplaced; (12.63)-(12.65)'s x
   is sqrt(q0) U; the sentence "if r > 4 + 2 sqrt(alpha)" after (12.100) has no antecedent and is not used.  AFUZ's
@@ -2355,8 +2415,7 @@ KNOWN HAZARDS:
   bank keeps AFUZ's print as the value and the figure reading as a disagreeing source.  bayes/channels.py gains `denoiser_dy` (d E[x|y]/dy = sqrt(snr) Var[x|y]),
   the unit-variance `diluted(rho)` family (amplitude exact as `Sqrt(1/rho)`) and the atom-only fast path
   `scalar_moments(prior, snr, slope)`, which inference/spiked_diluted.py uses for m, m' (I from `mutual_information`):
-  the prior lives in one place.  It converts a prior's Fractions once per denoiser.  Not implemented: finite-N AMP for the diluted prior, finite-N ASP,
-  a spectral start for the Wishart AMP; BBP's outlier law for real samples is their conjecture (a later theorem was
+  the prior lives in one place.  It converts a prior's Fractions once per denoiser.  Not implemented: a spectral start for the Wishart AMP; BBP's outlier law for real samples is their conjecture (a later theorem was
   not fetched), so the Wishart thresholds are not-computed.
 - Linear estimation and convex problems (K6, KZ Ch. 12, 16, 18; `linear/gamp.py`, `se.py`, `lasso.py`, `cs.py`,
   `learning/ridge.py` covariance; entries `lasso`, `compressed_sensing`, `ridge` with `covariance`).

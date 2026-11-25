@@ -7,8 +7,8 @@
 
 | Tier | Command | Size | Time |
 |---|---|---|---|
-| Default | `python3 tools/replicant/selftest.py` | 850 tests | about 63 s (measured 62.92 s in the working tree after the final-review fix wave, load averages 3.4-4.5; K8's 841 tests: 60.57 s / 60.56 s on clean exports, load 3.5-4.3) |
-| Full | `python3 tools/replicant/selftest.py --full` | adds 270 `@slow` tests (1120 in all) | about 48 min (timed at 1a37a65: 1120 passed, 48 min 04 s, under load: load averages about 5-6) |
+| Default | `python3 tools/replicant/selftest.py` | 874 tests | about 70 s (measured 69.70 s at 55fd208, load averages 4.93 at the start and 3.64 at the end; the 850 before the finite-N checks: 62.92 s, load 3.4-4.5; K8's 841 tests: 60.57 s / 60.56 s on clean exports, load 3.5-4.3) |
+| Full | `python3 tools/replicant/selftest.py --full` | adds 273 `@slow` tests (1147 in all) | about 48 min (last timed at 1a37a65, 1120 tests: 1120 passed, 48 min 04 s, under load: load averages about 5-6; not re-timed since) |
 | Repository | `python3 run_selftests.py replicant` | the default tier, through the repo runner | — |
 
 `@slow` (`testing.py`) is a plain function attribute that only `selftest.py` honours. **pytest
@@ -32,7 +32,7 @@ The slow tier contains:
 | Level (a) | `test_derive.py`, `test_derive_ising.py`, `test_derive_rsb.py`, `test_solve*.py`, `test_replicon_derived.py`, `test_gauss*.py` |
 | Families | `test_sk.py`, `test_rem_pspin.py`, `test_perceptron*.py`, `test_hopfield.py`, `test_parisi.py`, `test_gardner_transition.py`, `test_margin_law.py`, `test_pinned.py`, `test_dense_memory.py` |
 | Cavity, CSP, inference | `test_cavity_*.py`, `test_xorsat.py`, `test_ksat.py`, `test_ldpc.py`, `test_spiked.py`, `test_sbm.py` |
-| KZ notes (K1-K7) | `test_curie_weiss.py`, `test_rfim.py`, `test_random_matrix.py`; `test_bayes_scalar.py`, `test_bayes_identities.py`, `test_rem_condensation.py`; `test_factor_bp.py`, `test_potts_coloring.py`, `test_rfim_sparse.py`; `test_sbm_q.py`, `test_sbm_learn.py`, `test_nonbacktracking.py`; `test_spiked_diluted.py`, `test_wishart.py`, `test_asp.py`; `test_linear_gamp.py`, `test_lasso.py`, `test_cs.py`, `test_ridge_covariates.py`; `test_coloring_rsb.py`, `test_coloring_planted.py` |
+| KZ notes (K1-K7) | `test_curie_weiss.py`, `test_rfim.py`, `test_random_matrix.py`; `test_bayes_scalar.py`, `test_bayes_identities.py`, `test_rem_condensation.py`; `test_factor_bp.py`, `test_potts_coloring.py`, `test_rfim_sparse.py`; `test_sbm_q.py`, `test_sbm_learn.py`, `test_nonbacktracking.py`; `test_spiked_diluted.py`, `test_wishart.py`, `test_asp.py`, `test_spiked_diluted_amp.py`, `test_asp_finite.py` (finite-N checks of the diluted AMP and ASP); `test_linear_gamp.py`, `test_lasso.py`, `test_cs.py`, `test_ridge_covariates.py`; `test_coloring_rsb.py`, `test_coloring_planted.py` |
 | AMP | `test_amp_sk.py`, `test_amp_route.py`, `test_gamp.py` |
 | Lattices, bounds, series | `test_lattice*.py`, `test_guerra.py`, `test_series.py` |
 | Online learning | `test_online_*.py` |

@@ -16,8 +16,8 @@ are statistical. Full documentation: [GUIDE.md](GUIDE.md).
 The latest series (K1-K7) follows Krzakala & Zdeborova's lecture notes (*Statistical Physics Methods in Optimization
 and Machine Learning*, June 9 2024): 10 new entries (`curie_weiss`, `rfim`, `random_matrix`, `scalar_denoising`,
 `sparse_denoising`, `potts_bethe`, `coloring`, `spiked_wishart`, `lasso`, `compressed_sensing`; 48 in all), new
-parameters on `rem` (`condensation`), `sbm` (`q`: q groups), `spiked_wigner` (`prior=diluted_rademacher`), the `sk`
-amp route (`ansatz=1rsb`: ASP), `ridge` (`covariance`) and `coloring` (`ansatz=1rsb`, `planted`), and the generic
+parameters on `rem` (`condensation`), `sbm` (`q`: q groups), `spiked_wigner` (`prior=diluted_rademacher`, with finite-N `N`, `init`, `gamma0`), the `sk`
+amp route (`ansatz=1rsb`: ASP, with finite-N `N`, `start`), `ridge` (`covariance`) and `coloring` (`ansatz=1rsb`, `planted`), and the generic
 layers `meanfield/`, `rmt/`, `bayes/`, `factor/`, `coloring/` and `linear/`. The notes' misprints found on the way
 are listed, with the corrected forms and the routes that confirm them, in the GUIDE's KNOWN HAZARDS.
 
@@ -94,7 +94,7 @@ sample`), and `--pdf` (with `--latex`) to compile the derivation.
   the hard phase, the tricritical point; `catalog_spiked_diluted.py`), the entry `spiked_wishart` (amp)
   (`inference/wishart.py`: two-overlap SE, rectangular AMP, the BBP edge; `catalog_wishart.py`, `latex_wishart.py`),
   the dense spin-glass game as the Rademacher spike (`inference/spin_glass_game.py`), and approximate survey
-  propagation for `sk` (`amp/asp.py`, `--route amp --param ansatz=1rsb --param m=...`).  K6 (the notes' Ch. 12, 16,
+  propagation for `sk` (`amp/asp.py`, `--route amp --param ansatz=1rsb --param m=...`); finite-N checks of both AMPs: the diluted prior with a planted or spectral start (`--param N=... --param init=planted --param gamma0=1`, against `diluted_se_trajectory`) and ASP (`amp/asp_finite.py`, `--param N=...` with `ansatz=1rsb`, against `asp_trajectory`).  K6 (the notes' Ch. 12, 16,
   18): `linear/` (GAMP with a Channel x Prior interface and its Bayes SE, the LASSO by AMP with the derived
   calibration and an exact coordinate-descent solver, the compressed-sensing boundaries), the entries `lasso`
   (replica, amp) and `compressed_sensing` (amp) (`catalog_linear.py`, `latex_linear.py`), and `ridge`'s `covariance`.
@@ -230,7 +230,7 @@ sample`), and `--pdf` (with `--latex`) to compile the derivation.
 
 ## Test tiers
 
-- Default: `python3 tools/replicant/selftest.py` (850 tests, about 63 s (measured 62.92 s wall in the working tree after the final-review fix wave, under load: load averages 3.4-4.5; the 841 tests of K8 took 60.57 s and 60.56 s on clean exports of bcc55fc at load 3.5-4.3); the 662 before the margin
+- Default: `python3 tools/replicant/selftest.py` (874 tests, about 70 s (measured 69.70 s wall at 55fd208, under load: load averages 4.93 at the start and 3.64 at the end; the 850 before the finite-N checks took 62.92 s at load 3.4-4.5; the 841 tests of K8 took 60.57 s and 60.56 s on clean exports of bcc55fc at load 3.5-4.3); the 662 before the margin
   law and the pinned directions took 30.2 s cold on an idle machine after the v1 final fix wave). Also `python3 run_selftests.py replicant` from the repository root, with the venv activated (it runs
   the `python3` on PATH; without python-flint the certified lattice, bounds and percolation tests and the Monte
   Carlo exact targets fail, by design).
@@ -238,7 +238,7 @@ sample`), and `--pdf` (with `--latex`) to compile the derivation.
   population dynamics at reference sizes, the K-SAT and LDPC crossings, Monte Carlo and enumeration
   held-out routes, solver-based checks, the online simulations at N = 1000, the lattice, percolation and
   Monte Carlo checks at reference sizes, the KZ lecture-notes series at reference sizes: the q = 5 SBM and coloring
-  thresholds by population dynamics, the slow catalog RefChecks, one test per entry); 1120 tests, about 48 minutes (timed at 1a37a65: 1120 passed, 0 failed, 48 min 04 s wall, under load: load averages about 5.0 at the start and 6.1 at the end); the K = 3 RSB test alone is about 7 minutes).
+  thresholds by population dynamics, the slow catalog RefChecks, one test per entry); 1147 tests (874 + 273 skipped by the default tier), about 48 minutes (last timed at 1a37a65, when it had 1120 tests: 1120 passed, 0 failed, 48 min 04 s wall, under load: load averages about 5.0 at the start and 6.1 at the end; not re-timed since); the K = 3 RSB test alone is about 7 minutes).
 - The held-out tests are `tests/test_heldout*.py` (helpers `tests/heldout_common.py`, `tests/heldout_mc.py`).
 - `@slow` is a plain function attribute honoured by `selftest.py` only. pytest ignores the
   marker and would run every test, slow ones included.
