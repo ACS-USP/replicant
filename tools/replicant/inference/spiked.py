@@ -35,12 +35,17 @@ gamma - E log cosh(gamma + sqrt(gamma) Z), DAM Eq. (6)) by QUADPACK, independent
 
 AMP (MV Eqs. (2.20)-(2.21), Bayes AMP): x^0 = sqrt(N lambda^2 (lambda^2 - 1)) phi_1,
     x^{t+1} = Y f_t(x^t) - b_t f_{t-1}(x^{t-1}),  f_t = lambda F(.; gamma_t),  b_t = <f_t'(x^t)>,
-f_{-1} = 0, estimate xhat^t = F(x^t; gamma_t).  MV Theorem 2 takes gamma_t from SE; here gamma_t is
+estimate xhat^t = F(x^t; gamma_t).  For the spectral start f_{-1} = x^0 / lambda (x^0 as used, with the (2.20)
+scaling), so x^1 = Y f_0(x^0) - b_0 x^0 / lambda: the convention of the proof of MV Theorem 1 (App. A.2, after Eqs.
+(A.19)-(A.21): "E{L f(X~_{-1}; -1)} = 1/lambda", L the limit of sqrt(N) phi_1).  Sec. 6's "all-zeros" f_{-1} is for
+the general algorithm (Eqs. (6.5)-(6.6)) and does not apply to the spectral start, whose x^0 depends on W: with a
+linear f_0(x) = s x, Y f_0(x^0) -> s (lambda + 1/lambda) x^0 while SE needs lambda s x^0, and b_0 f_{-1} = s x^0 /
+lambda is the difference.  The planted start keeps f_{-1} = 0 (x^0 independent of W given the truth).  MV Theorem 2 takes gamma_t from SE; here gamma_t is
 estimated from the iterate (|x^t|^2 / N -> gamma_t^2 + gamma_t), so AMP does not call this
 module's SE: a consistent plug-in, not literally the theorem's algorithm.  Planted start (init="planted", any lambda > 0, no eigsh): x^0 = gamma0 x + sqrt(gamma0) g with the
 truth x and g ~ N(0, 1) from default_rng([seed, 4]), the scalar channel at gamma0, so SE starts at gamma_0 = gamma0
 (spiked_diluted.diluted_se_trajectory; this module does not call it).  `reaction=False` drops
-the Onsager term (non-linear power iteration, the positive control).  Finite-N values are
+every Onsager term, the first one included (non-linear power iteration, the positive control).  Finite-N values are
 statistical (99% Student-t bands over named seeds), never certified.
 """
 import math
@@ -67,6 +72,8 @@ _WZ = _WZ / _WZ.sum()     # weights summing to 1 to rounding (the raw sum is 1 +
 # below about 1e-9) is not searched and the SE reports gamma = 0.
 _FLOOR = 1e-9
 _onsager_scale = 1.0    # private: tests plant 0.5 to show the band resolves the Onsager term
+_spectral_first_step = True   # private: tests plant False (f_{-1} = 0 for the spectral start) to show the t = 1 band
+                              # resolves MV App. A.2's first Onsager term
 _SPECTRAL = ("AMP needs lambda > 1: the spectral start of MV Theorem 2 exists only above the "
              "spectral threshold (below it the Bayes estimate is trivial, q = 0)")
 
@@ -425,7 +432,9 @@ def spiked_amp(Y, prior, *, snr, iters, seed, init="spectral", reaction=True, to
         v0 = np.random.default_rng([seed, 3]).normal(size=N)
         _, vec = eigsh(Y, k=1, which="LA", v0=v0, tol=1e-12)
         x = math.sqrt(N * lam**2 * (lam**2 - 1)) * vec[:, 0]
-    f_old = np.zeros(N)
+    # f_{-1}: x^0 / lambda for the spectral start (x^0 depends on W; MV App. A.2's convention E{L f(X~_{-1}; -1)} =
+    # 1/lambda), 0 for the planted start (x^0 independent of W given x0)
+    f_old = x / lam if init == "spectral" and _spectral_first_step else np.zeros(N)
     gam = _gamma_hat(x)
     gammas, incs, xhat = [gam], [], P.F(x, gam)
     for _ in range(iters):

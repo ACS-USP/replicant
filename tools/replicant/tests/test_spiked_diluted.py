@@ -187,15 +187,33 @@ def _ser(x):
 def test_existing_routes_match_58953a7():
     """Golden values recorded with the code of commit 58953a7 (before K5; `git archive 58953a7` into a temporary
     directory, the same runs): spiked_wigner's gaussian and rademacher priors (threshold, SE, finite-N AMP) and the
-    sk amp route (SE, finite-N AMP) give bit-identical values on HEAD (tests/golden_58953a7.json)."""
+    sk amp route (SE, finite-N AMP) give bit-identical values on HEAD (tests/golden_58953a7.json).  Since the spectral
+    first-step fix (f_{-1} = x^0 / lambda, MV App. A.2) the spiked_wigner finite-N AMP keys (`*_amp`,
+    `*_halfwidth99`, `amp_converged_fraction`) are reproduced bit-identically with the private hook
+    S._spectral_first_step = False (the pre-fix f_{-1} = 0); with the fix every other key is still bit-identical and
+    the finite-N q_amp differs (the new values are pinned in test_spiked_diluted_amp.test_existing_priors_spectral_literals)."""
     import json
     from pathlib import Path
     from replicant.catalog import catalog
     from replicant.compose import compose
     cat = catalog()
+    finite = lambda k: k.endswith("_amp") or k.endswith("_halfwidth99") or k == "amp_converged_fraction"
     for g in json.loads((Path(__file__).parent / "golden_58953a7.json").read_text()):
-        r = compose(cat[g["entry"]].spec, "amp").run(**g["params"])
-        assert _ser(r.values) == g["values"], (g["entry"], g["params"])
+        run = lambda: _ser(compose(cat[g["entry"]].spec, "amp").run(**g["params"]).values)
+        got = run()
+        if g["entry"] == "spiked_wigner" and "N" in g["params"]:
+            saved = S._spectral_first_step
+            try:
+                S._spectral_first_step = False
+                old = run()
+            finally:
+                S._spectral_first_step = saved
+            assert old == g["values"], (g["entry"], g["params"])
+            assert {k: v for k, v in got.items() if not finite(k)} == {k: v for k, v in g["values"].items()
+                                                                       if not finite(k)}, g["params"]
+            assert got["q_amp"] != g["values"]["q_amp"], (got["q_amp"], g["params"])
+        else:
+            assert got == g["values"], (g["entry"], g["params"])
 
 
 def test_diluted_catalog_snr_parsing_and_finality():

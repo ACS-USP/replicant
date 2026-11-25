@@ -268,14 +268,36 @@ def test_planted_amp_tracks_se_at_the_right_t():
         assert not _inside(se[t - 1], b) and not _inside(se[t + 1], b), (t, se[t - 1:t + 2], b)
 
 
-def test_existing_priors_unchanged():
-    """q lists captured on HEAD 75d283b before the planted start was added (seeds=(0,) alone is refused
-    precondition:two-samples by the band, so seeds (0, 1); 15 significant digits)."""
-    e = S.spiked_amp_ensemble(400, 1.5, "rademacher", seeds=(0, 1), iters=10)
-    assert [float(f"{v:.15g}") for v in e.q] == [0.590866685596371, 0.76416572163114], e.q
-    e = S.spiked_amp_ensemble(400, 1.5, "gaussian", seeds=(0, 1), iters=10)
-    assert [float(f"{v:.15g}") for v in e.q] == [0.607332003383008, 0.680652909498955], e.q
-    assert e.init == "spectral" and e.gamma0 is None
+def test_existing_priors_spectral_literals():
+    """q lists of the corrected spectral first step (f_{-1} = x^0 / lambda, MV App. A.2), captured on def62b4 + the
+    fix (seeds=(0,) alone is refused precondition:two-samples by the band, so seeds (0, 1); 15 significant digits).
+    The pre-fix literals (captured on HEAD 75d283b, f_{-1} = 0: rademacher [0.590866685596371, 0.76416572163114],
+    gaussian [0.607332003383008, 0.680652909498955]) are reproduced exactly with the private hook
+    S._spectral_first_step = False, so the fix changes the first Onsager term and nothing else.  The plain route's SE
+    and threshold values (the catalog's non-finite-N keys, captured on def62b4 before the fix) are unchanged."""
+    want = {"rademacher": ([0.590928649260788, 0.76422490372203], [0.590866685596371, 0.76416572163114]),
+            "gaussian": ([0.607310671589356, 0.680639662962322], [0.607332003383008, 0.680652909498955])}
+    for prior, (new, old) in want.items():
+        e = S.spiked_amp_ensemble(400, 1.5, prior, seeds=(0, 1), iters=10)
+        assert [float(f"{v:.15g}") for v in e.q] == new, (prior, e.q)
+        assert e.init == "spectral" and e.gamma0 is None
+        saved = S._spectral_first_step
+        try:
+            S._spectral_first_step = False
+            e0 = S.spiked_amp_ensemble(400, 1.5, prior, seeds=(0, 1), iters=10)
+        finally:
+            S._spectral_first_step = saved
+        assert [float(f"{v:.15g}") for v in e0.q] == old, (prior, e0.q)
+    from replicant.catalog import catalog
+    se = {"rademacher": (1.557662973634, 0.6922946549484444, 0.8320424598230817, 0.30770534505155556,
+                         0.5207281107298143, 1.0000000000002676),
+          "gaussian": (1.2500000000000004, 0.5555555555555558, 0.74535599249993, 0.4444444444444442,
+                       0.6913580246913578, 1.0000000000000648)}
+    for prior, (g, q, ov, mm, mmm, lc) in se.items():
+        v = catalog()["spiked_wigner"].execute("amp", prior=prior, snr=1.5, N=400, seeds=(0, 1), iters=10)[0]["values"]
+        got = (v["gamma_se"], v["q_se"], v["overlap_se"], v["mmse_se"], v["matrix_mmse_se"], float(v["lambda_c"]))
+        assert got == (g, q, ov, mm, mmm, lc), (prior, got)
+        assert v["se_bayes"] is True and v["se_fixed_points"] == [0.0, g], (prior, v["se_fixed_points"])
 
 
 def test_planted_refusals():
@@ -448,6 +470,82 @@ def test_spectral_start_is_gamma0_lambda2_minus_1():
     b = student_band(ov)
     assert _inside(lam**2 - 1, b), b
     assert not _inside(math.sqrt(1 - 1 / lam**2), b), b
+
+
+def _spectral_trace_bands(prior, lam, rho, N, seeds, iters):
+    """99% Student-t bands of the empirical gamma_t at every t = 0..iters, spectral start, one matrix per seed (as
+    spiked_amp_ensemble draws them)."""
+    tr = []
+    for s in seeds:
+        Y, _ = S.spiked_matrix(N, lam, prior, s, rho=rho)
+        tr.append(S.spiked_amp(Y, prior, snr=lam, iters=iters, seed=s, rho=rho).gamma_trace)
+    return [student_band([g[t] for g in tr]) for t in range(iters + 1)]
+
+
+def _rademacher_se(lam, iters):
+    """The plain route's SE from the spectral start gamma_0 = lambda^2 - 1: gamma_{t+1} = lambda^2 (1 - mmse(gamma_t))."""
+    out = [lam**2 - 1]
+    for _ in range(iters):
+        out.append(lam**2 * S.scalar_overlap("rademacher", out[-1]))
+    return out
+
+
+def test_spectral_amp_tracks_se_at_fixed_t():
+    """MV's first step for the spectral start (App. A.2: f_{-1} = x^0 / lambda): rademacher, lambda = 1.5, N = 2000,
+    seeds 0-39.  The SE from gamma_0 = lambda^2 - 1 is 1.25, 1.399143, 1.480700, 1.521457.  At t = 1 the band of
+    gamma_trace[1] contains SE(1) and excludes SE(0) and SE(2); at t = 2 it contains SE(2) and excludes SE(1).  SE(3)
+    is not excluded at t = 2: the step SE(2) -> SE(3) is 0.041, about 1.4 half-widths (the SE contracts).  Pilots
+    (seeds 300-339, 400-439, 500-539, never the test seeds), (SE(t-1), SE(t), SE(t+1)) - mean in half-widths: t = 1:
+    (-8.14, -0.05, +4.37), (-8.69, -0.00, +4.75), (-8.77, -0.76, +3.62); t = 2: (-3.04, -0.09, +1.38), (-2.75, +0.05,
+    +1.45), (-3.64, -0.85, +0.55).  Before the fix (f_{-1} = 0, seeds 300-309) SE(1) sat at -21.9 and SE(2) at -6.5
+    half-widths.  About 1.8 s."""
+    lam = 1.5
+    se = _rademacher_se(lam, 3)
+    assert abs(se[1] - 1.399143) < 1e-6 and abs(se[2] - 1.480700) < 1e-6, se
+    bands = _spectral_trace_bands("rademacher", lam, None, 2000, tuple(range(40)), 2)
+    b1, b2 = bands[1], bands[2]
+    assert _inside(se[1], b1) and not _inside(se[0], b1) and not _inside(se[2], b1), (se, b1)
+    assert _inside(se[2], b2) and not _inside(se[1], b2), (se, b2)
+
+
+def test_spectral_first_step_zero_fails():
+    """The control: the same point (rademacher, lambda = 1.5, N = 2000) with f_{-1} = 0 (the private hook
+    S._spectral_first_step = False, the pre-fix first step), seeds 0-9, t = 1: SE(1) = 1.399143 lies more than 5
+    half-widths from the band's mean (the band sits near 2.0, the first step without its Onsager correction
+    over-shoots by b_0 x^0 / lambda).  The 5 was fixed from pilots (seeds 300-309, 400-409, 500-509): offsets -21.9,
+    -15.9, -15.9 half-widths.  With the fix, SE(1) lies inside the band on the same seeds (asserted), so the
+    criterion separates the two first steps."""
+    lam, seeds = 1.5, tuple(range(10))
+    se1 = _rademacher_se(lam, 1)[1]
+    saved = S._spectral_first_step
+    try:
+        S._spectral_first_step = False
+        b0 = _spectral_trace_bands("rademacher", lam, None, 2000, seeds, 1)[1]
+    finally:
+        S._spectral_first_step = saved
+    assert S._spectral_first_step is saved is True
+    assert abs(b0.mean - se1) > 5 * b0.half_width, (se1, b0)
+    b = _spectral_trace_bands("rademacher", lam, None, 2000, seeds, 1)[1]
+    assert abs(b.mean - se1) <= b.half_width, (se1, b)
+
+
+@slow
+def test_diluted_spectral_amp_tracks_se_at_fixed_t():
+    """The diluted point of test_spectral_amp_tracks_se_at_fixed_t: rho = 0.08, lambda = 1.2 (easy phase), N = 2000,
+    seeds 0-39.  SE from gamma_0 = lambda^2 - 1 = 0.44 (diluted_se_trajectory): 0.44, 0.643990, 0.871498, 1.053433.
+    At t = 1 the band contains SE(1) and excludes SE(0) and SE(2); at t = 2 it contains SE(2) (the diluted bands are
+    wider, a step is 1.3-2.7 half-widths at t = 2, so no exclusion is asserted there).  Pilots (seeds 300-339, 400-439,
+    500-539), in half-widths: t = 1: (-3.44, +0.71, +5.33), (-4.36, -0.82, +3.12), (-3.13, -0.22, +3.02); t = 2: SE(2)
+    at +0.89, -0.63, -0.08.  Before the fix (f_{-1} = 0, seeds 300-339, 400-439, 500-539) SE(1) sat at -8.19, -8.37,
+    -6.37 half-widths at t = 1.  N = 4000 was piloted and not used (seeds 300-339: SE(2) at +1.04 half-widths at
+    t = 2, i.e. outside).  About 2.3 s; @slow to keep the default tier's growth small."""
+    from replicant.inference import spiked_diluted as SD
+    lam, rho = 1.2, 0.08
+    se = SD.diluted_se_trajectory(lam, rho, lam**2 - 1, 3)
+    bands = _spectral_trace_bands("diluted_rademacher", lam, rho, 2000, tuple(range(40)), 2)
+    b1, b2 = bands[1], bands[2]
+    assert _inside(se[1], b1) and not _inside(se[0], b1) and not _inside(se[2], b1), (se, b1)
+    assert _inside(se[2], b2), (se, b2)
 
 
 def test_diluted_spectral_metastable_easy_phase():

@@ -65,9 +65,9 @@ def spiked_wigner(route):
             source=_DAM,
             check=Check((LAM, G), lambda l, g: S.spiked_potential(l, g, "gaussian"),
                         (("1.5", "1.25"), ("2", "1"), ("3", "8")), "rhs")),
-        cited("Bayes AMP with spectral start (MV Eqs. (2.20)-(2.21))",
-              r"x^0 = \sqrt{N\lambda^2(\lambda^2-1)}\,\varphi_1,\quad x^{t+1} = Y f_t(x^t) - b_t f_{t-1}"
-              r"(x^{t-1}),\quad f_t = \lambda F(\cdot;\gamma_t),\quad b_t = \frac{1}{N}\sum_i f_t'(x^t_i)",
+        cited("Bayes AMP with spectral start (MV Eqs. (2.20)-(2.21), first step by the convention of App. A.2)",
+              r"x^0 = \sqrt{N\lambda^2(\lambda^2-1)}\,\varphi_1 = \lambda f_{-1},\quad x^{t+1} = Y f_t(x^t) - b_t"
+              r" f_{t-1}(x^{t-1}),\quad f_t = \lambda F(\cdot;\gamma_t),\quad b_t = \frac{1}{N}\sum_i f_t'(x^t_i)",
               _MV),
         cited("Threshold for nontrivial estimation (both priors)",
               r"\lambda_c = 1:\quad q^* = 0 \text{ for } \lambda \le 1,\quad q^* > 0 \text{ for } \lambda > 1",
