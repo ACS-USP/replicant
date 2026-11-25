@@ -23,7 +23,7 @@ calculation for a nearby model.
 - A LaTeX writer that turns any run, refusals included, into a derivation appendix.
 - A battery runner without pytest:
   - default tier, 882 tests, about 80 s (measured 79.48 s after the spectral first-step fix under load, load averages 3.94 / 5.21; 75.07 s for the 880 of the finite-N fix wave; 69.70 s for the 874 at 55fd208; 62.92 s for the 850 before the finite-N checks);
-  - `--full` adds 274 `@slow` tests (1156 in all), about 49 minutes (last timed at ff1e62e, 1156 tests: 1156 passed, 48 min 52 s).
+  - `--full` adds 274 `@slow` tests (1156 in all), about 49 minutes (last timed at ff1e62e, 1156 tests: 1156 passed, 0 failed, 48 min 52 s, load averages 3.72 at the start and 3.38 at the end).
 
 ## Pages
 

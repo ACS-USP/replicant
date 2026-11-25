@@ -238,7 +238,7 @@ sample`), and `--pdf` (with `--latex`) to compile the derivation.
   population dynamics at reference sizes, the K-SAT and LDPC crossings, Monte Carlo and enumeration
   held-out routes, solver-based checks, the online simulations at N = 1000, the lattice, percolation and
   Monte Carlo checks at reference sizes, the KZ lecture-notes series at reference sizes: the q = 5 SBM and coloring
-  thresholds by population dynamics, the slow catalog RefChecks, one test per entry); 1156 tests (882 + 274 skipped by the default tier), about 49 minutes (last timed at ff1e62e: 1156 passed, 0 failed, 48 min 52 s wall, load averages 3.72 at the start and 3.38 at the end); the K = 3 RSB test alone is about 7 minutes).
+  thresholds by population dynamics, the slow catalog RefChecks, one test per entry); 1156 tests (882 + 274 skipped by the default tier), about 49 minutes (last timed at ff1e62e: 1156 passed, 0 failed, 48 min 52 s (2931.87 s) wall, load averages 3.72 at the start and 3.38 at the end); the K = 3 RSB test alone is about 7 minutes).
 - The held-out tests are `tests/test_heldout*.py` (helpers `tests/heldout_common.py`, `tests/heldout_mc.py`).
 - `@slow` is a plain function attribute honoured by `selftest.py` only. pytest ignores the
   marker and would run every test, slow ones included.

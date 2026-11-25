@@ -21,7 +21,7 @@ All notable changes to BootLoops are recorded here. The format follows
   test checks the finite-N keys under the hook, every other key unchanged, and the post-fix finite-N keys of the
   N = 200 rademacher entry bit-for-bit against `tests/golden_spectral_first_step_ff1e62e.json` (captured from the code
   of ff1e62e). Default tier 882 tests, 79.48 s (load averages 3.94 at the start, 5.21 at the end); slow tier 274 tests;
-  full tier 1156 passed, 0 failed, 48 min 52 s at ff1e62e (load averages 3.72 at the start, 3.38 at the end).
+  full tier 1156 passed, 0 failed, 48 min 52 s (2931.87 s) at ff1e62e (load averages 3.72 at the start, 3.38 at the end).
 - `replicant` (final-review fix wave of the finite-N checks): the diluted `spiked_wigner` spectral start's
   `gamma_se_t` is the SE at the run's t from gamma_0 = lambda^2 - 1 (x^0 = sqrt(N lambda^2 (lambda^2 - 1)) phi_1 has
   |x^0|^2/N = lambda^2 (lambda^2 - 1); checked: gamma_trace[0] is lambda^2 - 1 to rounding and the band of <x^0, x>/N
@@ -33,8 +33,7 @@ All notable changes to BootLoops are recorded here. The format follows
   half-widths; off-by-one checks at t = 1, 2 (diluted planted) and t = 1 (ASP q0) with SE(t - 1), SE(t + 1) outside
   the band; a default-tier two-branch variant (N = 2000, margin 3, pilots 4.87-7.67); the spectral gamma_0 check; the
   metastable probe point; the spectral band excludes 0. Planted / gaussian / rademacher values unchanged. Default tier
-  880 tests, 75.07 s (load averages 6.52 at the start, 6.45 at the end); slow tier 273 tests, full tier not re-timed
-  (full tier timed at ff1e62e: 1156 passed, 48 min 52 s).
+  880 tests, 75.07 s (load averages 6.52 at the start, 6.45 at the end); slow tier 273 tests.
 - `replicant` (parked items of the Krzakala-Zdeborova series): `coloring` ER clustering at q >= 4 is refused in the
   entry's first step, so a run with `N` no longer pays for K3's BP on graphs before the refusal
   (`coloring/rsb.refuse_er_first_order`, shared with `cluster_thresholds`); the `rfim` note reads `d =` on a regular
