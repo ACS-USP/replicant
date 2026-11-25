@@ -127,21 +127,29 @@ def diluted_prior(rho):
         return _DILUTED_CACHE[r]
     a = 1 / math.sqrt(r)
 
+    log_half = math.log(r / 2)
+    log_zero = math.log1p(-r) if r < 1 else -math.inf     # the zero atom is dropped exactly at rho = 1
+
+    def _exp(x):
+        return np.exp(np.maximum(x, -700.0))              # e^-700 is normal: no underflow trap
+
     def parts(y, g):
-        # numerator sinh and denominator D = rho cosh(a y) + (1 - rho) e^{g a^2/2} (and cosh), all divided by
-        # e^{m}, m = max(|a y|, g a^2/2): every exponent is <= 0, so nothing overflows
+        # log-sum-exp over the atoms {+a, -a, 0}: log-weights (common factors dropped) log(rho/2) +- a y - g a^2/2
+        # and log(1 - rho); every exponent after the shift by their maximum is <= 0
         u = np.abs(a * np.asarray(y, dtype=float))
         s = g * a * a / 2
-        m = np.maximum(u, s)
-        eu, e_u, es = np.exp(u - m), np.exp(-u - m), np.exp(s - m)
-        den = r * (eu + e_u) / 2 + (1 - r) * es
-        return a * r * (eu - e_u) / 2 / den, a * a * r * (eu + e_u) / 2 / den
+        lp, lm = log_half + u - s, log_half - u - s
+        m = np.maximum(lp, log_zero)
+        ep, em, e0 = _exp(lp - m), _exp(lm - m), (_exp(log_zero - m) if r < 1 else 0.0)
+        den = ep + em + e0
+        return a * (ep - em) / den, a * a * (ep + em) / den
 
     def F(y, g):
         return np.sign(y) * parts(y, g)[0]
 
     def dF(y, g):
         f, second = parts(y, g)
+        f = np.where(np.abs(f) < 1e-150, 0.0, f)          # f^2 would underflow (harmless, but trapped)
         return np.maximum(second - f * f, 0.0)
 
     def sample(rng, n):
