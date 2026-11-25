@@ -191,13 +191,17 @@ def test_existing_routes_match_58953a7():
     first-step fix (f_{-1} = x^0 / lambda, MV App. A.2) the spiked_wigner finite-N AMP keys (`*_amp`,
     `*_halfwidth99`, `amp_converged_fraction`) are reproduced bit-identically with the private hook
     S._spectral_first_step = False (the pre-fix f_{-1} = 0); with the fix every other key is still bit-identical and
-    the finite-N q_amp differs (the new values are pinned in test_spiked_diluted_amp.test_existing_priors_spectral_literals)."""
+    the finite-N q_amp differs.  The post-fix finite-N keys are pinned bit-for-bit in tests/golden_spectral_first_step_ff1e62e.json
+    (the same run captured from the code of commit ff1e62e, i.e. with the spectral first-step fix; only the finite-N keys),
+    and also in test_spiked_diluted_amp.test_existing_priors_spectral_literals."""
     import json
     from pathlib import Path
     from replicant.catalog import catalog
     from replicant.compose import compose
     cat = catalog()
     finite = lambda k: k.endswith("_amp") or k.endswith("_halfwidth99") or k == "amp_converged_fraction"
+    post_fix = json.loads((Path(__file__).parent / "golden_spectral_first_step_ff1e62e.json").read_text())
+    checked_post = 0
     for g in json.loads((Path(__file__).parent / "golden_58953a7.json").read_text()):
         run = lambda: _ser(compose(cat[g["entry"]].spec, "amp").run(**g["params"]).values)
         got = run()
@@ -212,8 +216,13 @@ def test_existing_routes_match_58953a7():
             assert {k: v for k, v in got.items() if not finite(k)} == {k: v for k, v in g["values"].items()
                                                                        if not finite(k)}, g["params"]
             assert got["q_amp"] != g["values"]["q_amp"], (got["q_amp"], g["params"])
+            post = [p for p in post_fix if p["entry"] == g["entry"] and p["params"] == g["params"]]
+            assert len(post) == 1, g["params"]
+            assert {k: v for k, v in got.items() if finite(k)} == post[0]["values"], g["params"]
+            checked_post += 1
         else:
             assert got == g["values"], (g["entry"], g["params"])
+    assert checked_post == len(post_fix) == 1, (checked_post, len(post_fix))
 
 
 def test_diluted_catalog_snr_parsing_and_finality():

@@ -1,0 +1,26 @@
+[
+ {
+  "entry": "spiked_wigner",
+  "params": {
+   "snr": "1.5",
+   "prior": "rademacher",
+   "N": 200,
+   "seeds": [
+    0,
+    1
+   ],
+   "iters": 10
+  },
+  "values": {
+   "amp_converged_fraction": "f:0.0",
+   "q_amp": "f:0.6962398003420219",
+   "q_amp_halfwidth99": "f:2.3350517070525867",
+   "overlap_amp": "f:0.8144917389991891",
+   "overlap_amp_halfwidth99": "f:2.5145379469378786",
+   "mmse_amp": "f:0.3379445930862154",
+   "mmse_amp_halfwidth99": "f:4.279715035204165",
+   "matrix_mmse_amp": "f:0.561366266807648",
+   "matrix_mmse_amp_halfwidth99": "f:5.932725503394261"
+  }
+ }
+]
