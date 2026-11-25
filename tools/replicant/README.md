@@ -234,7 +234,7 @@ sample`), and `--pdf` (with `--latex`) to compile the derivation.
   law and the pinned directions took 30.2 s cold on an idle machine after the v1 final fix wave). Also `python3 run_selftests.py replicant` from the repository root, with the venv activated (it runs
   the `python3` on PATH; without python-flint the certified lattice, bounds and percolation tests and the Monte
   Carlo exact targets fail, by design).
-- Full: `python3 tools/replicant/selftest.py --full` adds the 270 `@slow` tests (full RSB,
+- Full: `python3 tools/replicant/selftest.py --full` adds the 273 `@slow` tests (full RSB,
   population dynamics at reference sizes, the K-SAT and LDPC crossings, Monte Carlo and enumeration
   held-out routes, solver-based checks, the online simulations at N = 1000, the lattice, percolation and
   Monte Carlo checks at reference sizes, the KZ lecture-notes series at reference sizes: the q = 5 SBM and coloring

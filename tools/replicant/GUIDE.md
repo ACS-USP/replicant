@@ -678,10 +678,10 @@ the SE map gamma_{t+1} = lambda^2 m(gamma_t) (`precondition:gamma0`); `diluted_t
 `informative_start(x, prior, init_snr, seed)`, `wishart_amp(Y, prior_u, prior_v, *, snr, iters, v_init)` ->
 `WishartAMP(u_hats, v_hats, ...)`.  `spin_glass_game.game_snr(beta)` (= beta), `game_snr_lm(beta)` (= beta^2),
 `game_matrix(N, beta, seed)`.  `asp.asp_fixed_point(beta, m, h=0, *, start, tol, max_iter, grid)` -> `ASPResult(q0, q1,
-converged, iterations, note)`; `asp.asp_trajectory(beta, m, h=0, *, start=(0.5, 0.95), iters)` -> the list of (q0, q1)
-from the start, `iters + 1` entries (`precondition:start`, `precondition:positive-iters`);
-`from replicant.amp import asp_finite` : `asp_amp(J, beta, m, *, h, iters, seed, start, reaction, tol)` -> `ASPAMPResult`,
-`asp_amp_ensemble(N, beta, m, h=0, *, seeds, iters, start, reaction, tol)` -> `ASPAMPEnsemble(q0, q1, converged, bands, ...)`
+converged, iterations, note)`; `asp.asp_trajectory(beta, m, h=0, *, start=None, iters, grid=1)` -> the list of (q0, q1)
+from the start (None: (0.5, 0.95)), `iters + 1` entries (`precondition:start`, `precondition:positive-iters`);
+`from replicant.amp import asp_finite` : `asp_amp(J, beta, m, *, h=0, iters, seed, start=None, reaction=True, tol=1e-10)` -> `ASPAMPResult`,
+`asp_amp_ensemble(N, beta, m, h=0, *, seeds, iters, start=None, reaction=True, tol=1e-10)` -> `ASPAMPEnsemble(q0, q1, converged, bands, ...)`
 (Gaussian J from `amp/sk.py`; imports nothing from `amp/asp.py` or `families/`).  Example: `diluted_spinodals(0.08).snr_dyn ** -2` -> 1.04086011494.
 `from replicant.linear import gamp, se, lasso, cs` (K6; A is M x N with i.i.d. N(0, 1/N) entries, alpha = M/N; priors
 are `bayes.channels.Prior`s): `gamp.Channel(name, **p)` (`awgn` with `Delta` (default 1), `sign`);
@@ -1952,7 +1952,7 @@ the Wishart SE against its Gaussian closed form and small rectangular AMP, ASP a
 values (K5); GAMP against amp/gamp, the LASSO against Bayati-Montanari's formulas and coordinate descent, the l1
 boundary by two routes, ridge with a covariance against HMRT's definitions and all 14 ridge keys (K6); the
 colorability table, the rigidity scaling, the planted coloring's SBM link and small-N counts against the first
-moment and Bethe (K7), each with planted errors. `--full` adds 270 `@slow` tests (the KZ series at reference sizes:
+moment and Bethe (K7), each with planted errors. `--full` adds 273 `@slow` tests (the KZ series at reference sizes:
 the q = 5 SBM c_d, c_c by population dynamics, the finite-N BP pair, the non-backtracking bank and EM; the
 colorability, clustering and regular 1RSB tables by population dynamics, the planted-BP threshold at N = 5000 and
 the KS test of coloring BP on graphs; the slow catalog RefChecks, one @slow test per entry (coloring split by
@@ -2394,7 +2394,7 @@ KNOWN HAZARDS:
   0.849363, IT 0.864471, alg 1.002700; middle fixed point 0.0788588), N = 8000, seeds 0-19, t = 4, weak start gamma0 =
   0.03 (below it) against strong gamma0 = 1: the gamma_t band means differ by more than 10 times the summed half-widths
   (pilots 16.5 to 22.6; 10.8 at N = 3000, hence N = 8000) and each band holds its own SE value (0.0201559, 0.735357).
-  Negative control (slow): lambda = 0.6 (below dyn, away from it), t = 8: both starts end on the uninformative branch
+  Negative control (slow): rho = 0.05, lambda = 0.6 (below dyn, away from it), N = 8000, seeds 0-19, t = 8: both starts end on the uninformative branch
   (SE 8.43655e-06, 4.99340e-04), and the same criterion is asserted to fail at the hard point.  Spectral start: rho =
   0.08, lambda = 1.5, N = 2000, seeds 0-7, 30 iterations: the SE fixed point 2.18565 lies in the gamma_t band (pilots
   2.31 +- 0.32, 2.17 +- 0.38); in the hard phase above lambda = 1 MV's conditions are not met and `gamma_se_t` is
